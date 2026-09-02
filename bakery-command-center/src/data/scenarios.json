@@ -1,0 +1,213 @@
+{
+  "_note": "PLACEHOLDER DATA — realistic but fictional. Replace with real GM meeting / finance figures before external use. Currency: AED.",
+
+  "meta": {
+    "companyName": "Grandiose Supermarket",
+    "division": "Bakery Division",
+    "headcountCurrent": 112,
+    "headcountTarget": 200,
+    "shiftLength": 9,
+    "wastageTarget": 1.0
+  },
+
+  "scenarios": {
+    "actuals": {
+      "label": "Actuals",
+      "months": {
+        "Aug": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1620000, "delta": 1.1}, "grossMargin": {"value": 31.8, "delta": -0.4}, "wastageCost": {"value": 47800, "delta": 5.2}, "capacityUtilization": {"value": 29.6, "delta": 0.8}, "workingCapital": {"value": 588000, "delta": 1.9} } },
+        "Sep": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1655000, "delta": 2.2}, "grossMargin": {"value": 32.1, "delta": 0.3}, "wastageCost": {"value": 46200, "delta": -3.3}, "capacityUtilization": {"value": 30.1, "delta": 0.5}, "workingCapital": {"value": 595000, "delta": 1.2} } },
+        "Oct": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1701000, "delta": 2.8}, "grossMargin": {"value": 32.6, "delta": 0.5}, "wastageCost": {"value": 44900, "delta": -2.8}, "capacityUtilization": {"value": 30.5, "delta": 0.4}, "workingCapital": {"value": 601000, "delta": 1.0} } },
+        "Nov": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1748000, "delta": 2.8}, "grossMargin": {"value": 33.0, "delta": 0.4}, "wastageCost": {"value": 45500, "delta": 1.3}, "capacityUtilization": {"value": 31.0, "delta": 0.5}, "workingCapital": {"value": 604000, "delta": 0.5} } },
+        "Dec": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1892000, "delta": 8.2}, "grossMargin": {"value": 33.4, "delta": 0.4}, "wastageCost": {"value": 51200, "delta": 12.5}, "capacityUtilization": {"value": 33.8, "delta": 2.8}, "workingCapital": {"value": 618000, "delta": 2.3} } },
+        "Jan": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1710000, "delta": -9.6}, "grossMargin": {"value": 32.7, "delta": -0.7}, "wastageCost": {"value": 46700, "delta": -8.8}, "capacityUtilization": {"value": 31.2, "delta": -2.6}, "workingCapital": {"value": 609000, "delta": -1.5} } },
+        "Feb": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1733000, "delta": 1.3}, "grossMargin": {"value": 33.0, "delta": 0.3}, "wastageCost": {"value": 45100, "delta": -3.4}, "capacityUtilization": {"value": 31.5, "delta": 0.3}, "workingCapital": {"value": 605000, "delta": -0.7} } },
+        "Mar": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1789000, "delta": 3.2}, "grossMargin": {"value": 33.3, "delta": 0.3}, "wastageCost": {"value": 46800, "delta": 3.8}, "capacityUtilization": {"value": 31.9, "delta": 0.4}, "workingCapital": {"value": 610000, "delta": 0.8} } },
+        "Apr": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1811000, "delta": 1.2}, "grossMargin": {"value": 33.6, "delta": 0.3}, "wastageCost": {"value": 43900, "delta": -6.2}, "capacityUtilization": {"value": 32.0, "delta": 0.1}, "workingCapital": {"value": 608000, "delta": -0.3} } },
+        "May": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1798000, "delta": -0.7}, "grossMargin": {"value": 33.4, "delta": -0.2}, "wastageCost": {"value": 45300, "delta": 3.2}, "capacityUtilization": {"value": 31.7, "delta": -0.3}, "workingCapital": {"value": 611000, "delta": 0.5} } },
+        "Jun": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 1806000, "delta": 0.4}, "grossMargin": {"value": 33.7, "delta": 0.3}, "wastageCost": {"value": 41500, "delta": -8.4}, "capacityUtilization": {"value": 32.0, "delta": 0.3}, "workingCapital": {"value": 615000, "delta": 0.7} } },
+        "Jul": {
+          "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": {
+            "revenue": { "value": 1850000, "delta": 2.4, "unit": "AED" },
+            "grossMargin": { "value": 34.2, "delta": 0.6 },
+            "wastageCost": { "value": 42600, "delta": -8.1 },
+            "capacityUtilization": { "value": 32.4, "delta": 1.1 },
+            "workingCapital": { "value": 612000, "delta": -0.5 }
+          },
+          "sankey": {
+            "revenue": [
+              { "name": "Retail Bakery Sales", "value": 1180000 },
+              { "name": "Arabic Bread (Night Shift)", "value": 340000 },
+              { "name": "Semi-Finished / Wholesale", "value": 220000 },
+              { "name": "Festive & Special Orders", "value": 110000 }
+            ],
+            "costOfProduction": [
+              { "name": "Flour & Grains", "value": 210000 },
+              { "name": "Dairy & Butter", "value": 165000 },
+              { "name": "Packaging", "value": 58000 },
+              { "name": "Utilities & Ovens", "value": 47000 }
+            ],
+            "opex": [
+              { "name": "Labor", "value": 520000 },
+              { "name": "Wastage", "value": 42600 },
+              { "name": "Distribution & Logistics", "value": 61000 },
+              { "name": "Maintenance & Equipment", "value": 33000 },
+              { "name": "Admin & Overheads", "value": 74000 }
+            ]
+          },
+          "variance": {
+            "budget": -310000,
+            "steps": [
+              { "label": "Flour", "value": -18000 },
+              { "label": "Dairy/Butter", "value": -11000 },
+              { "label": "Packaging", "value": 4000 },
+              { "label": "Labor", "value": -22000 },
+              { "label": "Wastage", "value": -9600 },
+              { "label": "Utilities", "value": 3000 },
+              { "label": "Admin", "value": -1400 }
+            ],
+            "actual": -365000
+          }
+        }
+      },
+      "quarters": {
+        "Q4": { "subtitle": "Actual production and cost data as logged by shift supervisors.",
+          "kpis": { "revenue": {"value": 5333000, "delta": 4.6}, "grossMargin": {"value": 33.7, "delta": 0.4}, "wastageCost": {"value": 129700, "delta": -3.1}, "capacityUtilization": {"value": 32.1, "delta": 0.9}, "workingCapital": {"value": 612000, "delta": 1.4} } }
+      },
+      "ytd": {
+        "subtitle": "Actual production and cost data as logged by shift supervisors, FY2026 through July.",
+        "kpis": { "revenue": {"value": 20315000}, "grossMargin": {"value": 32.9}, "wastageCost": {"value": 545500}, "capacityUtilization": {"value": 31.4}, "workingCapital": {"value": 612000} }
+      }
+    },
+
+    "gmTargetPlan": {
+      "label": "GM Target Plan",
+      "months": {
+        "Jul": {
+          "subtitle": "The productivity and cost targets set in the July 27 GM review.",
+          "kpis": {
+            "revenue": { "value": 2100000, "delta": 13.5 },
+            "grossMargin": { "value": 38.0, "delta": 3.8 },
+            "wastageCost": { "value": 21000, "delta": -50.7 },
+            "capacityUtilization": { "value": 65.0, "delta": 32.6 },
+            "workingCapital": { "value": 540000, "delta": -11.8 }
+          }
+        }
+      },
+      "quarters": {
+        "Q4": { "subtitle": "The productivity and cost targets set in the July 27 GM review.",
+          "kpis": { "revenue": {"value": 6300000}, "grossMargin": {"value": 38.0}, "wastageCost": {"value": 63000}, "capacityUtilization": {"value": 65.0}, "workingCapital": {"value": 540000} } }
+      },
+      "ytd": {
+        "subtitle": "The productivity and cost targets set in the July 27 GM review, FY2026 through July.",
+        "kpis": { "revenue": {"value": 23400000}, "grossMargin": {"value": 38.0}, "wastageCost": {"value": 231000}, "capacityUtilization": {"value": 65.0}, "workingCapital": {"value": 540000} }
+      }
+    },
+
+    "efficiencyCase": {
+      "label": "Efficiency Case",
+      "months": {
+        "Jul": {
+          "subtitle": "Projected results if wastage is brought down to the 1% target.",
+          "kpis": {
+            "revenue": { "value": 1850000, "delta": 0 },
+            "grossMargin": { "value": 35.4, "delta": 1.2 },
+            "wastageCost": { "value": 18500, "delta": -56.6 },
+            "capacityUtilization": { "value": 32.4, "delta": 0 },
+            "workingCapital": { "value": 612000, "delta": 0 }
+          }
+        }
+      },
+      "quarters": {
+        "Q4": { "subtitle": "Projected results if wastage is brought down to the 1% target.",
+          "kpis": { "revenue": {"value": 5333000}, "grossMargin": {"value": 35.4}, "wastageCost": {"value": 53330}, "capacityUtilization": {"value": 32.1}, "workingCapital": {"value": 612000} } }
+      },
+      "ytd": {
+        "subtitle": "Projected results if wastage is brought down to the 1% target, FY2026 through July.",
+        "kpis": { "revenue": {"value": 20315000}, "grossMargin": {"value": 35.4}, "wastageCost": {"value": 203150}, "capacityUtilization": {"value": 31.4}, "workingCapital": {"value": 612000} }
+      }
+    },
+
+    "expansionCase": {
+      "label": "Expansion Case",
+      "months": {
+        "Jul": {
+          "subtitle": "Projected results at full headcount (200) and capacity build-out.",
+          "kpis": {
+            "revenue": { "value": 3050000, "delta": 64.9 },
+            "grossMargin": { "value": 36.5, "delta": 2.3 },
+            "wastageCost": { "value": 61000, "delta": 43.2 },
+            "capacityUtilization": { "value": 71.0, "delta": 38.6 },
+            "workingCapital": { "value": 890000, "delta": 45.4 }
+          }
+        }
+      },
+      "quarters": {
+        "Q4": { "subtitle": "Projected results at full headcount (200) and capacity build-out.",
+          "kpis": { "revenue": {"value": 9150000}, "grossMargin": {"value": 36.5}, "wastageCost": {"value": 183000}, "capacityUtilization": {"value": 71.0}, "workingCapital": {"value": 890000} } }
+      },
+      "ytd": {
+        "subtitle": "Projected results at full headcount (200) and capacity build-out, FY2026 through July.",
+        "kpis": { "revenue": {"value": 34200000}, "grossMargin": {"value": 36.5}, "wastageCost": {"value": 684000}, "capacityUtilization": {"value": 71.0}, "workingCapital": {"value": 890000} }
+      }
+    },
+
+    "modelScenario": {
+      "label": "Model a scenario",
+      "default": {
+        "incrementalHiring": 0,
+        "wastageReductionTarget": 2.3,
+        "months": {
+          "Jul": {
+            "subtitle": "Your custom what-if, built from the levers below.",
+            "kpis": {
+              "revenue": { "value": 1850000, "delta": 2.4 },
+              "grossMargin": { "value": 34.2, "delta": 0.6 },
+              "wastageCost": { "value": 42600, "delta": -8.1 },
+              "capacityUtilization": { "value": 32.4, "delta": 1.1 },
+              "workingCapital": { "value": 612000, "delta": -0.5 }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "supplierRisk": {
+    "summary": { "vendorCount": 68, "onNinetyDayTerms": 95, "safetyStockMonths": 3 },
+    "categoryBar": [
+      { "category": "Flour & Grains", "value": 21, "status": "dual-sourced" },
+      { "category": "Dairy & Butter", "value": 18, "status": "dual-sourced" },
+      { "category": "Packaging", "value": 16, "status": "single-sourced" },
+      { "category": "Other Ingredients", "value": 13, "status": "mixed" }
+    ],
+    "suppliers": [
+      { "name": "Al Rawabi Flour Mills", "category": "Flour & Grains", "sourcing": "Dual-sourced", "leadTimeDays": 4, "spendAED": 92000, "risk": "Low" },
+      { "name": "Gulf Dairy Co-op", "category": "Dairy & Butter", "sourcing": "Dual-sourced", "leadTimeDays": 3, "spendAED": 78000, "risk": "Low" },
+      { "name": "Emirates Packaging Solutions", "category": "Packaging", "sourcing": "Single-sourced", "leadTimeDays": 11, "spendAED": 41000, "risk": "High" },
+      { "name": "Al Ain Butter Traders", "category": "Dairy & Butter", "sourcing": "Dual-sourced", "leadTimeDays": 5, "spendAED": 36000, "risk": "Low" },
+      { "name": "Desert Rose Packaging", "category": "Packaging", "sourcing": "Single-sourced", "leadTimeDays": 9, "spendAED": 22000, "risk": "Watch" },
+      { "name": "Sharjah Grain Traders", "category": "Flour & Grains", "sourcing": "Dual-sourced", "leadTimeDays": 6, "spendAED": 19000, "risk": "Low" },
+      { "name": "Al Foah Ingredients", "category": "Other Ingredients", "sourcing": "Single-sourced", "leadTimeDays": 14, "spendAED": 17000, "risk": "High" },
+      { "name": "Barakah Spice & Flavor", "category": "Other Ingredients", "sourcing": "Dual-sourced", "leadTimeDays": 7, "spendAED": 9000, "risk": "Low" }
+    ]
+  },
+
+  "forecast13Week": {
+    "note": "Wastage rate (%) projection, weeks 1-13, base case with P25-P75 and P10-P90 bands.",
+    "baseline": [2.9, 2.7, 2.5, 2.6, 2.4, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5],
+    "sliderRange": { "min": 0, "max": 88, "step": 1, "unit": "additional hires toward 200 target" },
+    "readoutTemplate": "Capacity utilization reaches {value}% by {month}"
+  }
+}

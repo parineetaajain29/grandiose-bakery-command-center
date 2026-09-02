@@ -1,0 +1,29 @@
+/*
+  Design tokens — brief §2. Colors are CSS custom properties so the
+  light/dark toggle is a single class swap on <html> (.light), never a
+  per-component recompute. Accent colors are identical across themes;
+  only the neutrals (background/panel/border/text) invert.
+*/
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-panel: #111116;
+  --border-subtle: #23232b;
+  --text-primary: #f5f5f2;
+  --text-secondary: #8a8a94;
+
+  --accent-blue: #5b8def;
+  --accent-orange: #e88a3c;
+  --accent-red: #e0555a;
+  --accent-green: #4fd1a5;
+}
+
+:root.light {
+  --bg-primary: #fcfbf8;
+  --bg-panel: #ffffff;
+  --border-subtle: #e8e6df;
+  --text-primary: #1a1a1f;
+  --text-secondary: #6b6b76;
+
+  /* accents unchanged intentionally */
+}

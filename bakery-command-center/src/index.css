@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+@import './styles/fonts.css';
+@import './styles/tokens.css';
+
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-panel: var(--bg-panel);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-red: var(--accent-red);
+  --color-accent-green: var(--accent-green);
+
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  ::selection {
+    background-color: var(--accent-blue);
+    color: #0a0a0f;
+  }
+}
+
+@layer utilities {
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
