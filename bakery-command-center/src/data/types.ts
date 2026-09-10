@@ -501,6 +501,21 @@ export interface ScenarioResilienceData {
   supplierAlternatives: SupplierAlternativesConfig;
 }
 
+// --- Company Profile — ported from Streamlit (app.py lines 2921-2998). ---
+// GM-meeting content, not placeholder/illustrative data like the rest of this
+// migration — see scenarios.json's companyProfile._note for the one
+// disclosed content edit (a dated "next steps" section trimmed and renamed).
+
+export interface CompanyProfileSection {
+  title: string;
+  bullets: string[];
+}
+
+export interface CompanyProfileData {
+  meetingCaption: string;
+  sections: CompanyProfileSection[];
+}
+
 export interface ScenariosFile {
   _note: string;
   meta: {
@@ -524,4 +539,5 @@ export interface ScenariosFile {
   forecast13Week: Forecast13Week;
   performanceTracker: PerformanceTrackerData;
   scenarioResilience: ScenarioResilienceData;
+  companyProfile: CompanyProfileData;
 }

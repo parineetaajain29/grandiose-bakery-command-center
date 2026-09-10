@@ -336,7 +336,7 @@
     },
     "categoryPanels": [
       {
-        "title": "🥖 Production",
+        "title": "Production",
         "metrics": [
           { "label": "Batch efficiency", "value": "88%" },
           { "label": "Labour cost per unit", "value": "AED 1.10" },
@@ -344,7 +344,7 @@
         ]
       },
       {
-        "title": "🚚 Procurement",
+        "title": "Procurement",
         "metrics": [
           { "label": "Purchase price variance", "value": "+3.2%" },
           { "label": "Average supplier lead time", "value": "2.4 days" },
@@ -352,7 +352,7 @@
         ]
       },
       {
-        "title": "📦 Warehouse & inventory",
+        "title": "Warehouse & inventory",
         "metrics": [
           { "label": "Inventory turnover", "value": "14.2x per year" },
           { "label": "Expired / damaged stock", "value": "AED 8,400" },
@@ -360,7 +360,7 @@
         ]
       },
       {
-        "title": "💰 Cost control & margin",
+        "title": "Cost control & margin",
         "metrics": [
           { "label": "Estimated margin leakage", "value": "AED 42,000 / month" },
           { "label": "Packaging cost", "value": "2.1% of sales" },
@@ -438,5 +438,102 @@
       "context": "Herfindahl-Hirschman-style concentration index for core bakery inputs (e.g., flour), following the measurement approach used in UAE cereal-supply-risk research (Ali et al., 2022).",
       "bandsCaption": "Reference bands: <1,500 low · 1,500-2,500 moderate · >2,500 high (standard HHI convention)."
     }
+  },
+
+  "companyProfile": {
+    "_note": "Ported from Streamlit Company Profile (app.py lines 2921-2998, the COMPANY_INFO list). Unlike Command Center / Scenario & Resilience, this is not placeholder/illustrative data — the source frames it as what the GM actually said in a real meeting, so it carries a GM Confirmed badge, not Illustrative / Demo. No per-bullet confirmation-status marker exists in the source beyond the page-level meetingCaption below. DEVIATION FROM VERBATIM SOURCE (disclosed, not silent): the last section was 'Dashboard & next steps (from this meeting)' with 6 bullets in the source; two were dated to the 27 Jul meeting itself ('share the link before Friday', 'Friday feedback slots ... ahead of the mid-review') and read as stale/misleading once no longer current, so they were dropped and the section renamed to 'Dashboard roadmap' (4 durable bullets remain). This was a deliberate content edit approved during migration, not an omission.",
+    "meetingCaption": "Source: personal meeting with the Grandiose GM, 27 Jul. Figures here are as reported in that conversation and should be treated as the current source of truth pending any further updates.",
+    "sections": [
+      {
+        "title": "Production capacity & growth",
+        "bullets": [
+          "Flour Country Bakery is currently running at only 30-35% utilization — roughly 65% headroom still available.",
+          "Target is 100% utilization within a year, with an estimated AED 10M/month production potential once reached.",
+          "Granola Catering is running at approximately 50% utilization.",
+          "Company-wide headcount is ~110 today, with a growth target of 200 within a year."
+        ]
+      },
+      {
+        "title": "Shift structure",
+        "bullets": [
+          "Standard shift is 9 hours, including a break.",
+          "Arabic Bread is the one line that also runs a separate night shift, in addition to the standard morning shift."
+        ]
+      },
+      {
+        "title": "Sales channel mix (B2B vs. B2C)",
+        "bullets": [
+          "Flour Country Bakery is 100% B2B.",
+          "Catering is roughly 35% B2C and 65% B2B."
+        ]
+      },
+      {
+        "title": "Cost structure & targets",
+        "bullets": [
+          "Food cost: capped at a maximum of 30%.",
+          "Labour cost: currently running at ~40% — target is 16-18%, with 20% as the absolute ceiling.",
+          "Utilities: capped at a maximum of 10%.",
+          "Rent: capped at a maximum of 15%.",
+          "Net profit target: 20-25%.",
+          "Total expense ceiling (all costs combined): 75-80% of revenue."
+        ]
+      },
+      {
+        "title": "Pricing approach",
+        "bullets": [
+          "Material cost is scaled 35-50% depending on client volume.",
+          "Supermarket supply is priced cost-to-cost, with no margin built in.",
+          "B2B contract pricing varies by negotiation and account."
+        ]
+      },
+      {
+        "title": "Productivity benchmark",
+        "bullets": [
+          "No formal labour productivity measurement system exists yet.",
+          "The GM's working rule of thumb: each employee should generate approximately AED 1,000/day of value.",
+          "This is the benchmark now built into the Employee Portal's productivity tracking."
+        ]
+      },
+      {
+        "title": "Top & underutilized product lines",
+        "bullets": [
+          "Top revenue/profit drivers: daily bread (Arabic bread, toasted bread, buns, Samurai sandwich) and pastry.",
+          "Least-utilized lines: Tahina and Turkish baklava — both flagged as ramp-up focus areas."
+        ]
+      },
+      {
+        "title": "Inventory management",
+        "bullets": [
+          "Stock is managed on a FIFO (first-in, first-out) basis.",
+          "Ordering cycles: bi-monthly for shelf-stable/dry goods, weekly for short-shelf-life items, daily for fresh fruit and vegetables.",
+          "Payment terms: ~95% of suppliers are on net 90 days (60 days from statement of account); a few critical items run 30-60 days.",
+          "Approved vendor base: ~65-70 for bakery, ~160-170 for catering.",
+          "Safety stock normally aligns to supplier lead times, extending to ~3 months during geopolitical disruptions.",
+          "Packaging (sourced from China/Indonesia): ~1 month of stock held against a 15-day lead time.",
+          "De-risking in progress: alternate vendors are being onboarded for critical ingredients.",
+          "KPIs monitored: inventory movement (fast/slow movers), depletion cycles, and overstock/obsolescence — reviewed bi-weekly."
+        ]
+      },
+      {
+        "title": "Wastage management",
+        "bullets": [
+          "Current wastage: 2-3% — target is 1%.",
+          "Plan to close the gap: grow sales volume and push supermarket promotions on affected items.",
+          "Near-expiry raw materials are redirected into production rather than discarded.",
+          "Near-expiry finished goods (with shelf life over 30 days) move to clearance pricing.",
+          "Fully expired stock is written off.",
+          "Yield: catering runs ~90-95% (about 5% loss to spillage/damage); bakery yield loss is minimal; frozen raw meat yield loss is 20-25%."
+        ]
+      },
+      {
+        "title": "Dashboard roadmap",
+        "bullets": [
+          "ERP integration is planned so the dashboard can eventually auto-update from live company data.",
+          "In-dashboard email sharing was requested — already built into this dashboard.",
+          "An employee productivity module linking individual output to section-level sales was requested — already built into the Employee Portal.",
+          "A separate, equivalent dashboard is planned for Granola Catering."
+        ]
+      }
+    ]
   }
 }
