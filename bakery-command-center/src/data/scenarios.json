@@ -204,6 +204,102 @@
     ]
   },
 
+  "employeePortal": {
+    "_note": "PLACEHOLDER DATA. divisionRevenue anchored to scenarios.actuals.months.Jul.kpis.revenue.value (real figure elsewhere in this file). Support-department allocationWeight × divisionRevenue = that department's revenueAttributed total, split evenly by headcount across its employees (brief §A4).",
+    "divisionRevenue": 1850000,
+    "departments": [
+      { "name": "Bread Production", "type": "production" },
+      { "name": "Pastry Production", "type": "production" },
+      { "name": "Cake Decoration", "type": "production" },
+      { "name": "Viennoiserie", "type": "production" },
+      { "name": "Specialty & Health Breads", "type": "production" },
+      { "name": "Dough Mixing & Prep", "type": "production" },
+      { "name": "Oven & Baking Line", "type": "production" },
+      { "name": "Icing & Finishing", "type": "production" },
+      { "name": "Custom & Bulk Orders", "type": "production" },
+      { "name": "Quality Control (QC)", "type": "support", "allocationWeight": 0.022, "allocationBasisNote": "headcount share of division headcount — support staffing scales with headcount, not direct output" },
+      { "name": "Packing & Dispatch", "type": "support", "allocationWeight": 0.036, "allocationBasisNote": "headcount share of division headcount — support staffing scales with headcount, not direct output" },
+      { "name": "Admin", "type": "support", "allocationWeight": 0.014, "allocationBasisNote": "headcount share of division headcount — support staffing scales with headcount, not direct output" },
+      { "name": "Maintenance & Facilities", "type": "support", "allocationWeight": 0.018, "allocationBasisNote": "headcount share of division headcount — support staffing scales with headcount, not direct output" }
+    ],
+    "employees": [
+      { "id": "emp-01", "name": "Arjun Nair", "department": "Bread Production", "shift": "Night", "daysWorked": 21, "changeoverHours": 6.8, "machineDowntimeHours": 4.8, "idleWaitingHours": 2.8, "totalSalaryCost": 2698, "revenueAttributed": 34984.34 },
+      { "id": "emp-02", "name": "Fatima Al Suwaidi", "department": "Bread Production", "shift": "Night", "daysWorked": 19, "changeoverHours": 6.6, "machineDowntimeHours": 3.9, "idleWaitingHours": 3.9, "totalSalaryCost": 3116, "revenueAttributed": 35899.36 },
+      { "id": "emp-03", "name": "Josef Santos", "department": "Bread Production", "shift": "Night", "daysWorked": 22, "changeoverHours": 7.9, "machineDowntimeHours": 4.6, "idleWaitingHours": 3, "totalSalaryCost": 5795, "revenueAttributed": 103183.76 },
+      { "id": "emp-04", "name": "Priya Menon", "department": "Pastry Production", "shift": "Night", "daysWorked": 21, "changeoverHours": 6.3, "machineDowntimeHours": 1.8, "idleWaitingHours": 4.7, "totalSalaryCost": 3043, "revenueAttributed": 29567.19 },
+      { "id": "emp-05", "name": "Mohammed Rafiq", "department": "Pastry Production", "shift": "Morning", "daysWorked": 21, "changeoverHours": 8.1, "machineDowntimeHours": 4, "idleWaitingHours": 4.1, "totalSalaryCost": 3068, "revenueAttributed": 26692.43 },
+      { "id": "emp-06", "name": "Grace Villanueva", "department": "Pastry Production", "shift": "Night", "daysWorked": 19, "changeoverHours": 8.9, "machineDowntimeHours": 2.5, "idleWaitingHours": 2.7, "totalSalaryCost": 4787, "revenueAttributed": 62200.32 },
+      { "id": "emp-07", "name": "Sandeep Kumar", "department": "Cake Decoration", "shift": "Morning", "daysWorked": 21, "changeoverHours": 6, "machineDowntimeHours": 4.6, "idleWaitingHours": 1.7, "totalSalaryCost": 2916, "revenueAttributed": 49208.24 },
+      { "id": "emp-08", "name": "Aisha Al Marri", "department": "Cake Decoration", "shift": "Night", "daysWorked": 23, "changeoverHours": 7.1, "machineDowntimeHours": 3.3, "idleWaitingHours": 3.5, "totalSalaryCost": 5715, "revenueAttributed": 76670.28 },
+      { "id": "emp-09", "name": "Carlos Dizon", "department": "Viennoiserie", "shift": "Night", "daysWorked": 19, "changeoverHours": 5.5, "machineDowntimeHours": 3.2, "idleWaitingHours": 2.7, "totalSalaryCost": 5896, "revenueAttributed": 64486.6 },
+      { "id": "emp-10", "name": "Neha Sharma", "department": "Viennoiserie", "shift": "Morning", "daysWorked": 19, "changeoverHours": 5.9, "machineDowntimeHours": 2.8, "idleWaitingHours": 3.6, "totalSalaryCost": 5900, "revenueAttributed": 96670.35 },
+      { "id": "emp-11", "name": "Imran Baig", "department": "Specialty & Health Breads", "shift": "Morning", "daysWorked": 23, "changeoverHours": 7.1, "machineDowntimeHours": 4.6, "idleWaitingHours": 1.2, "totalSalaryCost": 4968, "revenueAttributed": 70620.56 },
+      { "id": "emp-12", "name": "Liza Cruz", "department": "Dough Mixing & Prep", "shift": "Night", "daysWorked": 23, "changeoverHours": 4.2, "machineDowntimeHours": 2.5, "idleWaitingHours": 2.5, "totalSalaryCost": 5886, "revenueAttributed": 68089.87 },
+      { "id": "emp-13", "name": "Rashid Al Hosani", "department": "Dough Mixing & Prep", "shift": "Night", "daysWorked": 23, "changeoverHours": 8.4, "machineDowntimeHours": 1.4, "idleWaitingHours": 3.1, "totalSalaryCost": 4274, "revenueAttributed": 56162.96 },
+      { "id": "emp-14", "name": "Divya Pillai", "department": "Oven & Baking Line", "shift": "Morning", "daysWorked": 23, "changeoverHours": 7, "machineDowntimeHours": 5.3, "idleWaitingHours": 2.7, "totalSalaryCost": 3923, "revenueAttributed": 51659.75 },
+      { "id": "emp-15", "name": "Ahmed Farooq", "department": "Oven & Baking Line", "shift": "Night", "daysWorked": 18, "changeoverHours": 8.9, "machineDowntimeHours": 3.1, "idleWaitingHours": 4, "totalSalaryCost": 3649, "revenueAttributed": 46586.02 },
+      { "id": "emp-16", "name": "Marites Bautista", "department": "Oven & Baking Line", "shift": "Night", "daysWorked": 22, "changeoverHours": 7.3, "machineDowntimeHours": 2, "idleWaitingHours": 4.8, "totalSalaryCost": 5321, "revenueAttributed": 70948.21 },
+      { "id": "emp-17", "name": "Vikram Rao", "department": "Icing & Finishing", "shift": "Morning", "daysWorked": 19, "changeoverHours": 6.2, "machineDowntimeHours": 2.5, "idleWaitingHours": 4, "totalSalaryCost": 3715, "revenueAttributed": 61128.36 },
+      { "id": "emp-18", "name": "Noor Al Zaabi", "department": "Icing & Finishing", "shift": "Night", "daysWorked": 23, "changeoverHours": 8.6, "machineDowntimeHours": 3.8, "idleWaitingHours": 4.5, "totalSalaryCost": 5573, "revenueAttributed": 63628.92 },
+      { "id": "emp-19", "name": "Jomar Reyes", "department": "Custom & Bulk Orders", "shift": "Morning", "daysWorked": 20, "changeoverHours": 8.4, "machineDowntimeHours": 4.7, "idleWaitingHours": 1.7, "totalSalaryCost": 3731, "revenueAttributed": 66793.17 },
+      { "id": "emp-20", "name": "Shabana Yousuf", "department": "Quality Control (QC)", "shift": "Night", "daysWorked": 22, "changeoverHours": 7.6, "machineDowntimeHours": 1.8, "idleWaitingHours": 3.1, "totalSalaryCost": 5768, "revenueAttributed": 20350 },
+      { "id": "emp-21", "name": "Ravi Chandran", "department": "Quality Control (QC)", "shift": "Night", "daysWorked": 22, "changeoverHours": 5.4, "machineDowntimeHours": 4.1, "idleWaitingHours": 4.7, "totalSalaryCost": 4283, "revenueAttributed": 20350 },
+      { "id": "emp-22", "name": "Hessa Al Ketbi", "department": "Packing & Dispatch", "shift": "Morning", "daysWorked": 19, "changeoverHours": 4.4, "machineDowntimeHours": 2, "idleWaitingHours": 4.9, "totalSalaryCost": 5241, "revenueAttributed": 22200 },
+      { "id": "emp-23", "name": "Ferdinand Aquino", "department": "Packing & Dispatch", "shift": "Night", "daysWorked": 22, "changeoverHours": 6.5, "machineDowntimeHours": 3.9, "idleWaitingHours": 1.6, "totalSalaryCost": 2869, "revenueAttributed": 22200 },
+      { "id": "emp-24", "name": "Kavya Iyer", "department": "Packing & Dispatch", "shift": "Night", "daysWorked": 18, "changeoverHours": 3.1, "machineDowntimeHours": 2.5, "idleWaitingHours": 4.3, "totalSalaryCost": 3066, "revenueAttributed": 22200 },
+      { "id": "emp-25", "name": "Salman Sheikh", "department": "Admin", "shift": "Morning", "daysWorked": 19, "changeoverHours": 5.3, "machineDowntimeHours": 0, "idleWaitingHours": 4.6, "totalSalaryCost": 5048, "revenueAttributed": 25900 },
+      { "id": "emp-26", "name": "Angelo Ramos", "department": "Maintenance & Facilities", "shift": "Night", "daysWorked": 20, "changeoverHours": 3.2, "machineDowntimeHours": 2.8, "idleWaitingHours": 4.3, "totalSalaryCost": 5440, "revenueAttributed": 16650 },
+      { "id": "emp-27", "name": "Zainab Al Falasi", "department": "Maintenance & Facilities", "shift": "Night", "daysWorked": 18, "changeoverHours": 3.5, "machineDowntimeHours": 5.4, "idleWaitingHours": 5, "totalSalaryCost": 3112, "revenueAttributed": 16650 }
+    ]
+  },
+
+  "b2b": {
+    "_note": "PLACEHOLDER DATA. Client revenues sum exactly to summary.revenue (412,000). Sunrise Corporate Dining is deliberately margin-negative on full absorption but margin-positive at the margin — the core B2B insight (brief §B1).",
+    "summary": {"revenue":412000,"revenueDeltaPct":6.8,"netMarginPct":21.4,"retailMarginPct":33.7,"otifPct":94.2,"otifLateCount":3,"collectionDays":47,"supplierTermsDaysContext":90},
+    "weeklyTrend": [
+      {"week":1,"revenue":27496,"serviceCost":4372},
+      {"week":2,"revenue":28035,"serviceCost":4570},
+      {"week":3,"revenue":29774,"serviceCost":4972},
+      {"week":4,"revenue":29113,"serviceCost":4978},
+      {"week":5,"revenue":29652,"serviceCost":6464},
+      {"week":6,"revenue":31391,"serviceCost":7408},
+      {"week":7,"revenue":30729,"serviceCost":7805},
+      {"week":8,"revenue":31268,"serviceCost":8505},
+      {"week":9,"revenue":33007,"serviceCost":7361},
+      {"week":10,"revenue":32346,"serviceCost":6825},
+      {"week":11,"revenue":32885,"serviceCost":6544},
+      {"week":12,"revenue":34624,"serviceCost":6475},
+      {"week":13,"revenue":33963,"serviceCost":5944}
+    ],
+    "capacity": {
+      "retailPct": 24, "b2bPct": 8.4, "idlePct": 67.6, "ordersInOvertimeSlots": 4, "ordersNextWeek": 38,
+      "marginalScenarios": {
+        "idleCapacityOrder": {"orderValue":1200,"ingredientCost":380,"packagingCost":60,"deliveryCost":140,"incrementalLabourCost":0,"overtimePremium":0},
+        "overtimeOrder": {"orderValue":1200,"ingredientCost":380,"packagingCost":60,"deliveryCost":140,"incrementalLabourCost":90,"overtimePremium":210}
+      }
+    },
+    "clients": [
+      {"name":"Al Manzil Hotels","location":"Deira","frequency":"weekly bulk","revenue":132000,"marginPct":53.33,"marginalMarginPct":80.4,"otifPct":99.1,"paymentTermsDays":30},
+      {"name":"Costa Grand Hotel Group","location":"Business Bay","frequency":"bi-weekly bulk","revenue":68000,"marginPct":56.76,"marginalMarginPct":81.84,"otifPct":96.8,"paymentTermsDays":45},
+      {"name":"Nour Cafe Chain","location":"Jumeirah","frequency":"daily","revenue":58000,"marginPct":40.69,"marginalMarginPct":75.09,"otifPct":91.2,"paymentTermsDays":30},
+      {"name":"Desert Bloom Hotel","location":"Downtown","frequency":"weekly bulk","revenue":42000,"marginPct":53.1,"marginalMarginPct":80.3,"otifPct":97.5,"paymentTermsDays":30},
+      {"name":"Al Waha Restaurants","location":"Al Barsha","frequency":"3x weekly","revenue":44000,"marginPct":38.18,"marginalMarginPct":74.04,"otifPct":88.4,"paymentTermsDays":60},
+      {"name":"Marhaba Retail Mart","location":"Al Qusais","frequency":"weekly","revenue":38000,"marginPct":35,"marginalMarginPct":72.7,"otifPct":93,"paymentTermsDays":45},
+      {"name":"Sunrise Corporate Dining","location":"DIFC","frequency":"daily","revenue":30000,"marginPct":-13.33,"marginalMarginPct":52.4,"otifPct":85.6,"paymentTermsDays":60}
+    ],
+    "receivables": {"total":187000,"past60":41000,"buckets":[63000,83000,25000,16000]},
+    "recentDeliveries": [
+      {"client":"Al Manzil Hotels","location":"Deira","time":"06:15","onTime":true,"value":4820},
+      {"client":"Nour Cafe Chain","location":"Jumeirah","time":"05:50","onTime":true,"value":1120},
+      {"client":"Al Waha Restaurants","location":"Al Barsha","time":"07:40","onTime":false,"delayMinutes":55,"value":1640},
+      {"client":"Costa Grand Hotel Group","location":"Business Bay","time":"06:05","onTime":true,"value":3960},
+      {"client":"Sunrise Corporate Dining","location":"DIFC","time":"08:10","onTime":false,"delayMinutes":30,"value":980},
+      {"client":"Marhaba Retail Mart","location":"Al Qusais","time":"06:35","onTime":true,"value":1450},
+      {"client":"Desert Bloom Hotel","location":"Downtown","time":"06:20","onTime":true,"value":2100},
+      {"client":"Nour Cafe Chain","location":"Jumeirah","time":"17:05","onTime":false,"delayMinutes":20,"value":890}
+    ]
+  },
+
   "forecast13Week": {
     "note": "Wastage rate (%) projection, weeks 1-13, base case with P25-P75 and P10-P90 bands.",
     "baseline": [2.9, 2.7, 2.5, 2.6, 2.4, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5],

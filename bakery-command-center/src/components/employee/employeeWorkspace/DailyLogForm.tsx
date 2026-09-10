@@ -1,0 +1,272 @@
+import { useMemo, useState } from 'react';
+import { getDailyLogs, saveDailyLog, updateDailyLog, useApiData, type DailyLogWriteInput } from '../../../data/api';
+import type { AuthUser, DailyLog } from '../../../data';
+import { LABOUR_CONFIG } from '../../../config/labourConfig';
+import { VALID_SHIFTS, validateDailyLogInput, type DailyLogInput } from '../../../lib/labourCalc';
+import { formatMinutes } from '../../../lib/format';
+
+interface DailyLogFormProps {
+  user: AuthUser;
+}
+
+interface FormFields {
+  date: string;
+  shift: string;
+  paidMinutes: string;
+  breakMinutes: string;
+  changeoverMinutes: string;
+  downtimeMinutes: string;
+  productiveMinutes: string;
+  unitsProduced: string;
+  notes: string;
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function defaultFields(shift: string): FormFields {
+  return {
+    date: todayIso(),
+    shift,
+    paidMinutes: String(Math.round(LABOUR_CONFIG.shiftLengthHours * 60)),
+    breakMinutes: String(LABOUR_CONFIG.breakMinutesPerShift),
+    changeoverMinutes: '',
+    downtimeMinutes: '',
+    productiveMinutes: '',
+    unitsProduced: '',
+    notes: '',
+  };
+}
+
+export function DailyLogForm({ user }: DailyLogFormProps) {
+  const [fields, setFields] = useState<FormFields>(() => defaultFields(user.shift ?? 'Morning'));
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
+  const [status, setStatus] = useState<{ kind: 'idle' | 'saving' | 'success' | 'error'; message?: string }>({ kind: 'idle' });
+
+  const recentState = useApiData(
+    () => getDailyLogs({ employeeId: user.id, from: shiftDate(todayIso(), -6), to: todayIso() }),
+    [user.id, status.kind],
+  );
+
+  function setField<K extends keyof FormFields>(key: K, value: string) {
+    setFields((f) => ({ ...f, [key]: value }));
+  }
+
+  const clientErrors = useMemo(() => {
+    const input: DailyLogInput = {
+      date: fields.date,
+      shift: fields.shift,
+      paidMinutes: Number(fields.paidMinutes),
+      breakMinutes: Number(fields.breakMinutes),
+      changeoverMinutes: Number(fields.changeoverMinutes || 0),
+      downtimeMinutes: Number(fields.downtimeMinutes || 0),
+      productiveMinutes: Number(fields.productiveMinutes || 0),
+      unitsProduced: fields.unitsProduced === '' ? null : Number(fields.unitsProduced),
+    };
+    return validateDailyLogInput(input, LABOUR_CONFIG);
+  }, [fields]);
+
+  function startEdit(log: DailyLog) {
+    setEditingLogId(log.id);
+    setFields({
+      date: log.date,
+      shift: log.shift,
+      paidMinutes: String(log.paidMinutes),
+      breakMinutes: String(log.breakMinutes),
+      changeoverMinutes: String(log.changeoverMinutes),
+      downtimeMinutes: String(log.downtimeMinutes),
+      productiveMinutes: String(log.productiveMinutes),
+      unitsProduced: log.unitsProduced == null ? '' : String(log.unitsProduced),
+      notes: log.notes ?? '',
+    });
+    setStatus({ kind: 'idle' });
+  }
+
+  function resetForm() {
+    setEditingLogId(null);
+    setFields(defaultFields(user.shift ?? 'Morning'));
+    setStatus({ kind: 'idle' });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (clientErrors.length > 0) {
+      setStatus({ kind: 'error', message: clientErrors.join(' ') });
+      return;
+    }
+
+    const input: DailyLogWriteInput = {
+      date: fields.date,
+      shift: fields.shift,
+      paidMinutes: Number(fields.paidMinutes),
+      breakMinutes: Number(fields.breakMinutes),
+      changeoverMinutes: Number(fields.changeoverMinutes || 0),
+      downtimeMinutes: Number(fields.downtimeMinutes || 0),
+      productiveMinutes: Number(fields.productiveMinutes || 0),
+      unitsProduced: fields.unitsProduced === '' ? null : Number(fields.unitsProduced),
+      notes: fields.notes || null,
+    };
+
+    setStatus({ kind: 'saving' });
+    try {
+      if (editingLogId) {
+        await updateDailyLog(editingLogId, input);
+        setStatus({ kind: 'success', message: `Updated ${fields.date} (${fields.shift}).` });
+      } else {
+        await saveDailyLog(input);
+        setStatus({ kind: 'success', message: `Logged ${fields.date} (${fields.shift}).` });
+      }
+      setEditingLogId(null);
+      setFields(defaultFields(user.shift ?? 'Morning'));
+    } catch (err) {
+      setStatus({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  const inputClass =
+    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary px-3 py-2 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
+  const labelClass = 'font-mono text-[11px] tracking-[0.1em] text-text-secondary';
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">DAILY LOG</p>
+        <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">
+          {editingLogId ? 'Edit today’s entry' : 'Log today’s shift'}
+        </h2>
+        <p className="mt-1 max-w-2xl font-mono text-sm text-text-secondary">
+          Enter minutes worked — the app calculates True Efficiency and Performance While Working from these numbers,
+          they're never entered directly.
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className={labelClass} htmlFor="dl-date">DATE</label>
+            <input id="dl-date" type="date" max={todayIso()} value={fields.date} onChange={(e) => setField('date', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-shift">SHIFT</label>
+            <select id="dl-shift" value={fields.shift} onChange={(e) => setField('shift', e.target.value)} className={inputClass}>
+              {VALID_SHIFTS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-paid">PAID MINUTES</label>
+            <input id="dl-paid" type="number" min={0} value={fields.paidMinutes} onChange={(e) => setField('paidMinutes', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-break">BREAK MINUTES</label>
+            <input id="dl-break" type="number" min={0} value={fields.breakMinutes} onChange={(e) => setField('breakMinutes', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-changeover">CHANGEOVER MINUTES</label>
+            <input id="dl-changeover" type="number" min={0} value={fields.changeoverMinutes} onChange={(e) => setField('changeoverMinutes', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-downtime">DOWNTIME MINUTES</label>
+            <input id="dl-downtime" type="number" min={0} value={fields.downtimeMinutes} onChange={(e) => setField('downtimeMinutes', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-productive">PRODUCTIVE MINUTES</label>
+            <input id="dl-productive" type="number" min={0} value={fields.productiveMinutes} onChange={(e) => setField('productiveMinutes', e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-units">UNITS PRODUCED (OPTIONAL)</label>
+            <input id="dl-units" type="number" min={0} value={fields.unitsProduced} onChange={(e) => setField('unitsProduced', e.target.value)} className={inputClass} />
+          </div>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className={labelClass} htmlFor="dl-notes">NOTES (OPTIONAL)</label>
+            <textarea id="dl-notes" rows={2} value={fields.notes} onChange={(e) => setField('notes', e.target.value)} className={inputClass} />
+          </div>
+
+          {clientErrors.length > 0 && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              {clientErrors.map((err) => (
+                <p key={err} className="font-mono text-xs text-accent-red">
+                  {err}
+                </p>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-3">
+            <button
+              type="submit"
+              disabled={status.kind === 'saving'}
+              className="rounded-full border border-accent-blue bg-accent-blue px-5 py-2 font-mono text-xs tracking-wide text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {status.kind === 'saving' ? 'Saving…' : editingLogId ? 'Update entry' : 'Save log'}
+            </button>
+            {editingLogId && (
+              <button type="button" onClick={resetForm} className="font-mono text-xs text-text-secondary hover:text-text-primary">
+                Cancel edit
+              </button>
+            )}
+            {status.kind === 'success' && <p className="font-mono text-xs text-accent-green">{status.message}</p>}
+            {status.kind === 'error' && <p className="font-mono text-xs text-accent-red">{status.message}</p>}
+          </div>
+        </form>
+      </section>
+
+      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">RECENT ENTRIES</p>
+        <h2 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Last 7 days</h2>
+        <p className="mt-1 font-mono text-xs text-text-secondary">Only today's entry can be edited — older records are locked.</p>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
+                <th className="py-2 pr-4 font-normal">Date</th>
+                <th className="py-2 pr-4 font-normal">Shift</th>
+                <th className="py-2 pr-4 text-right font-normal">Productive</th>
+                <th className="py-2 pr-4 text-right font-normal">Downtime</th>
+                <th className="py-2 pr-4 text-right font-normal">Changeover</th>
+                <th className="py-2 pr-4 font-normal" />
+              </tr>
+            </thead>
+            <tbody className="font-mono text-sm">
+              {recentState.status === 'ready' &&
+                [...recentState.data].reverse().map((log) => (
+                  <tr key={log.id} className="border-b border-border-subtle/60 last:border-0">
+                    <td className="py-2 pr-4 text-text-primary">{log.date}</td>
+                    <td className="py-2 pr-4 text-text-secondary">{log.shift}</td>
+                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.productiveMinutes)}</td>
+                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.downtimeMinutes)}</td>
+                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.changeoverMinutes)}</td>
+                    <td className="py-2 pr-4 text-right">
+                      {log.date === todayIso() ? (
+                        <button type="button" onClick={() => startEdit(log)} className="font-mono text-xs text-accent-blue hover:underline">
+                          Edit
+                        </button>
+                      ) : (
+                        <span className="font-mono text-[10px] text-text-secondary">Locked</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              {recentState.status === 'ready' && recentState.data.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center font-mono text-xs text-text-secondary">
+                    No entries in the last 7 days.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function shiftDate(dateIso: string, deltaDays: number): string {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}

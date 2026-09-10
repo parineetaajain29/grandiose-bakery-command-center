@@ -8,8 +8,18 @@ import { SankeyMoneyFlow } from './components/SankeyMoneyFlow';
 import { ForecastModule } from './components/ForecastModule';
 import { SupplierRiskTable } from './components/SupplierRiskTable';
 import { VarianceWaterfall } from './components/VarianceWaterfall';
+import { EmployeePortalGate } from './components/employee/EmployeePortalGate';
+import { B2BPage } from './components/b2b/B2BPage';
 import { computeModelScenarioKpis, getSankeyForCell, scenariosFile } from './data';
 import type { PeriodGranularity, ScenarioKey } from './data';
+
+type AppPage = 'commandCenter' | 'employeePortal' | 'b2b';
+
+const APP_PAGES: { key: AppPage; label: string }[] = [
+  { key: 'commandCenter', label: 'Command Center' },
+  { key: 'employeePortal', label: 'Employee Portal' },
+  { key: 'b2b', label: 'B2B Performance' },
+];
 
 const MONTH_FULL: Record<string, string> = {
   Aug: 'August',
@@ -50,6 +60,7 @@ function getDateLabel(scenario: ScenarioKey, granularity: PeriodGranularity, mon
 }
 
 function App() {
+  const [page, setPage] = useState<AppPage>('commandCenter');
   const [scenario, setScenario] = useState<ScenarioKey>('actuals');
   const [granularity, setGranularity] = useState<PeriodGranularity>('month');
   const [selectedMonth, setSelectedMonth] = useState('Jul');
@@ -103,52 +114,83 @@ function App() {
       <Header subtitle={cell.subtitle} dateLabel={dateLabel} />
 
       <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-8 sm:px-10">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <ScenarioTabs active={scenario} onChange={setScenario} />
-          {!isModel && (
-            <PeriodSelector
-              granularity={granularity}
-              onGranularityChange={setGranularity}
-              months={availableMonths}
-              quarters={availableQuarters}
-              selectedMonth={selectedMonth}
-              selectedQuarter={selectedQuarter}
-              onSelectMonth={setSelectedMonth}
-              onSelectQuarter={setSelectedQuarter}
-            />
-          )}
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="App section">
+          {APP_PAGES.map((p) => {
+            const isActive = p.key === page;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setPage(p.key)}
+                className={`rounded-full border px-4 py-2 font-mono text-xs tracking-wide transition-colors ${
+                  isActive
+                    ? 'border-accent-blue bg-accent-blue text-[#04070d]'
+                    : 'border-border-subtle bg-bg-panel text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
         </div>
 
-        {isModel && (
-          <ModelScenarioLevers
-            hiring={modelHiring}
-            onHiringChange={setModelHiring}
-            wastageTargetPct={modelWastageTarget}
-            onWastageTargetChange={setModelWastageTarget}
-          />
-        )}
+        {page === 'employeePortal' && <EmployeePortalGate />}
+        {page === 'b2b' && <B2BPage />}
 
-        <KpiStrip kpis={cell.kpis} granularity={granularity} />
+        {page === 'commandCenter' && (
+          <>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <ScenarioTabs active={scenario} onChange={setScenario} />
+              {!isModel && (
+                <PeriodSelector
+                  granularity={granularity}
+                  onGranularityChange={setGranularity}
+                  months={availableMonths}
+                  quarters={availableQuarters}
+                  selectedMonth={selectedMonth}
+                  selectedQuarter={selectedQuarter}
+                  onSelectMonth={setSelectedMonth}
+                  onSelectQuarter={setSelectedQuarter}
+                />
+              )}
+            </div>
 
-        <SankeyMoneyFlow sankeyData={sankey} isDerived={isDerived} />
+            {isModel && (
+              <ModelScenarioLevers
+                hiring={modelHiring}
+                onHiringChange={setModelHiring}
+                wastageTargetPct={modelWastageTarget}
+                onWastageTargetChange={setModelWastageTarget}
+              />
+            )}
 
-        <ForecastModule />
+            <KpiStrip kpis={cell.kpis} granularity={granularity} />
 
-        <SupplierRiskTable />
+            <SankeyMoneyFlow sankeyData={sankey} isDerived={isDerived} />
 
-        {varianceCell ? (
-          <VarianceWaterfall variance={varianceCell} />
-        ) : (
-          <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">BUDGET VS ACTUAL</p>
-            <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
-              Production cost variance
-            </h2>
-            <p className="mt-2 max-w-xl text-sm text-text-secondary">
-              Budget-vs-actual variance is only booked for closed actuals. Switch to <strong className="text-text-primary">Actuals</strong> ·{' '}
-              <strong className="text-text-primary">Month</strong> · <strong className="text-text-primary">Jul</strong> to view it.
-            </p>
-          </section>
+            <ForecastModule />
+
+            <SupplierRiskTable />
+
+            {varianceCell ? (
+              <VarianceWaterfall variance={varianceCell} />
+            ) : (
+              <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+                <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">BUDGET VS ACTUAL</p>
+                <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
+                  Production cost variance
+                </h2>
+                <p className="mt-2 max-w-xl text-sm text-text-secondary">
+                  Budget-vs-actual variance is only booked for closed actuals. Switch to{' '}
+                  <strong className="text-text-primary">Actuals</strong> ·{' '}
+                  <strong className="text-text-primary">Month</strong> · <strong className="text-text-primary">Jul</strong> to
+                  view it.
+                </p>
+              </section>
+            )}
+          </>
         )}
 
         <footer className="border-t border-border-subtle pt-6 pb-4">

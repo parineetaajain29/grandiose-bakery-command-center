@@ -1,3 +1,5 @@
+import type { LabourResult } from '../lib/labourCalc';
+
 export interface KpiValue {
   value: number;
   delta?: number;
@@ -86,6 +88,249 @@ export interface Forecast13Week {
   readoutTemplate: string;
 }
 
+/** Raw employee labour record — feeds src/lib/labourCalc.ts's computeLabourChain. */
+export interface EmployeeRecord {
+  id: string;
+  name: string;
+  department: string;
+  shift: string;
+  daysWorked: number;
+  changeoverHours: number;
+  machineDowntimeHours: number;
+  idleWaitingHours: number;
+  totalSalaryCost: number;
+  /** Direct output value (production depts) or an allocated share of divisionRevenue (support depts) — brief §A4. */
+  revenueAttributed: number;
+}
+
+export interface DepartmentMeta {
+  name: string;
+  type: 'production' | 'support';
+  /** Support departments only: revenueAttributed total = divisionRevenue × allocationWeight. */
+  allocationWeight?: number;
+  allocationBasisNote?: string;
+}
+
+/** Shape of scenarios.json's employeePortal block — used only as the seed source for server/seed.ts now. */
+export interface EmployeePortalData {
+  _note: string;
+  divisionRevenue: number;
+  departments: DepartmentMeta[];
+  employees: EmployeeRecord[];
+}
+
+// --- Employee portal: roles, daily logs, goals, feedback, audit ----------
+// Role-based workforce management — every fetch is scoped server-side by role
+// (src/data/api.ts calls the API; nothing here is trusted to filter on its own).
+
+export type Role = 'employee' | 'supervisor' | 'manager' | 'hr_admin';
+
+/** GET /api/auth/me and POST /api/auth/login response. */
+export interface AuthUser {
+  id: string;
+  name: string;
+  department: string;
+  shift: string;
+  role: Role;
+  active: boolean;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  department: string;
+  shift: string;
+  role: Role;
+  active: boolean;
+}
+
+/** One employee's logged figures for one shift on one day. */
+export interface DailyLog {
+  id: number;
+  employeeId: string;
+  date: string; // YYYY-MM-DD
+  shift: string;
+  paidMinutes: number;
+  breakMinutes: number;
+  changeoverMinutes: number;
+  downtimeMinutes: number;
+  productiveMinutes: number;
+  unitsProduced: number | null;
+  notes: string | null;
+  lossReason: string | null;
+  dailySalaryCost: number;
+  revenueAttributed: number;
+  createdByEmployeeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GoalStatus = 'active' | 'completed' | 'overdue' | 'cancelled';
+
+export interface Goal {
+  id: number;
+  employeeId: string;
+  title: string;
+  metric: string | null;
+  baseline: number | null;
+  target: number | null;
+  deadline: string | null;
+  notes: string | null;
+  status: GoalStatus;
+  createdByEmployeeId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Feedback {
+  id: number;
+  employeeId: string;
+  category: string;
+  assessment: string | null;
+  comment: string;
+  followUpDate: string | null;
+  createdByEmployeeId: string;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  employeeResponse: string | null;
+}
+
+export interface AuditEvent {
+  id: number;
+  at: string;
+  actorEmployeeId: string | null;
+  actorName: string | null;
+  actorRole: string | null;
+  action: string;
+  affectedEmployeeId: string | null;
+  affectedName: string | null;
+  details: string | null;
+}
+
+export interface Alert {
+  type: 'missing_logs' | 'high_downtime' | 'goal_deadline';
+  severity: 'info' | 'warning';
+  employeeId: string | null;
+  employeeName: string | null;
+  message: string;
+}
+
+export interface DataQualityIssue {
+  logId: number;
+  employeeId: string;
+  employeeName: string | null;
+  date: string;
+  issue: string;
+}
+
+/** GET /api/metrics/comparative/:employeeId — self vs. department vs. bakery, §5. */
+export interface ComparativeMetrics {
+  employee: LabourResult;
+  department: LabourResult;
+  bakery: LabourResult;
+  departmentName: string;
+}
+
+/** GET /api/metrics/aggregation-comparison/:departmentName — the §12 correct-vs-naive-mean callout. */
+export interface DepartmentAggregationComparison {
+  correct: LabourResult;
+  naiveMeanTrueEfficiencyPct: number | null;
+  employeeCount: number;
+}
+
+/** GET /api/metrics/workforce-overview — manager/hr_admin only. */
+export interface WorkforceOverview {
+  activeEmployeeCount: number;
+  bakery: LabourResult;
+  departments: { name: string; result: LabourResult }[];
+}
+
+export interface DepartmentMetricRow {
+  name: string;
+  result: LabourResult;
+}
+
+/** GET /api/metrics/departments — supervisor/manager/hr_admin; scoped to the caller (own department for supervisor, all for manager/hr_admin). */
+export type DepartmentsMetrics = DepartmentMetricRow[];
+
+// --- B2B (Feature B) ----------------------------------------------------
+
+export interface B2BSummary {
+  revenue: number;
+  revenueDeltaPct: number;
+  netMarginPct: number;
+  retailMarginPct: number;
+  otifPct: number;
+  otifLateCount: number;
+  collectionDays: number;
+  supplierTermsDaysContext: number;
+}
+
+export interface B2BWeeklyTrendPoint {
+  week: number;
+  revenue: number;
+  serviceCost: number;
+}
+
+export interface MarginalOrderInputs {
+  orderValue: number;
+  ingredientCost: number;
+  packagingCost: number;
+  deliveryCost: number;
+  incrementalLabourCost: number;
+  overtimePremium: number;
+}
+
+export interface B2BCapacity {
+  retailPct: number;
+  b2bPct: number;
+  idlePct: number;
+  ordersInOvertimeSlots: number;
+  ordersNextWeek: number;
+  marginalScenarios: {
+    idleCapacityOrder: MarginalOrderInputs;
+    overtimeOrder: MarginalOrderInputs;
+  };
+}
+
+export interface B2BClient {
+  name: string;
+  location: string;
+  frequency: string;
+  revenue: number;
+  serviceCost: number;
+  marginPct: number;
+  marginalMarginPct: number;
+  otifPct: number;
+  paymentTermsDays: number;
+}
+
+export interface B2BReceivables {
+  total: number;
+  past60: number;
+  /** [0-30, 31-60, 61-90, 90+] days */
+  buckets: [number, number, number, number];
+}
+
+export interface B2BDelivery {
+  client: string;
+  location: string;
+  time: string;
+  onTime: boolean;
+  delayMinutes?: number;
+  value: number;
+}
+
+export interface B2BData {
+  _note: string;
+  summary: B2BSummary;
+  weeklyTrend: B2BWeeklyTrendPoint[];
+  capacity: B2BCapacity;
+  clients: B2BClient[];
+  receivables: B2BReceivables;
+  recentDeliveries: B2BDelivery[];
+}
+
 export interface ScenariosFile {
   _note: string;
   meta: {
@@ -104,5 +349,7 @@ export interface ScenariosFile {
     modelScenario: ModelScenarioData;
   };
   supplierRisk: SupplierRisk;
+  employeePortal: EmployeePortalData;
+  b2b: B2BData;
   forecast13Week: Forecast13Week;
 }
