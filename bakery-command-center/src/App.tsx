@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Header } from './components/Header';
+import { CommandCenterSubNav, type CommandCenterSubTab } from './components/CommandCenterSubNav';
+import { PerformanceTracker } from './components/performanceTracker/PerformanceTracker';
 import { ScenarioTabs } from './components/ScenarioTabs';
 import { PeriodSelector } from './components/PeriodSelector';
 import { KpiStrip } from './components/KpiStrip';
@@ -61,6 +63,7 @@ function getDateLabel(scenario: ScenarioKey, granularity: PeriodGranularity, mon
 
 function App() {
   const [page, setPage] = useState<AppPage>('commandCenter');
+  const [ccTab, setCcTab] = useState<CommandCenterSubTab>('Overview');
   const [scenario, setScenario] = useState<ScenarioKey>('actuals');
   const [granularity, setGranularity] = useState<PeriodGranularity>('month');
   const [selectedMonth, setSelectedMonth] = useState('Jul');
@@ -141,55 +144,63 @@ function App() {
 
         {page === 'commandCenter' && (
           <>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <ScenarioTabs active={scenario} onChange={setScenario} />
-              {!isModel && (
-                <PeriodSelector
-                  granularity={granularity}
-                  onGranularityChange={setGranularity}
-                  months={availableMonths}
-                  quarters={availableQuarters}
-                  selectedMonth={selectedMonth}
-                  selectedQuarter={selectedQuarter}
-                  onSelectMonth={setSelectedMonth}
-                  onSelectQuarter={setSelectedQuarter}
-                />
-              )}
-            </div>
+            <CommandCenterSubNav active={ccTab} onChange={setCcTab} />
 
-            {isModel && (
-              <ModelScenarioLevers
-                hiring={modelHiring}
-                onHiringChange={setModelHiring}
-                wastageTargetPct={modelWastageTarget}
-                onWastageTargetChange={setModelWastageTarget}
-              />
+            {ccTab === 'Overview' && (
+              <>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <ScenarioTabs active={scenario} onChange={setScenario} />
+                  {!isModel && (
+                    <PeriodSelector
+                      granularity={granularity}
+                      onGranularityChange={setGranularity}
+                      months={availableMonths}
+                      quarters={availableQuarters}
+                      selectedMonth={selectedMonth}
+                      selectedQuarter={selectedQuarter}
+                      onSelectMonth={setSelectedMonth}
+                      onSelectQuarter={setSelectedQuarter}
+                    />
+                  )}
+                </div>
+
+                {isModel && (
+                  <ModelScenarioLevers
+                    hiring={modelHiring}
+                    onHiringChange={setModelHiring}
+                    wastageTargetPct={modelWastageTarget}
+                    onWastageTargetChange={setModelWastageTarget}
+                  />
+                )}
+
+                <KpiStrip kpis={cell.kpis} granularity={granularity} />
+
+                <SankeyMoneyFlow sankeyData={sankey} isDerived={isDerived} />
+
+                <ForecastModule />
+
+                <SupplierRiskTable />
+
+                {varianceCell ? (
+                  <VarianceWaterfall variance={varianceCell} />
+                ) : (
+                  <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+                    <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">BUDGET VS ACTUAL</p>
+                    <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
+                      Production cost variance
+                    </h2>
+                    <p className="mt-2 max-w-xl text-sm text-text-secondary">
+                      Budget-vs-actual variance is only booked for closed actuals. Switch to{' '}
+                      <strong className="text-text-primary">Actuals</strong> ·{' '}
+                      <strong className="text-text-primary">Month</strong> · <strong className="text-text-primary">Jul</strong> to
+                      view it.
+                    </p>
+                  </section>
+                )}
+              </>
             )}
 
-            <KpiStrip kpis={cell.kpis} granularity={granularity} />
-
-            <SankeyMoneyFlow sankeyData={sankey} isDerived={isDerived} />
-
-            <ForecastModule />
-
-            <SupplierRiskTable />
-
-            {varianceCell ? (
-              <VarianceWaterfall variance={varianceCell} />
-            ) : (
-              <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-                <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">BUDGET VS ACTUAL</p>
-                <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
-                  Production cost variance
-                </h2>
-                <p className="mt-2 max-w-xl text-sm text-text-secondary">
-                  Budget-vs-actual variance is only booked for closed actuals. Switch to{' '}
-                  <strong className="text-text-primary">Actuals</strong> ·{' '}
-                  <strong className="text-text-primary">Month</strong> · <strong className="text-text-primary">Jul</strong> to
-                  view it.
-                </p>
-              </section>
-            )}
+            {ccTab === 'Performance Tracker' && <PerformanceTracker />}
           </>
         )}
 

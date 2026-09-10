@@ -369,6 +369,57 @@ export interface B2BData {
   recentDeliveries: B2BDelivery[];
 }
 
+// --- Performance Tracker (Command Center) — ported from the Streamlit
+// Performance Tracker page (app.py lines 490-503, 2050-2179). ------------
+
+export interface PerformanceTrackerBaseline {
+  foodCostPct: number;
+  wastagePct: number;
+  grossMarginPct: number;
+  costPerUnit: number;
+  standardCostPerUnit: number;
+}
+
+export interface PerformanceTrackerKpiCard {
+  key: keyof PerformanceTrackerBaseline;
+  label: string;
+  /** Verbatim from the Streamlit source — a hardcoded caption, not independently computed from baseline/trend (see migration report for the one known inconsistency: food cost's "+1.2pt" doesn't equal baseline.foodCostPct - targetFoodCostPct = 1.4). */
+  badge: string;
+  tone: 'up-bad' | 'down-good' | 'flat';
+}
+
+export interface CostStructureBaseline {
+  foodCostPct: number;
+  labourTargetPct: number;
+  packagingPct: number;
+  overheadPct: number;
+}
+
+export interface CategoryPanel {
+  title: string;
+  metrics: { label: string; value: string }[];
+}
+
+/** New for this migration — not present in the Streamlit source. See scenarios.json's performanceTracker._note. */
+export interface WastageByDivisionRow {
+  division: string;
+  wastagePct: number;
+}
+
+export interface PerformanceTrackerData {
+  months: string[];
+  foodCostTrend: number[];
+  targetFoodCostPct: number;
+  wastageTrend: number[];
+  marginTrend: number[];
+  costUnitTrend: number[];
+  baseline: PerformanceTrackerBaseline;
+  kpiCards: PerformanceTrackerKpiCard[];
+  costStructure: CostStructureBaseline;
+  categoryPanels: CategoryPanel[];
+  wastageByDivision: WastageByDivisionRow[];
+}
+
 export interface ScenariosFile {
   _note: string;
   meta: {
@@ -390,4 +441,5 @@ export interface ScenariosFile {
   employeePortal: EmployeePortalData;
   b2b: B2BData;
   forecast13Week: Forecast13Week;
+  performanceTracker: PerformanceTrackerData;
 }

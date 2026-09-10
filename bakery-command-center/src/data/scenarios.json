@@ -305,5 +305,76 @@
     "baseline": [2.9, 2.7, 2.5, 2.6, 2.4, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5],
     "sliderRange": { "min": 0, "max": 88, "step": 1, "unit": "additional hires toward 200 target" },
     "readoutTemplate": "Capacity utilization reaches {value}% by {month}"
+  },
+
+  "performanceTracker": {
+    "_note": "Ported verbatim from the Streamlit Performance Tracker (app.py lines 490-503, 2050-2179) except wastageByDivision, which does not exist in the Streamlit source and is new illustrative data built for this migration (six divisions, simple-averages to ~4.8% to stay consistent with baseline.wastagePct). wastageTargetPct intentionally reuses meta.wastageTarget (also 1.0) rather than duplicating it, per cross-page consistency.",
+    "months": ["Feb", "Mar", "Apr", "May", "Jun", "Jul"],
+    "foodCostTrend": [29.8, 30.1, 30.6, 30.9, 31.0, 31.4],
+    "targetFoodCostPct": 30.0,
+    "wastageTrend": [5.4, 5.2, 5.1, 4.9, 4.9, 4.8],
+    "marginTrend": [42.3, 42.0, 41.8, 42.0, 42.2, 42.1],
+    "costUnitTrend": [3.55, 3.62, 3.68, 3.74, 3.80, 3.85],
+    "baseline": {
+      "foodCostPct": 31.4,
+      "wastagePct": 4.8,
+      "grossMarginPct": 42.1,
+      "costPerUnit": 3.85,
+      "standardCostPerUnit": 3.60
+    },
+    "kpiCards": [
+      { "key": "foodCostPct", "label": "Food cost %", "badge": "↑ 1.2pt vs target", "tone": "up-bad" },
+      { "key": "wastagePct", "label": "Wastage %", "badge": "↓ 0.3pt vs last month", "tone": "down-good" },
+      { "key": "grossMarginPct", "label": "Gross margin", "badge": "flat vs last month", "tone": "flat" },
+      { "key": "costPerUnit", "label": "Cost / unit (AED)", "badge": "↑ vs std 3.60", "tone": "up-bad" }
+    ],
+    "costStructure": {
+      "foodCostPct": 31.4,
+      "labourTargetPct": 20.0,
+      "packagingPct": 2.1,
+      "overheadPct": 9.4
+    },
+    "categoryPanels": [
+      {
+        "title": "🥖 Production",
+        "metrics": [
+          { "label": "Batch efficiency", "value": "88%" },
+          { "label": "Labour cost per unit", "value": "AED 1.10" },
+          { "label": "Actual vs standard cost", "value": "+6.9%" }
+        ]
+      },
+      {
+        "title": "🚚 Procurement",
+        "metrics": [
+          { "label": "Purchase price variance", "value": "+3.2%" },
+          { "label": "Average supplier lead time", "value": "2.4 days" },
+          { "label": "Top-3 flour supplier share", "value": "76%" }
+        ]
+      },
+      {
+        "title": "📦 Warehouse & inventory",
+        "metrics": [
+          { "label": "Inventory turnover", "value": "14.2x per year" },
+          { "label": "Expired / damaged stock", "value": "AED 8,400" },
+          { "label": "Slow-moving SKUs", "value": "6 lines" }
+        ]
+      },
+      {
+        "title": "💰 Cost control & margin",
+        "metrics": [
+          { "label": "Estimated margin leakage", "value": "AED 42,000 / month" },
+          { "label": "Packaging cost", "value": "2.1% of sales" },
+          { "label": "Overhead allocation", "value": "9.4% of sales" }
+        ]
+      }
+    ],
+    "wastageByDivision": [
+      { "division": "Baklava", "wastagePct": 3.6 },
+      { "division": "French Bakery", "wastagePct": 5.8 },
+      { "division": "Arabic Bread", "wastagePct": 3.1 },
+      { "division": "Viennoiserie", "wastagePct": 7.2 },
+      { "division": "Tahina", "wastagePct": 2.4 },
+      { "division": "Seasonal Collection", "wastagePct": 6.5 }
+    ]
   }
 }
