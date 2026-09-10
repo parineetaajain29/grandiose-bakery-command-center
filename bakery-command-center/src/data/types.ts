@@ -420,6 +420,87 @@ export interface PerformanceTrackerData {
   wastageByDivision: WastageByDivisionRow[];
 }
 
+// --- Scenario & Resilience — ported from Streamlit (app.py lines 2186-2428). ---
+
+export interface SliderRange {
+  min: number;
+  max: number;
+  default: number;
+  step?: number;
+}
+
+export interface InflationSensitivityConfig {
+  headlineInflationPct: SliderRange;
+  foodInflationPct: SliderRange;
+  subsidyOffsetAed: SliderRange;
+  context: string;
+}
+
+export interface SupplyDisruptionScenario {
+  name: string;
+  delayDays: number;
+  costPremiumPct: number;
+  stockoutProbability: number;
+}
+
+export interface SupplyDisruptionConfig {
+  avgDailyCostAed: number;
+  scenarios: SupplyDisruptionScenario[];
+  defaultScenario: string;
+  custom: {
+    delayDays: SliderRange;
+    costPremiumPct: SliderRange;
+    stockoutProbability: SliderRange;
+  };
+  context: string;
+}
+
+export interface PandemicPreparednessConfig {
+  customerRetention: {
+    repeatPurchaseRatePct: SliderRange;
+    deliverySharePct: SliderRange;
+    basketSizeAed: SliderRange;
+    repeatPurchaseFlagBelow: number;
+    deliveryShareFlagBelow: number;
+  };
+  supplyChain: {
+    safetyStockDays: SliderRange;
+    alternateSuppliersPerIngredient: SliderRange;
+    singleSourcedPct: SliderRange;
+    safetyStockFlagBelow: number;
+    alternateSuppliersFlagBelow: number;
+    singleSourcedFlagAbove: number;
+  };
+  context: string;
+}
+
+export interface SupplierSpendMixRow {
+  origin: string;
+  spendSharePct: number;
+}
+
+export interface AlternateSupplierRow {
+  supplier: string;
+  costDeltaPct: number;
+  leadTimeDeltaDays: number;
+}
+
+export interface SupplierAlternativesConfig {
+  defaultSpendMix: SupplierSpendMixRow[];
+  alternateSuppliers: AlternateSupplierRow[];
+  hhiLowMax: number;
+  hhiModerateMax: number;
+  context: string;
+  bandsCaption: string;
+}
+
+export interface ScenarioResilienceData {
+  inflationSensitivity: InflationSensitivityConfig;
+  supplyDisruption: SupplyDisruptionConfig;
+  pandemicPreparedness: PandemicPreparednessConfig;
+  supplierAlternatives: SupplierAlternativesConfig;
+}
+
 export interface ScenariosFile {
   _note: string;
   meta: {
@@ -442,4 +523,5 @@ export interface ScenariosFile {
   b2b: B2BData;
   forecast13Week: Forecast13Week;
   performanceTracker: PerformanceTrackerData;
+  scenarioResilience: ScenarioResilienceData;
 }

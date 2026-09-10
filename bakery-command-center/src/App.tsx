@@ -12,13 +12,15 @@ import { SupplierRiskTable } from './components/SupplierRiskTable';
 import { VarianceWaterfall } from './components/VarianceWaterfall';
 import { EmployeePortalGate } from './components/employee/EmployeePortalGate';
 import { B2BPage } from './components/b2b/B2BPage';
+import { ScenarioResiliencePage } from './components/scenario/ScenarioResiliencePage';
 import { computeModelScenarioKpis, getSankeyForCell, scenariosFile } from './data';
 import type { PeriodGranularity, ScenarioKey } from './data';
 
-type AppPage = 'commandCenter' | 'employeePortal' | 'b2b';
+type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'b2b';
 
 const APP_PAGES: { key: AppPage; label: string }[] = [
   { key: 'commandCenter', label: 'Command Center' },
+  { key: 'scenarios', label: 'Scenarios' },
   { key: 'employeePortal', label: 'Employee Portal' },
   { key: 'b2b', label: 'B2B Performance' },
 ];
@@ -141,6 +143,7 @@ function App() {
 
         {page === 'employeePortal' && <EmployeePortalGate />}
         {page === 'b2b' && <B2BPage />}
+        {page === 'scenarios' && <ScenarioResiliencePage />}
 
         {page === 'commandCenter' && (
           <>

@@ -376,5 +376,67 @@
       { "division": "Tahina", "wastagePct": 2.4 },
       { "division": "Seasonal Collection", "wastagePct": 6.5 }
     ]
+  },
+
+  "scenarioResilience": {
+    "_note": "Ported verbatim from Streamlit Scenario & Resilience (app.py lines 2186-2428). Inflation sensitivity's base_cost/base_food_cost_pct are performanceTracker.baseline.costPerUnit/foodCostPct, not duplicated here.",
+    "inflationSensitivity": {
+      "headlineInflationPct": { "min": 0.0, "max": 10.0, "default": 2.8, "step": 0.1 },
+      "foodInflationPct": { "min": 0.0, "max": 20.0, "default": 5.3, "step": 0.1 },
+      "subsidyOffsetAed": { "min": 0.0, "max": 2.0, "default": 0.05, "step": 0.01 },
+      "context": "Context: UAE food inflation has ranged from a 2022 peak near 9% to negative readings in 2021, against headline forecasts around 2-3% for 2026 — a single flat assumption misses this swing."
+    },
+    "supplyDisruption": {
+      "avgDailyCostAed": 4200,
+      "scenarios": [
+        { "name": "No disruption", "delayDays": 0, "costPremiumPct": 0, "stockoutProbability": 0.02 },
+        { "name": "Port congestion", "delayDays": 7, "costPremiumPct": 6, "stockoutProbability": 0.15 },
+        { "name": "Strait chokepoint closure", "delayDays": 18, "costPremiumPct": 14, "stockoutProbability": 0.35 },
+        { "name": "Extreme heat / sandstorm logistics delay", "delayDays": 3, "costPremiumPct": 3, "stockoutProbability": 0.10 }
+      ],
+      "defaultScenario": "Strait chokepoint closure",
+      "custom": {
+        "delayDays": { "min": 0, "max": 30, "default": 10, "step": 1 },
+        "costPremiumPct": { "min": 0, "max": 40, "default": 10, "step": 1 },
+        "stockoutProbability": { "min": 0.0, "max": 1.0, "default": 0.2, "step": 0.05 }
+      },
+      "context": "UAE imports 80-90% of its food, so \"natural calamity\" risk for a bakery is mainly an import-shock risk."
+    },
+    "pandemicPreparedness": {
+      "customerRetention": {
+        "repeatPurchaseRatePct": { "min": 0, "max": 100, "default": 62 },
+        "deliverySharePct": { "min": 0, "max": 100, "default": 28 },
+        "basketSizeAed": { "min": 20, "max": 200, "default": 74 },
+        "repeatPurchaseFlagBelow": 50,
+        "deliveryShareFlagBelow": 15
+      },
+      "supplyChain": {
+        "safetyStockDays": { "min": 0, "max": 30, "default": 9 },
+        "alternateSuppliersPerIngredient": { "min": 0, "max": 5, "default": 1 },
+        "singleSourcedPct": { "min": 0, "max": 100, "default": 45 },
+        "safetyStockFlagBelow": 7,
+        "alternateSuppliersFlagBelow": 2,
+        "singleSourcedFlagAbove": 40
+      },
+      "context": "Rationale: pandemics create a dual shock — demand shifting from in-store to delivery, and supply disruption at the same time — so both sides need to be tracked together as an early-warning system."
+    },
+    "supplierAlternatives": {
+      "defaultSpendMix": [
+        { "origin": "Russia", "spendSharePct": 31 },
+        { "origin": "Canada", "spendSharePct": 28 },
+        { "origin": "Australia", "spendSharePct": 12 },
+        { "origin": "India", "spendSharePct": 20 },
+        { "origin": "Other", "spendSharePct": 9 }
+      ],
+      "alternateSuppliers": [
+        { "supplier": "Local UAE mill (blended flour)", "costDeltaPct": 4.5, "leadTimeDeltaDays": -3 },
+        { "supplier": "Turkey-origin supplier", "costDeltaPct": 2.1, "leadTimeDeltaDays": -1 },
+        { "supplier": "Egypt-origin supplier", "costDeltaPct": 1.8, "leadTimeDeltaDays": 0 }
+      ],
+      "hhiLowMax": 1500,
+      "hhiModerateMax": 2500,
+      "context": "Herfindahl-Hirschman-style concentration index for core bakery inputs (e.g., flour), following the measurement approach used in UAE cereal-supply-risk research (Ali et al., 2022).",
+      "bandsCaption": "Reference bands: <1,500 low · 1,500-2,500 moderate · >2,500 high (standard HHI convention)."
+    }
   }
 }
