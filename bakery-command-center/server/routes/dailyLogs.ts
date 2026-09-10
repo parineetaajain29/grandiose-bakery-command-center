@@ -29,6 +29,9 @@ dailyLogsRouter.get('/daily-logs', (req, res) => {
   res.json(getDailyLogs(scopeEmployeeIds(session), from, to));
 });
 
+// Note: productiveMinutes is deliberately never read from the body here — it's derived
+// server-side (server/services/dailyLogs.ts) from paid/break/changeover/downtime/idle,
+// so a client-sent value (inflated or otherwise) is simply never looked at.
 function readInput(body: Record<string, unknown>): DailyLogInput & {
   employeeId?: string;
   notes?: string | null;
@@ -44,8 +47,11 @@ function readInput(body: Record<string, unknown>): DailyLogInput & {
     breakMinutes: Number(body.breakMinutes),
     changeoverMinutes: Number(body.changeoverMinutes),
     downtimeMinutes: Number(body.downtimeMinutes),
-    productiveMinutes: Number(body.productiveMinutes),
+    idleMinutes: Number(body.idleMinutes),
+    activityType: String(body.activityType ?? ''),
     unitsProduced: body.unitsProduced == null ? null : Number(body.unitsProduced),
+    downtimeCauseCode: typeof body.downtimeCauseCode === 'string' ? body.downtimeCauseCode : null,
+    changeoverCauseCode: typeof body.changeoverCauseCode === 'string' ? body.changeoverCauseCode : null,
     notes: typeof body.notes === 'string' ? body.notes : null,
     lossReason: typeof body.lossReason === 'string' ? body.lossReason : null,
     dailySalaryCost: body.dailySalaryCost == null ? null : Number(body.dailySalaryCost),

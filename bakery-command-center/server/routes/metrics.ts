@@ -10,7 +10,9 @@ import {
   getComparativeMetrics,
   getDepartmentAggregationComparison,
   getDepartmentsMetrics,
+  getCauseBreakdown,
   getWorkforceOverview,
+  hasLegacyDataInRange,
 } from '../services/metrics.ts';
 
 export const metricsRouter = Router();
@@ -32,6 +34,14 @@ metricsRouter.get('/metrics/employee/:id', (req, res) => {
   if (!canViewEmployee(session, req.params.id)) return res.status(403).json({ error: 'not authorised' });
   const { from, to } = range(req);
   res.json(getEmployeeMetrics(req.params.id, from, to));
+});
+
+metricsRouter.get('/metrics/employee/:id/legacy-check', (req, res) => {
+  const session = requireAuth(req, res);
+  if (!session) return;
+  if (!canViewEmployee(session, req.params.id)) return res.status(403).json({ error: 'not authorised' });
+  const { from, to } = range(req);
+  res.json({ hasLegacyData: hasLegacyDataInRange(req.params.id, from, to) });
 });
 
 metricsRouter.get('/metrics/trend/employee/:id', (req, res) => {
@@ -101,6 +111,13 @@ metricsRouter.get('/metrics/aggregation-comparison/:departmentName', (req, res) 
   if (!canViewDepartmentAggregate(session, req.params.departmentName)) return res.status(403).json({ error: 'not authorised' });
   const { from, to } = range(req);
   res.json(getDepartmentAggregationComparison(req.params.departmentName, from, to));
+});
+
+metricsRouter.get('/metrics/cause-breakdown', (req, res) => {
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
+  if (!session) return;
+  const { from, to } = range(req);
+  res.json(getCauseBreakdown(session, from, to));
 });
 
 metricsRouter.get('/metrics/workforce-overview', (req, res) => {

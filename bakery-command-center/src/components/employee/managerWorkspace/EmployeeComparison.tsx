@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getEmployeeMetrics, getEmployees, useApiData } from '../../../data/api';
+import { getEmployeeLegacyCheck, getEmployeeMetrics, getEmployees, useApiData } from '../../../data/api';
 import { categorizeLoss, perDayAverage, type LabourResult } from '../../../lib/labourCalc';
 import { formatHoursFromMinutes, formatMinutes, formatPercentPrecise } from '../../../lib/format';
 import { PeriodWindowSelector, dateRangeForWindow, type PeriodWindow } from '../shared/PeriodWindowSelector';
@@ -25,6 +25,8 @@ interface Row {
   current: LabourResult;
   trend: TrendStatus;
   causeHint: string | null;
+  /** True when causeHint's operationalSharePct was computed over a range that includes a pre-idle-tracking log — see getEmployeeLegacyCheck. */
+  causeHintHasLegacyData: boolean;
 }
 
 function previousWindow(from: string, to: string): { from: string; to: string } {
@@ -52,6 +54,7 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
 
         let trend: TrendStatus = 'Insufficient Data';
         let causeHint: string | null = null;
+        let causeHintHasLegacyData = false;
         if (current.daysLogged > 0 && previous.daysLogged > 0) {
           const delta = current.trueEfficiencyPct - previous.trueEfficiencyPct;
           trend = delta > 2 ? 'Improving' : delta < -2 ? 'Needs Review' : 'Stable';
@@ -59,11 +62,15 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
             const loss = categorizeLoss(current);
             if (loss.operationalSharePct !== null && loss.operationalSharePct >= 60) {
               causeHint = `Performance declined, but ${Math.round(loss.operationalSharePct)}% of lost time was linked to operational downtime/changeover.`;
+              // categorizeLoss reads idleMinutes, which a legacy (pre-idle-tracking) log
+              // computes differently than one logged since — only worth the extra
+              // request when the hint is actually about to be shown.
+              causeHintHasLegacyData = (await getEmployeeLegacyCheck(emp.id, from, to)).hasLegacyData;
             }
           }
         }
 
-        return { id: emp.id, name: emp.name, current, trend, causeHint };
+        return { id: emp.id, name: emp.name, current, trend, causeHint, causeHintHasLegacyData };
       }),
     );
     return rows;
@@ -107,6 +114,12 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
                           {row.name}
                         </button>
                         {row.causeHint && <p className="mt-0.5 max-w-xs text-[11px] text-text-secondary">{row.causeHint}</p>}
+                        {row.causeHint && row.causeHintHasLegacyData && (
+                          <p className="mt-0.5 max-w-xs text-[11px] text-accent-orange">
+                            ⚠ Includes days logged before the productive-minutes integrity fix — idle/other time isn't directly
+                            comparable to more recent days. See My Performance for that employee.
+                          </p>
+                        )}
                       </td>
                       <td className={`py-2.5 pr-4 text-right font-tabular font-semibold ${TONE_TEXT_CLASS[tone]}`}>
                         {row.current.daysLogged > 0 ? formatPercentPrecise(row.current.trueEfficiencyPct) : '—'}

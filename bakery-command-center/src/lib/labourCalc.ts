@@ -20,7 +20,11 @@ export interface LabourRecord {
   breakMinutes: number;
   changeoverMinutes: number;
   downtimeMinutes: number;
+  /** Reported directly (no longer derived) — see deriveProductiveMinutes for how a daily log row computes this at write time. */
+  idleMinutes: number;
   productiveMinutes: number;
+  /** 0 when not counted (e.g. a non-production shift) — summable like every other field here. */
+  unitsProduced: number;
   dailySalaryCost: number;
   revenueAttributed: number;
   /** Count of daily-log rows this record represents — 1 for a single day, summed on aggregation. */
@@ -34,7 +38,7 @@ export interface LabourResult {
   downtimeMinutes: number;
   availableMinutes: number;
   productiveMinutes: number;
-  /** Available time not spent productive and not explicitly changeover/downtime — the residual "Idle / Other" bucket. */
+  /** Directly reported (pass-through of the record's own idleMinutes) — the "Idle / Other" bucket the employee now logs explicitly rather than a leftover computed from productive time. */
   idleMinutes: number;
   /** availableMinutes / paidMinutes × 100 — how much paid time was available to work at all. */
   utilisationPct: number;
@@ -44,6 +48,10 @@ export interface LabourResult {
   performanceWhileWorkingPct: number | null;
   /** null (never Infinity/NaN) when productiveMinutes is 0 — render as "—". */
   costPerProductiveHour: number | null;
+  /** Total units produced over this record/rollup. */
+  unitsProduced: number;
+  /** dailySalaryCost / unitsProduced. null when unitsProduced is 0 (e.g. a period with only non-production shifts) — render as "—". */
+  costPerUnit: number | null;
   /** null when dailySalaryCost is 0. */
   revenuePerLabourDirham: number | null;
   /** null when daysLogged is 0. */
@@ -53,17 +61,27 @@ export interface LabourResult {
 }
 
 export function computeLabourChain(record: LabourRecord, config: LabourConfigInput): LabourResult {
-  const { paidMinutes, breakMinutes, changeoverMinutes, downtimeMinutes, productiveMinutes, dailySalaryCost, revenueAttributed, daysLogged } =
-    record;
+  const {
+    paidMinutes,
+    breakMinutes,
+    changeoverMinutes,
+    downtimeMinutes,
+    idleMinutes,
+    productiveMinutes,
+    unitsProduced,
+    dailySalaryCost,
+    revenueAttributed,
+    daysLogged,
+  } = record;
 
   const availableMinutes = paidMinutes - (config.breaksArePaid ? 0 : breakMinutes) - changeoverMinutes - downtimeMinutes;
-  const idleMinutes = availableMinutes - productiveMinutes;
 
   const utilisationPct = paidMinutes === 0 ? 0 : (availableMinutes / paidMinutes) * 100;
   const trueEfficiencyPct = paidMinutes === 0 ? 0 : (productiveMinutes / paidMinutes) * 100;
   const performanceWhileWorkingPct = availableMinutes <= 0 ? null : (productiveMinutes / availableMinutes) * 100;
 
   const costPerProductiveHour = productiveMinutes === 0 ? null : dailySalaryCost / (productiveMinutes / 60);
+  const costPerUnit = unitsProduced === 0 ? null : dailySalaryCost / unitsProduced;
   const revenuePerLabourDirham = dailySalaryCost === 0 ? null : revenueAttributed / dailySalaryCost;
   const revenuePerDay = daysLogged === 0 ? null : revenueAttributed / daysLogged;
 
@@ -79,6 +97,8 @@ export function computeLabourChain(record: LabourRecord, config: LabourConfigInp
     trueEfficiencyPct,
     performanceWhileWorkingPct,
     costPerProductiveHour,
+    unitsProduced,
+    costPerUnit,
     revenuePerLabourDirham,
     revenuePerDay,
     daysLogged,
@@ -98,12 +118,25 @@ export function aggregateLabourRecords(records: LabourRecord[]): LabourRecord {
       breakMinutes: acc.breakMinutes + r.breakMinutes,
       changeoverMinutes: acc.changeoverMinutes + r.changeoverMinutes,
       downtimeMinutes: acc.downtimeMinutes + r.downtimeMinutes,
+      idleMinutes: acc.idleMinutes + r.idleMinutes,
       productiveMinutes: acc.productiveMinutes + r.productiveMinutes,
+      unitsProduced: acc.unitsProduced + r.unitsProduced,
       dailySalaryCost: acc.dailySalaryCost + r.dailySalaryCost,
       revenueAttributed: acc.revenueAttributed + r.revenueAttributed,
       daysLogged: acc.daysLogged + r.daysLogged,
     }),
-    { paidMinutes: 0, breakMinutes: 0, changeoverMinutes: 0, downtimeMinutes: 0, productiveMinutes: 0, dailySalaryCost: 0, revenueAttributed: 0, daysLogged: 0 },
+    {
+      paidMinutes: 0,
+      breakMinutes: 0,
+      changeoverMinutes: 0,
+      downtimeMinutes: 0,
+      idleMinutes: 0,
+      productiveMinutes: 0,
+      unitsProduced: 0,
+      dailySalaryCost: 0,
+      revenueAttributed: 0,
+      daysLogged: 0,
+    },
   );
 }
 
@@ -160,6 +193,13 @@ export function computeAllocatedRevenue(divisionRevenue: number, allocationWeigh
 export const VALID_SHIFTS = ['Morning', 'Night'] as const;
 export type Shift = (typeof VALID_SHIFTS)[number];
 
+/** 'production' requires unitsProduced; 'non_production' (cleaning, training, ...) exempts it. */
+export const ACTIVITY_TYPES = ['production', 'non_production'] as const;
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+
+export const DOWNTIME_CAUSES = ['Equipment failure', 'Material shortage', 'Waiting for approval', 'Cleaning', 'Power or utility', 'Other'] as const;
+export const CHANGEOVER_CAUSES = ['Product changeover', 'Batch setup', 'Cleaning between products', 'Other'] as const;
+
 const MAX_PAID_MINUTES = 16 * 60; // "unrealistic paid hours" cutoff
 
 export interface DailyLogInput {
@@ -169,17 +209,46 @@ export interface DailyLogInput {
   breakMinutes: number;
   changeoverMinutes: number;
   downtimeMinutes: number;
-  productiveMinutes: number;
+  /** Reported directly — productive time is derived from this, not the other way around (see deriveProductiveMinutes). */
+  idleMinutes: number;
+  activityType: string;
   unitsProduced?: number | null;
+  downtimeCauseCode?: string | null;
+  changeoverCauseCode?: string | null;
 }
 
-/** Returns a list of human-readable problems; empty means the record is valid. Never silently saves invalid data. */
-export function validateDailyLogInput(input: DailyLogInput, config: LabourConfigInput): string[] {
+/**
+ * The one place productive time is computed — never accepted as input. paid time
+ * decomposes exhaustively into break + changeover + downtime + idle + productive;
+ * this is that identity solved for productive. Shared by the form (live display)
+ * and the server (the authoritative write) so a client can never submit its own
+ * productive-minutes figure.
+ */
+export function deriveProductiveMinutes(input: {
+  paidMinutes: number;
+  breakMinutes: number;
+  changeoverMinutes: number;
+  downtimeMinutes: number;
+  idleMinutes: number;
+}): number {
+  return input.paidMinutes - input.breakMinutes - input.changeoverMinutes - input.downtimeMinutes - input.idleMinutes;
+}
+
+/**
+ * Returns a list of human-readable problems; empty means the record is valid. Never
+ * silently saves invalid data. Takes no LabourConfigInput — deriving productive time
+ * is a straight ledger identity (break time is never productive, paid or not), unlike
+ * availableMinutes/performanceWhileWorkingPct downstream, which do depend on breaksArePaid.
+ */
+export function validateDailyLogInput(input: DailyLogInput): string[] {
   const errors: string[] = [];
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) errors.push('Date must be a valid date (YYYY-MM-DD).');
   if (!(VALID_SHIFTS as readonly string[]).includes(input.shift)) {
     errors.push(`Shift must be one of: ${VALID_SHIFTS.join(', ')}.`);
+  }
+  if (!(ACTIVITY_TYPES as readonly string[]).includes(input.activityType)) {
+    errors.push(`Shift type must be one of: ${ACTIVITY_TYPES.join(', ')}.`);
   }
 
   const numericFields: [string, number][] = [
@@ -187,7 +256,7 @@ export function validateDailyLogInput(input: DailyLogInput, config: LabourConfig
     ['Break minutes', input.breakMinutes],
     ['Changeover minutes', input.changeoverMinutes],
     ['Downtime minutes', input.downtimeMinutes],
-    ['Productive time', input.productiveMinutes],
+    ['Idle minutes', input.idleMinutes],
   ];
   for (const [label, value] of numericFields) {
     if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
@@ -204,15 +273,28 @@ export function validateDailyLogInput(input: DailyLogInput, config: LabourConfig
   if (input.paidMinutes <= 0) errors.push('Paid hours must be greater than zero.');
   if (input.paidMinutes > MAX_PAID_MINUTES) errors.push('Paid hours looks unrealistic for a single shift (over 16 hours).');
 
-  const availableMinutes =
-    input.paidMinutes - (config.breaksArePaid ? 0 : input.breakMinutes) - input.changeoverMinutes - input.downtimeMinutes;
-  if (input.productiveMinutes > availableMinutes) {
-    errors.push('Productive time cannot exceed available working time (paid time minus breaks, changeover, and downtime).');
+  const productiveMinutes = deriveProductiveMinutes(input);
+  if (productiveMinutes < 0) {
+    errors.push('Break, changeover, downtime, and idle minutes exceed the paid shift duration. Please review your entries.');
   }
 
-  const totalLogged = input.breakMinutes + input.changeoverMinutes + input.downtimeMinutes + input.productiveMinutes;
-  if (totalLogged > input.paidMinutes) {
-    errors.push('Logged activity exceeds the paid shift duration. Please review your entries.');
+  if (input.activityType === 'production' && input.unitsProduced == null) {
+    errors.push('Units produced is required for a production shift (or mark this as a non-production shift).');
+  }
+
+  if (input.downtimeMinutes > 0) {
+    if (!input.downtimeCauseCode) {
+      errors.push('Downtime cause is required when downtime minutes are greater than zero.');
+    } else if (!(DOWNTIME_CAUSES as readonly string[]).includes(input.downtimeCauseCode)) {
+      errors.push(`Downtime cause must be one of: ${DOWNTIME_CAUSES.join(', ')}.`);
+    }
+  }
+  if (input.changeoverMinutes > 0) {
+    if (!input.changeoverCauseCode) {
+      errors.push('Changeover cause is required when changeover minutes are greater than zero.');
+    } else if (!(CHANGEOVER_CAUSES as readonly string[]).includes(input.changeoverCauseCode)) {
+      errors.push(`Changeover cause must be one of: ${CHANGEOVER_CAUSES.join(', ')}.`);
+    }
   }
 
   return errors;

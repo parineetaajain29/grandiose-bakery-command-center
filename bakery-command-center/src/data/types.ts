@@ -154,8 +154,13 @@ export interface DailyLog {
   breakMinutes: number;
   changeoverMinutes: number;
   downtimeMinutes: number;
+  idleMinutes: number;
+  /** Server-derived, never client-set — see deriveProductiveMinutes in src/lib/labourCalc.ts. */
   productiveMinutes: number;
+  activityType: string;
   unitsProduced: number | null;
+  downtimeCauseCode: string | null;
+  changeoverCauseCode: string | null;
   notes: string | null;
   lossReason: string | null;
   dailySalaryCost: number;
@@ -164,6 +169,21 @@ export interface DailyLog {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CauseBreakdownEntry {
+  cause: string;
+  minutes: number;
+  count: number;
+}
+
+export interface DepartmentCauseBreakdown {
+  department: string;
+  downtime: CauseBreakdownEntry[];
+  changeover: CauseBreakdownEntry[];
+}
+
+/** GET /api/metrics/cause-breakdown — supervisor/manager/hr_admin; scoped to the caller (own department for supervisor, all for manager/hr_admin). "Not recorded (before cause tracking)" groups pre-migration rows that have minutes but no stored cause. */
+export type CauseBreakdown = DepartmentCauseBreakdown[];
 
 export type GoalStatus = 'active' | 'completed' | 'overdue' | 'cancelled';
 
@@ -236,6 +256,24 @@ export interface DepartmentAggregationComparison {
   correct: LabourResult;
   naiveMeanTrueEfficiencyPct: number | null;
   employeeCount: number;
+}
+
+/**
+ * GET /api/metrics/trend/{employee,department,bakery}/... — one point per period plus a
+ * provenance flag. hasLegacyData is true when the period includes a daily log saved
+ * before idle-minutes tracking existed, whose productive minutes were self-reported
+ * rather than derived. True Efficiency/Performance While Working are unaffected either
+ * way — this only marks which points carry a weaker data-integrity guarantee.
+ */
+export interface TrendPointWithProvenance {
+  period: string;
+  result: LabourResult;
+  hasLegacyData: boolean;
+}
+
+/** GET /api/metrics/employee/:id/legacy-check — whether the given range includes any pre-idle-tracking daily log for this employee. */
+export interface LegacyCheck {
+  hasLegacyData: boolean;
 }
 
 /** GET /api/metrics/workforce-overview — manager/hr_admin only. */

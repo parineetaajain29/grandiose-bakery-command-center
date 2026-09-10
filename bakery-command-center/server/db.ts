@@ -118,4 +118,43 @@ addColumnIfMissing('employees', 'active', 'active INTEGER NOT NULL DEFAULT 1');
 addColumnIfMissing('users', 'failed_attempts', 'failed_attempts INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 'locked_until', 'locked_until TEXT');
 
+// Daily Log data-integrity pass: idle/other is now a genuine reported field (productive
+// minutes is derived from it server-side, never accepted as input — see
+// src/lib/labourCalc.ts's deriveProductiveMinutes); downtime/changeover gain required
+// cause codes; a shift now carries an activity type so a non-production shift (cleaning,
+// training) can be exempted from requiring units produced.
+addColumnIfMissing('daily_logs', 'idle_minutes', 'idle_minutes REAL');
+addColumnIfMissing('daily_logs', 'downtime_cause_code', 'downtime_cause_code TEXT');
+addColumnIfMissing('daily_logs', 'changeover_cause_code', 'changeover_cause_code TEXT');
+// DEFAULT 'production' both satisfies SQLite's NOT NULL-with-existing-rows requirement
+// and is the semantically correct backfill — every row written before this column
+// existed really was a production shift.
+addColumnIfMissing('daily_logs', 'activity_type', "activity_type TEXT NOT NULL DEFAULT 'production'");
+// Provenance flag: 0 for every row saved going forward (productive_minutes is always
+// server-derived now — see deriveProductiveMinutes). Set to 1 below, only for rows that
+// predate idle tracking, whose productive_minutes was still self-reported. This is what
+// lets the trend chart mark which points carry that weaker guarantee (see
+// server/services/metrics.ts's hasLegacyData) — the True Efficiency/Performance While
+// Working *numbers* for those rows are unaffected (they never read idleMinutes), but the
+// underlying productive figure for them was typed directly, not derived.
+addColumnIfMissing('daily_logs', 'productive_self_reported', 'productive_self_reported INTEGER NOT NULL DEFAULT 0');
+
+// One-time, idempotent backfill for idle_minutes (and the provenance flag above) on rows
+// written before this column existed: fills in the exact residual the new invariant
+// (paid = break + changeover + downtime + idle + productive) implies, using each row's
+// own already-stored productive_minutes. Never touches productive_minutes/downtime/
+// changeover on any existing row, so True Efficiency, Performance While Working, and
+// every existing trend stay numerically unchanged — this only fills the new fields for
+// continuity, it does not re-derive or re-verify the historical productive figure. Runs
+// on every boot but is a no-op once done (WHERE idle_minutes IS NULL), same guarded
+// pattern as the ALTERs above. downtime_cause_code/changeover_cause_code are deliberately
+// left NULL for these rows — there is no source data to reconstruct a real cause from;
+// the manager cause-breakdown view buckets them as "not recorded" rather than guessing.
+db.exec(`
+  UPDATE daily_logs
+  SET idle_minutes = paid_minutes - break_minutes - changeover_minutes - downtime_minutes - productive_minutes,
+      productive_self_reported = 1
+  WHERE idle_minutes IS NULL
+`);
+
 export { DB_PATH };

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { LabourResult, TrendPoint } from '../lib/labourCalc';
+import type { LabourResult } from '../lib/labourCalc';
 import type {
   Alert,
   AuditEvent,
   AuthUser,
+  CauseBreakdown,
   ComparativeMetrics,
   DailyLog,
   DataQualityIssue,
@@ -13,6 +14,8 @@ import type {
   Feedback,
   Goal,
   GoalStatus,
+  LegacyCheck,
+  TrendPointWithProvenance,
   WorkforceOverview,
 } from './types';
 
@@ -146,8 +149,11 @@ export interface DailyLogWriteInput {
   breakMinutes: number;
   changeoverMinutes: number;
   downtimeMinutes: number;
-  productiveMinutes: number;
+  idleMinutes: number;
+  activityType: string;
   unitsProduced?: number | null;
+  downtimeCauseCode?: string | null;
+  changeoverCauseCode?: string | null;
   notes?: string | null;
   lossReason?: string | null;
   dailySalaryCost?: number | null;
@@ -172,6 +178,11 @@ export function getEmployeeMetrics(id: string, from: string, to: string): Promis
   return getJson(`/api/metrics/employee/${id}${query({ from, to })}`);
 }
 
+/** Whether this employee has any daily log in range that predates idle-minutes tracking — see TrendPointWithProvenance. */
+export function getEmployeeLegacyCheck(id: string, from: string, to: string): Promise<LegacyCheck> {
+  return getJson(`/api/metrics/employee/${id}/legacy-check${query({ from, to })}`);
+}
+
 export function getDepartmentMetrics(name: string, from: string, to: string): Promise<LabourResult> {
   return getJson(`/api/metrics/department/${encodeURIComponent(name)}${query({ from, to })}`);
 }
@@ -180,15 +191,15 @@ export function getBakeryMetrics(from: string, to: string): Promise<LabourResult
   return getJson(`/api/metrics/bakery${query({ from, to })}`);
 }
 
-export function getEmployeeTrend(id: string, from: string, to: string): Promise<TrendPoint[]> {
+export function getEmployeeTrend(id: string, from: string, to: string): Promise<TrendPointWithProvenance[]> {
   return getJson(`/api/metrics/trend/employee/${id}${query({ from, to })}`);
 }
 
-export function getDepartmentTrend(name: string, from: string, to: string): Promise<TrendPoint[]> {
+export function getDepartmentTrend(name: string, from: string, to: string): Promise<TrendPointWithProvenance[]> {
   return getJson(`/api/metrics/trend/department/${encodeURIComponent(name)}${query({ from, to })}`);
 }
 
-export function getBakeryTrend(from: string, to: string): Promise<TrendPoint[]> {
+export function getBakeryTrend(from: string, to: string): Promise<TrendPointWithProvenance[]> {
   return getJson(`/api/metrics/trend/bakery${query({ from, to })}`);
 }
 
@@ -207,6 +218,11 @@ export function getWorkforceOverview(from: string, to: string): Promise<Workforc
 /** Scoped to the caller server-side: every department for manager/hr_admin, just their own for supervisor. */
 export function getDepartmentsMetrics(from: string, to: string): Promise<DepartmentsMetrics> {
   return getJson(`/api/metrics/departments${query({ from, to })}`);
+}
+
+/** Downtime/changeover minutes and count by cause, per department — same scoping as getDepartmentsMetrics. */
+export function getCauseBreakdown(from: string, to: string): Promise<CauseBreakdown> {
+  return getJson(`/api/metrics/cause-breakdown${query({ from, to })}`);
 }
 
 // --- Goals --------------------------------------------------------------

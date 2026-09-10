@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getEmployeeMetrics, getEmployeeTrend, useApiData } from '../../../data/api';
 import type { AuthUser } from '../../../data';
 import type { LabourResult } from '../../../lib/labourCalc';
@@ -22,6 +22,22 @@ const METRICS: { key: MetricKey; label: string; extract: (r: LabourResult) => nu
   { key: 'performanceWhileWorkingPct', label: 'Performance While Working', extract: (r) => r.performanceWhileWorkingPct },
 ];
 
+/**
+ * Hollow dot + shaded band for points whose productive minutes were self-reported
+ * (saved before idle-minutes tracking existed) rather than derived — see
+ * TrendPointWithProvenance. The percentage figure itself isn't wrong for these
+ * points (True Efficiency/Performance While Working never depended on idle time),
+ * but the underlying productive number for them carries a weaker guarantee, and a
+ * smooth unbroken line gives no hint of that. Solid dot = calculated from logged
+ * categories; hollow dot = typed directly by the employee.
+ */
+function TrendDot(props: { cx?: number; cy?: number; payload?: { hasLegacyData: boolean } }) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null) return null;
+  const legacy = payload?.hasLegacyData ?? false;
+  return <circle cx={cx} cy={cy} r={2.5} fill={legacy ? 'var(--bg-panel)' : 'var(--accent-blue)'} stroke="var(--accent-blue)" strokeWidth={legacy ? 1.5 : 0} />;
+}
+
 export function MyPerformance({ user }: MyPerformanceProps) {
   const [window_, setWindow] = useState<PeriodWindow>(30);
   const [metricKey, setMetricKey] = useState<MetricKey>('trueEfficiencyPct');
@@ -33,8 +49,9 @@ export function MyPerformance({ user }: MyPerformanceProps) {
 
   const rows =
     trendState.status === 'ready'
-      ? trendState.data.map((p) => ({ date: p.period, value: metric.extract(p.result) }))
+      ? trendState.data.map((p) => ({ date: p.period, value: metric.extract(p.result), hasLegacyData: p.hasLegacyData }))
       : [];
+  const legacyDates = rows.filter((r) => r.hasLegacyData).map((r) => r.date);
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,10 +119,28 @@ export function MyPerformance({ user }: MyPerformanceProps) {
                   }}
                   formatter={(value) => [formatPercentPrecise(value === null || value === undefined ? null : Number(value)), metric.label]}
                 />
-                <Line dataKey="value" stroke="var(--accent-blue)" strokeWidth={2} dot={{ r: 2 }} connectNulls isAnimationActive={false} />
+                {legacyDates.length > 0 && (
+                  <ReferenceArea x1={legacyDates[0]} x2={legacyDates[legacyDates.length - 1]} fill="var(--text-secondary)" fillOpacity={0.08} strokeOpacity={0} />
+                )}
+                <Line
+                  dataKey="value"
+                  stroke="var(--accent-blue)"
+                  strokeWidth={2}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts' own dot-callback prop type isn't worth fighting here; TrendDot only reads cx/cy/payload.
+                  dot={(props: any) => <TrendDot key={props.key} {...props} />}
+                  connectNulls
+                  isAnimationActive={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
+        )}
+
+        {legacyDates.length > 0 && (
+          <p className="mt-3 font-mono text-[11px] text-text-secondary">
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-full border border-accent-blue align-middle" /> Shaded region, hollow points — productive minutes
+            were self-reported before this data-integrity change. Solid points are calculated from logged categories.
+          </p>
         )}
       </section>
     </div>

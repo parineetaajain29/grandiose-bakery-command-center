@@ -2,7 +2,16 @@ import { useMemo, useState } from 'react';
 import { getDailyLogs, saveDailyLog, updateDailyLog, useApiData, type DailyLogWriteInput } from '../../../data/api';
 import type { AuthUser, DailyLog } from '../../../data';
 import { LABOUR_CONFIG } from '../../../config/labourConfig';
-import { VALID_SHIFTS, validateDailyLogInput, type DailyLogInput } from '../../../lib/labourCalc';
+import {
+  ACTIVITY_TYPES,
+  CHANGEOVER_CAUSES,
+  DOWNTIME_CAUSES,
+  VALID_SHIFTS,
+  deriveProductiveMinutes,
+  validateDailyLogInput,
+  type ActivityType,
+  type DailyLogInput,
+} from '../../../lib/labourCalc';
 import { formatMinutes } from '../../../lib/format';
 
 interface DailyLogFormProps {
@@ -15,8 +24,11 @@ interface FormFields {
   paidMinutes: string;
   breakMinutes: string;
   changeoverMinutes: string;
+  changeoverCauseCode: string;
   downtimeMinutes: string;
-  productiveMinutes: string;
+  downtimeCauseCode: string;
+  idleMinutes: string;
+  activityType: ActivityType;
   unitsProduced: string;
   notes: string;
 }
@@ -32,8 +44,11 @@ function defaultFields(shift: string): FormFields {
     paidMinutes: String(Math.round(LABOUR_CONFIG.shiftLengthHours * 60)),
     breakMinutes: String(LABOUR_CONFIG.breakMinutesPerShift),
     changeoverMinutes: '',
+    changeoverCauseCode: '',
     downtimeMinutes: '',
-    productiveMinutes: '',
+    downtimeCauseCode: '',
+    idleMinutes: '',
+    activityType: 'production',
     unitsProduced: '',
     notes: '',
   };
@@ -49,23 +64,32 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
     [user.id, status.kind],
   );
 
-  function setField<K extends keyof FormFields>(key: K, value: string) {
+  function setField<K extends keyof FormFields>(key: K, value: FormFields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
   }
 
-  const clientErrors = useMemo(() => {
-    const input: DailyLogInput = {
+  const input: DailyLogInput = useMemo(
+    () => ({
       date: fields.date,
       shift: fields.shift,
       paidMinutes: Number(fields.paidMinutes),
       breakMinutes: Number(fields.breakMinutes),
       changeoverMinutes: Number(fields.changeoverMinutes || 0),
+      changeoverCauseCode: fields.changeoverCauseCode || null,
       downtimeMinutes: Number(fields.downtimeMinutes || 0),
-      productiveMinutes: Number(fields.productiveMinutes || 0),
+      downtimeCauseCode: fields.downtimeCauseCode || null,
+      idleMinutes: Number(fields.idleMinutes || 0),
+      activityType: fields.activityType,
       unitsProduced: fields.unitsProduced === '' ? null : Number(fields.unitsProduced),
-    };
-    return validateDailyLogInput(input, LABOUR_CONFIG);
-  }, [fields]);
+    }),
+    [fields],
+  );
+
+  // Productive minutes is never entered — it's the one number that used to be
+  // self-reported and drove every efficiency figure with no check. It's now a
+  // live read-only display of the same derivation the server uses authoritatively.
+  const derivedProductiveMinutes = useMemo(() => deriveProductiveMinutes(input), [input]);
+  const clientErrors = useMemo(() => validateDailyLogInput(input), [input]);
 
   function startEdit(log: DailyLog) {
     setEditingLogId(log.id);
@@ -75,8 +99,11 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
       paidMinutes: String(log.paidMinutes),
       breakMinutes: String(log.breakMinutes),
       changeoverMinutes: String(log.changeoverMinutes),
+      changeoverCauseCode: log.changeoverCauseCode ?? '',
       downtimeMinutes: String(log.downtimeMinutes),
-      productiveMinutes: String(log.productiveMinutes),
+      downtimeCauseCode: log.downtimeCauseCode ?? '',
+      idleMinutes: String(log.idleMinutes),
+      activityType: log.activityType === 'non_production' ? 'non_production' : 'production',
       unitsProduced: log.unitsProduced == null ? '' : String(log.unitsProduced),
       notes: log.notes ?? '',
     });
@@ -96,25 +123,18 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
       return;
     }
 
-    const input: DailyLogWriteInput = {
-      date: fields.date,
-      shift: fields.shift,
-      paidMinutes: Number(fields.paidMinutes),
-      breakMinutes: Number(fields.breakMinutes),
-      changeoverMinutes: Number(fields.changeoverMinutes || 0),
-      downtimeMinutes: Number(fields.downtimeMinutes || 0),
-      productiveMinutes: Number(fields.productiveMinutes || 0),
-      unitsProduced: fields.unitsProduced === '' ? null : Number(fields.unitsProduced),
+    const writeInput: DailyLogWriteInput = {
+      ...input,
       notes: fields.notes || null,
     };
 
     setStatus({ kind: 'saving' });
     try {
       if (editingLogId) {
-        await updateDailyLog(editingLogId, input);
+        await updateDailyLog(editingLogId, writeInput);
         setStatus({ kind: 'success', message: `Updated ${fields.date} (${fields.shift}).` });
       } else {
-        await saveDailyLog(input);
+        await saveDailyLog(writeInput);
         setStatus({ kind: 'success', message: `Logged ${fields.date} (${fields.shift}).` });
       }
       setEditingLogId(null);
@@ -126,6 +146,8 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
 
   const inputClass =
     'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary px-3 py-2 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
+  const readOnlyClass =
+    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary/60 px-3 py-2 font-mono text-sm text-text-secondary';
   const labelClass = 'font-mono text-[11px] tracking-[0.1em] text-text-secondary';
 
   return (
@@ -136,8 +158,8 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
           {editingLogId ? 'Edit today’s entry' : 'Log today’s shift'}
         </h2>
         <p className="mt-1 max-w-2xl font-mono text-sm text-text-secondary">
-          Enter minutes worked — the app calculates True Efficiency and Performance While Working from these numbers,
-          they're never entered directly.
+          Enter break, changeover, downtime, and idle/other minutes — Productive Minutes is calculated from these, it's
+          never entered directly. True Efficiency and Performance While Working are then calculated from that.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -156,6 +178,21 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             </select>
           </div>
           <div>
+            <label className={labelClass} htmlFor="dl-activity-type">SHIFT TYPE</label>
+            <select
+              id="dl-activity-type"
+              value={fields.activityType}
+              onChange={(e) => setField('activityType', e.target.value as ActivityType)}
+              className={inputClass}
+            >
+              {ACTIVITY_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t === 'production' ? 'Production' : 'Non-production — cleaning, training, no countable output'}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className={labelClass} htmlFor="dl-paid">PAID MINUTES</label>
             <input id="dl-paid" type="number" min={0} value={fields.paidMinutes} onChange={(e) => setField('paidMinutes', e.target.value)} className={inputClass} />
           </div>
@@ -165,18 +202,67 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
           </div>
           <div>
             <label className={labelClass} htmlFor="dl-changeover">CHANGEOVER MINUTES</label>
-            <input id="dl-changeover" type="number" min={0} value={fields.changeoverMinutes} onChange={(e) => setField('changeoverMinutes', e.target.value)} className={inputClass} />
+            <input
+              id="dl-changeover"
+              type="number"
+              min={0}
+              value={fields.changeoverMinutes}
+              onChange={(e) => setField('changeoverMinutes', e.target.value)}
+              className={inputClass}
+            />
           </div>
+          {Number(fields.changeoverMinutes || 0) > 0 && (
+            <div>
+              <label className={labelClass} htmlFor="dl-changeover-cause">CHANGEOVER CAUSE</label>
+              <select
+                id="dl-changeover-cause"
+                value={fields.changeoverCauseCode}
+                onChange={(e) => setField('changeoverCauseCode', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select a cause…</option>
+                {CHANGEOVER_CAUSES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className={labelClass} htmlFor="dl-downtime">DOWNTIME MINUTES</label>
             <input id="dl-downtime" type="number" min={0} value={fields.downtimeMinutes} onChange={(e) => setField('downtimeMinutes', e.target.value)} className={inputClass} />
           </div>
+          {Number(fields.downtimeMinutes || 0) > 0 && (
+            <div>
+              <label className={labelClass} htmlFor="dl-downtime-cause">DOWNTIME CAUSE</label>
+              <select
+                id="dl-downtime-cause"
+                value={fields.downtimeCauseCode}
+                onChange={(e) => setField('downtimeCauseCode', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select a cause…</option>
+                {DOWNTIME_CAUSES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
-            <label className={labelClass} htmlFor="dl-productive">PRODUCTIVE MINUTES</label>
-            <input id="dl-productive" type="number" min={0} value={fields.productiveMinutes} onChange={(e) => setField('productiveMinutes', e.target.value)} className={inputClass} />
+            <label className={labelClass} htmlFor="dl-idle">IDLE / OTHER MINUTES</label>
+            <input id="dl-idle" type="number" min={0} value={fields.idleMinutes} onChange={(e) => setField('idleMinutes', e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-units">UNITS PRODUCED (OPTIONAL)</label>
+            <label className={labelClass} htmlFor="dl-productive">PRODUCTIVE MINUTES (CALCULATED)</label>
+            <input id="dl-productive" readOnly value={derivedProductiveMinutes} className={readOnlyClass} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="dl-units">
+              UNITS PRODUCED{fields.activityType === 'production' ? '' : ' (OPTIONAL)'}
+            </label>
             <input id="dl-units" type="number" min={0} value={fields.unitsProduced} onChange={(e) => setField('unitsProduced', e.target.value)} className={inputClass} />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">

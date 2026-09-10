@@ -1,6 +1,5 @@
 import { db } from '../db.ts';
-import { LABOUR_CONFIG } from '../../src/config/labourConfig.ts';
-import { validateDailyLogInput, type DailyLogInput } from '../../src/lib/labourCalc.ts';
+import { deriveProductiveMinutes, validateDailyLogInput, type DailyLogInput } from '../../src/lib/labourCalc.ts';
 import type { Role } from '../auth.ts';
 import { createAuditEvent } from './audit.ts';
 
@@ -13,8 +12,14 @@ export interface DailyLogRow {
   breakMinutes: number;
   changeoverMinutes: number;
   downtimeMinutes: number;
+  idleMinutes: number;
   productiveMinutes: number;
+  /** True only for rows that predate idle-minutes tracking — their productiveMinutes was typed directly, not derived. See server/db.ts's migration comment. */
+  productiveSelfReported: boolean;
+  activityType: string;
   unitsProduced: number | null;
+  downtimeCauseCode: string | null;
+  changeoverCauseCode: string | null;
   notes: string | null;
   lossReason: string | null;
   dailySalaryCost: number;
@@ -33,8 +38,13 @@ interface RawDailyLogRow {
   break_minutes: number;
   changeover_minutes: number;
   downtime_minutes: number;
+  idle_minutes: number | null;
   productive_minutes: number;
+  productive_self_reported: number;
+  activity_type: string;
   units_produced: number | null;
+  downtime_cause_code: string | null;
+  changeover_cause_code: string | null;
   notes: string | null;
   loss_reason: string | null;
   daily_salary_cost: number;
@@ -54,8 +64,13 @@ function toDailyLogRow(r: RawDailyLogRow): DailyLogRow {
     breakMinutes: r.break_minutes,
     changeoverMinutes: r.changeover_minutes,
     downtimeMinutes: r.downtime_minutes,
+    idleMinutes: r.idle_minutes ?? 0,
     productiveMinutes: r.productive_minutes,
+    productiveSelfReported: r.productive_self_reported === 1,
+    activityType: r.activity_type,
     unitsProduced: r.units_produced,
+    downtimeCauseCode: r.downtime_cause_code,
+    changeoverCauseCode: r.changeover_cause_code,
     notes: r.notes,
     lossReason: r.loss_reason,
     dailySalaryCost: r.daily_salary_cost,
@@ -104,8 +119,16 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Cause codes only mean anything alongside their minutes — quietly drop a stray code left over from an earlier edit rather than rejecting the save over it. */
+function normalizedCauseCodes(input: DailyLogInput): { downtimeCauseCode: string | null; changeoverCauseCode: string | null } {
+  return {
+    downtimeCauseCode: input.downtimeMinutes > 0 ? (input.downtimeCauseCode ?? null) : null,
+    changeoverCauseCode: input.changeoverMinutes > 0 ? (input.changeoverCauseCode ?? null) : null,
+  };
+}
+
 export function saveDailyLog(input: SaveDailyLogInput, createdByEmployeeId: string, actorRole: Role): SaveDailyLogResult {
-  const errors = validateDailyLogInput(input, LABOUR_CONFIG);
+  const errors = validateDailyLogInput(input);
 
   const existing = db
     .prepare('SELECT id FROM daily_logs WHERE employee_id = ? AND date = ? AND shift = ?')
@@ -119,12 +142,17 @@ export function saveDailyLog(input: SaveDailyLogInput, createdByEmployeeId: stri
   const now = new Date().toISOString();
   const dailySalaryCost = input.dailySalaryCost ?? 0;
   const revenueAttributed = input.revenueAttributed ?? 0;
+  // Productive minutes are never taken from the caller, even if present in the request
+  // body — always derived here from the four reported categories, so an inflated
+  // client-sent figure is simply ignored rather than trusted.
+  const productiveMinutes = deriveProductiveMinutes(input);
+  const { downtimeCauseCode, changeoverCauseCode } = normalizedCauseCodes(input);
 
   const result = db
     .prepare(
       `INSERT INTO daily_logs
-        (employee_id, date, shift, paid_minutes, break_minutes, changeover_minutes, downtime_minutes, productive_minutes, units_produced, notes, loss_reason, daily_salary_cost, revenue_attributed, created_by_employee_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (employee_id, date, shift, paid_minutes, break_minutes, changeover_minutes, downtime_minutes, idle_minutes, productive_minutes, activity_type, units_produced, downtime_cause_code, changeover_cause_code, notes, loss_reason, daily_salary_cost, revenue_attributed, created_by_employee_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.employeeId,
@@ -134,8 +162,12 @@ export function saveDailyLog(input: SaveDailyLogInput, createdByEmployeeId: stri
       input.breakMinutes,
       input.changeoverMinutes,
       input.downtimeMinutes,
-      input.productiveMinutes,
+      input.idleMinutes,
+      productiveMinutes,
+      input.activityType,
       input.unitsProduced ?? null,
+      downtimeCauseCode,
+      changeoverCauseCode,
       input.notes ?? null,
       input.lossReason ?? null,
       dailySalaryCost,
@@ -180,14 +212,17 @@ export function updateDailyLog(
     return { ok: false, status: 403, errors: ['Older records are locked — only a manager or HR can edit history.'] };
   }
 
-  const errors = validateDailyLogInput(input, LABOUR_CONFIG);
+  const errors = validateDailyLogInput(input);
   if (errors.length > 0) return { ok: false, status: 400, errors };
 
   const now = new Date().toISOString();
+  const productiveMinutes = deriveProductiveMinutes(input);
+  const { downtimeCauseCode, changeoverCauseCode } = normalizedCauseCodes(input);
+
   db.prepare(
     `UPDATE daily_logs SET
-      date = ?, shift = ?, paid_minutes = ?, break_minutes = ?, changeover_minutes = ?, downtime_minutes = ?, productive_minutes = ?,
-      units_produced = ?, notes = ?, loss_reason = ?, daily_salary_cost = ?, revenue_attributed = ?, updated_at = ?
+      date = ?, shift = ?, paid_minutes = ?, break_minutes = ?, changeover_minutes = ?, downtime_minutes = ?, idle_minutes = ?, productive_minutes = ?,
+      activity_type = ?, units_produced = ?, downtime_cause_code = ?, changeover_cause_code = ?, notes = ?, loss_reason = ?, daily_salary_cost = ?, revenue_attributed = ?, updated_at = ?
      WHERE id = ?`,
   ).run(
     input.date,
@@ -196,8 +231,12 @@ export function updateDailyLog(
     input.breakMinutes,
     input.changeoverMinutes,
     input.downtimeMinutes,
-    input.productiveMinutes,
+    input.idleMinutes,
+    productiveMinutes,
+    input.activityType,
     input.unitsProduced ?? null,
+    downtimeCauseCode,
+    changeoverCauseCode,
     input.notes ?? null,
     input.lossReason ?? null,
     input.dailySalaryCost ?? existing.daily_salary_cost,

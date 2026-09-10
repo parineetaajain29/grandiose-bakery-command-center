@@ -4,6 +4,7 @@ import { DailyLogForm } from './employeeWorkspace/DailyLogForm';
 import { MyPerformance } from './employeeWorkspace/MyPerformance';
 import { WorkforceOverview } from './managerWorkspace/WorkforceOverview';
 import { DepartmentAnalysis } from './managerWorkspace/DepartmentAnalysis';
+import { CauseBreakdown } from './managerWorkspace/CauseBreakdown';
 import { EmployeeComparison } from './managerWorkspace/EmployeeComparison';
 import { EmployeeProfile } from './managerWorkspace/EmployeeProfile';
 import { GoalsFeedbackManager } from './managerWorkspace/GoalsFeedbackManager';
@@ -22,6 +23,7 @@ const ALL_TABS = [
   'Daily Log',
   'My Performance',
   'Department Analysis',
+  'Loss Causes',
   'Employee Comparison',
   'Employee Profile',
   'Goals & Feedback',
@@ -34,10 +36,21 @@ type Tab = (typeof ALL_TABS)[number];
 
 function visibleTabs(role: AuthUser['role']): Tab[] {
   if (role === 'supervisor') {
-    return ['Daily Log', 'My Performance', 'Department Analysis', 'Employee Comparison', 'Employee Profile', 'Goals & Feedback', 'Alerts'];
+    return ['Daily Log', 'My Performance', 'Department Analysis', 'Loss Causes', 'Employee Comparison', 'Employee Profile', 'Goals & Feedback', 'Alerts'];
   }
   if (role === 'manager') {
-    return ['Workforce Overview', 'Daily Log', 'Department Analysis', 'Employee Comparison', 'Employee Profile', 'Goals & Feedback', 'Alerts', 'Data Quality', 'Audit Log'];
+    return [
+      'Workforce Overview',
+      'Daily Log',
+      'Department Analysis',
+      'Loss Causes',
+      'Employee Comparison',
+      'Employee Profile',
+      'Goals & Feedback',
+      'Alerts',
+      'Data Quality',
+      'Audit Log',
+    ];
   }
   // hr_admin sees every management tab, but not the supervisor-only "My Performance" self-view.
   return ALL_TABS.filter((t) => t !== 'My Performance');
@@ -103,6 +116,7 @@ export function ManagerWorkspace({ user, onLogout }: ManagerWorkspaceProps) {
       {tab === 'Daily Log' && <DailyLogForm user={user} />}
       {tab === 'My Performance' && <MyPerformance user={user} />}
       {tab === 'Department Analysis' && <DepartmentAnalysis onSelectDepartment={goToDepartment} />}
+      {tab === 'Loss Causes' && <CauseBreakdown />}
       {tab === 'Employee Comparison' && <EmployeeComparison departmentName={selectedDepartment} onSelectEmployee={goToEmployee} />}
       {tab === 'Employee Profile' &&
         (selectedEmployeeId ? (

@@ -7,6 +7,7 @@ import { db } from './db.ts';
 import scenarios from '../src/data/scenarios.json' with { type: 'json' };
 import { hashPin } from './auth.ts';
 import type { Role } from './auth.ts';
+import { CHANGEOVER_CAUSES, DOWNTIME_CAUSES } from '../src/lib/labourCalc.ts';
 
 const { employeePortal } = scenarios;
 
@@ -82,9 +83,13 @@ employeePortal.employees.forEach((emp, i) => {
 // feed exists later.
 const insertLog = db.prepare(`
   INSERT INTO daily_logs
-    (employee_id, date, shift, paid_minutes, break_minutes, changeover_minutes, downtime_minutes, productive_minutes, units_produced, notes, loss_reason, daily_salary_cost, revenue_attributed, created_by_employee_id, created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)
+    (employee_id, date, shift, paid_minutes, break_minutes, changeover_minutes, downtime_minutes, idle_minutes, productive_minutes, activity_type, units_produced, downtime_cause_code, changeover_cause_code, notes, loss_reason, daily_salary_cost, revenue_attributed, created_by_employee_id, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'production', ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)
 `);
+
+function pickCause(causes: readonly string[], seed: number): string {
+  return causes[Math.floor(rnd(seed) * causes.length) % causes.length];
+}
 
 const departmentByName = new Map(employeePortal.departments.map((d) => [d.name, d]));
 const today = new Date();
@@ -116,6 +121,8 @@ employeePortal.employees.forEach((emp, employeeIndex) => {
     const unitsProduced = isProduction ? Math.round((productiveMinutes / 60) * (18 + rnd(seed + 5) * 14)) : 0;
     const dailySalaryCost = round2(dailySalaryBase * (0.9 + rnd(seed + 6) * 0.2));
     const revenueAttributed = round2(dailyRevenueBase * (0.85 + rnd(seed + 7) * 0.3));
+    const downtimeCauseCode = downtimeMinutes > 0 ? pickCause(DOWNTIME_CAUSES, seed + 8) : null;
+    const changeoverCauseCode = changeoverMinutes > 0 ? pickCause(CHANGEOVER_CAUSES, seed + 9) : null;
 
     insertLog.run(
       emp.id,
@@ -125,8 +132,11 @@ employeePortal.employees.forEach((emp, employeeIndex) => {
       breakMinutes,
       changeoverMinutes,
       downtimeMinutes,
+      idleMinutes,
       productiveMinutes,
       unitsProduced,
+      downtimeCauseCode,
+      changeoverCauseCode,
       dailySalaryCost,
       revenueAttributed,
       emp.id, // created_by = the employee themself for seeded history

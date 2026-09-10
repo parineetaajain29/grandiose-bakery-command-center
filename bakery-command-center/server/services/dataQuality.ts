@@ -4,7 +4,6 @@
 // slipped in — plus a couple of softer "worth a second look" heuristics.
 // Duplicate (employee, date, shift) logs can't happen going forward — the table
 // has a UNIQUE constraint — so that check isn't included here.
-import { LABOUR_CONFIG } from '../../src/config/labourConfig.ts';
 import { validateDailyLogInput } from '../../src/lib/labourCalc.ts';
 import { getDailyLogs } from './dailyLogs.ts';
 import { getEmployee } from './employees.ts';
@@ -29,19 +28,19 @@ export function getDataQualityIssues(fromDate: string, toDate: string): DataQual
 
   const issues: DataQualityIssue[] = [];
   for (const log of logs) {
-    const errors = validateDailyLogInput(
-      {
-        date: log.date,
-        shift: log.shift,
-        paidMinutes: log.paidMinutes,
-        breakMinutes: log.breakMinutes,
-        changeoverMinutes: log.changeoverMinutes,
-        downtimeMinutes: log.downtimeMinutes,
-        productiveMinutes: log.productiveMinutes,
-        unitsProduced: log.unitsProduced,
-      },
-      LABOUR_CONFIG,
-    );
+    const errors = validateDailyLogInput({
+      date: log.date,
+      shift: log.shift,
+      paidMinutes: log.paidMinutes,
+      breakMinutes: log.breakMinutes,
+      changeoverMinutes: log.changeoverMinutes,
+      downtimeMinutes: log.downtimeMinutes,
+      idleMinutes: log.idleMinutes,
+      activityType: log.activityType,
+      unitsProduced: log.unitsProduced,
+      downtimeCauseCode: log.downtimeCauseCode,
+      changeoverCauseCode: log.changeoverCauseCode,
+    });
     for (const issue of errors) {
       issues.push({ logId: log.id, employeeId: log.employeeId, employeeName: nameFor(log.employeeId), date: log.date, issue });
     }
