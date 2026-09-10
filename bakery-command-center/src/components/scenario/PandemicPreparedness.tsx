@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../data';
 import { Slider } from './Slider';
+import { DataSourceBadge } from '../shared/DataSourceBadge';
 
 const { pandemicPreparedness } = scenariosFile.scenarioResilience;
 const { customerRetention, supplyChain } = pandemicPreparedness;
@@ -46,8 +47,13 @@ export function PandemicPreparedness() {
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🦠 PANDEMIC PREPAREDNESS</p>
-        <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Two linked panels</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🦠 PANDEMIC PREPAREDNESS</p>
+            <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Two linked panels</h3>
+          </div>
+          <DataSourceBadge source="illustrative" />
+        </div>
         <p className="mt-1 max-w-2xl font-mono text-xs text-text-secondary">
           Customer retention/attraction (demand side) and supply chain optimization (supply side).
         </p>

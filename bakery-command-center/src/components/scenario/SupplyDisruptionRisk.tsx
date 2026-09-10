@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { scenariosFile } from '../../data';
 import { computeSupplyDisruption } from '../../lib/scenarioCalc';
 import { Slider } from './Slider';
+import { DataSourceBadge } from '../shared/DataSourceBadge';
 
 const { supplyDisruption } = scenariosFile.scenarioResilience;
 const SCENARIO_NAMES = [...supplyDisruption.scenarios.map((s) => s.name), 'Custom'];
@@ -33,8 +34,13 @@ export function SupplyDisruptionRisk() {
 
   return (
     <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🌪️ NATURAL CALAMITY &amp; SUPPLY DISRUPTION RISK</p>
-      <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Disruption scenario</h3>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🌪️ NATURAL CALAMITY &amp; SUPPLY DISRUPTION RISK</p>
+          <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Disruption scenario</h3>
+        </div>
+        <DataSourceBadge source="illustrative" />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {SCENARIO_NAMES.map((name) => (

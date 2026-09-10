@@ -4,6 +4,7 @@ import { scenariosFile } from '../../data';
 import { computeInflationSensitivity } from '../../lib/scenarioCalc';
 import { deltaTone, formatPercent } from '../../lib/format';
 import { Slider } from './Slider';
+import { DataSourceBadge } from '../shared/DataSourceBadge';
 
 const { inflationSensitivity } = scenariosFile.scenarioResilience;
 const { baseCost, baseFoodCostPct } = { baseCost: scenariosFile.performanceTracker.baseline.costPerUnit, baseFoodCostPct: scenariosFile.performanceTracker.baseline.foodCostPct };
@@ -62,8 +63,13 @@ export function InflationSensitivity() {
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🔥 INFLATION-ADJUSTED COST SENSITIVITY</p>
-        <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Dual-track inflation input</h3>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🔥 INFLATION-ADJUSTED COST SENSITIVITY</p>
+            <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Dual-track inflation input</h3>
+          </div>
+          <DataSourceBadge source="illustrative" />
+        </div>
         <p className="mt-1 font-mono text-xs text-text-secondary">Net of any subsidy/price-cap offset deducted.</p>
 
         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">

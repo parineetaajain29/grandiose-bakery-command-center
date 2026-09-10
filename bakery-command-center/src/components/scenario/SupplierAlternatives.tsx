@@ -78,7 +78,10 @@ export function SupplierAlternatives() {
       </section>
 
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">PRE-IDENTIFIED ALTERNATE SUPPLIERS (ILLUSTRATIVE)</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">PRE-IDENTIFIED ALTERNATE SUPPLIERS</p>
+          <DataSourceBadge source="illustrative" />
+        </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left">
             <thead>
