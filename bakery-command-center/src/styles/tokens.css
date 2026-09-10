@@ -23,7 +23,11 @@
   --bg-panel: #ffffff;
   --border-subtle: #e8e6df;
   --text-primary: #1a1a1f;
-  --text-secondary: #6b6b76;
+  /* Was #6b6b76 (5.09:1 on bg-primary, 5.26:1 on bg-panel) — passed AA's 4.5:1 on
+     paper but read as washed out on the small (10-11px) tracked-out mono labels
+     and table headers this token drives across the Employee Portal. Darkened to
+     land near AAA (7:1) for real headroom at that size: 7.23:1 / 7.48:1. */
+  --text-secondary: #54545e;
 
   /* accents unchanged intentionally */
 }

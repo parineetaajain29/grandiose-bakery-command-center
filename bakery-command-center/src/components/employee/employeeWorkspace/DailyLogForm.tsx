@@ -58,6 +58,11 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
   const [fields, setFields] = useState<FormFields>(() => defaultFields(user.shift ?? 'Morning'));
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [status, setStatus] = useState<{ kind: 'idle' | 'saving' | 'success' | 'error'; message?: string }>({ kind: 'idle' });
+  // Tracks whether the user has edited the form since it was last reset (fresh
+  // load, post-reset, or post-successful-save) — the default blank form is
+  // itself invalid (units produced is required), so the live clientErrors
+  // preview below must not fire against a form nobody has touched yet.
+  const [touched, setTouched] = useState(false);
 
   const recentState = useApiData(
     () => getDailyLogs({ employeeId: user.id, from: shiftDate(todayIso(), -6), to: todayIso() }),
@@ -66,6 +71,11 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
 
   function setField<K extends keyof FormFields>(key: K, value: FormFields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
+    setTouched(true);
+    // A prior success/error banner describes the last submit attempt, not this
+    // edit — clear it the moment the user starts changing the form again,
+    // rather than leaving it to sit alongside newly-live validation output.
+    setStatus((s) => (s.kind === 'success' || s.kind === 'error' ? { kind: 'idle' } : s));
   }
 
   const input: DailyLogInput = useMemo(
@@ -108,12 +118,14 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
       notes: log.notes ?? '',
     });
     setStatus({ kind: 'idle' });
+    setTouched(false);
   }
 
   function resetForm() {
     setEditingLogId(null);
     setFields(defaultFields(user.shift ?? 'Morning'));
     setStatus({ kind: 'idle' });
+    setTouched(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -139,6 +151,7 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
       }
       setEditingLogId(null);
       setFields(defaultFields(user.shift ?? 'Morning'));
+      setTouched(false);
     } catch (err) {
       setStatus({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
@@ -270,7 +283,7 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             <textarea id="dl-notes" rows={2} value={fields.notes} onChange={(e) => setField('notes', e.target.value)} className={inputClass} />
           </div>
 
-          {clientErrors.length > 0 && (
+          {touched && clientErrors.length > 0 && (
             <div className="sm:col-span-2 lg:col-span-3">
               {clientErrors.map((err) => (
                 <p key={err} className="font-mono text-xs text-accent-red">
