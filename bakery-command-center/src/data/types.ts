@@ -293,6 +293,7 @@ export type DepartmentsMetrics = DepartmentMetricRow[];
 
 // --- B2B (Feature B) ----------------------------------------------------
 
+/** The full KPI-strip shape — produced by deriveB2BSummary() in b2bCalc.ts, not read directly off scenarios.json (see B2BSummaryContext for what actually is). */
 export interface B2BSummary {
   revenue: number;
   revenueDeltaPct: number;
@@ -301,6 +302,18 @@ export interface B2BSummary {
   otifPct: number;
   otifLateCount: number;
   collectionDays: number;
+  supplierTermsDaysContext: number;
+}
+
+/**
+ * The only two B2B KPI-strip figures with no per-client basis to derive them
+ * from — everything else (revenue, netMarginPct, otifPct, otifLateCount,
+ * collectionDays) is computed live from `clients` by deriveB2BSummary(), so
+ * they can never silently drift from the Account Profitability table the way
+ * a separately-stored flat number could.
+ */
+export interface B2BSummaryContext {
+  revenueDeltaPct: number;
   supplierTermsDaysContext: number;
 }
 
@@ -339,10 +352,18 @@ export interface B2BClient {
   serviceCost: number;
   marginPct: number;
   marginalMarginPct: number;
+  /** Derived from onTimeCount/totalDeliveries — kept in sync by seed data, not independently editable. */
   otifPct: number;
+  onTimeCount: number;
+  totalDeliveries: number;
   paymentTermsDays: number;
+  /** AED currently outstanding on this account. */
+  receivableAmount: number;
+  /** Days this receivable has been outstanding — feeds both the aging buckets and the weighted-average collection-days KPI. */
+  daysOutstanding: number;
 }
 
+/** The full aging shape — produced by deriveReceivables() in b2bCalc.ts from each client's receivableAmount/daysOutstanding, not stored as an independent flat total. */
 export interface B2BReceivables {
   total: number;
   past60: number;
@@ -361,11 +382,10 @@ export interface B2BDelivery {
 
 export interface B2BData {
   _note: string;
-  summary: B2BSummary;
+  summary: B2BSummaryContext;
   weeklyTrend: B2BWeeklyTrendPoint[];
   capacity: B2BCapacity;
   clients: B2BClient[];
-  receivables: B2BReceivables;
   recentDeliveries: B2BDelivery[];
 }
 

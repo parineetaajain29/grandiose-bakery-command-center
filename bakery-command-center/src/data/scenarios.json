@@ -254,8 +254,8 @@
   },
 
   "b2b": {
-    "_note": "PLACEHOLDER DATA. Client revenues sum exactly to summary.revenue (412,000). Sunrise Corporate Dining is deliberately margin-negative on full absorption but margin-positive at the margin — the core B2B insight (brief §B1).",
-    "summary": {"revenue":412000,"revenueDeltaPct":6.8,"netMarginPct":21.4,"retailMarginPct":33.7,"otifPct":94.2,"otifLateCount":3,"collectionDays":47,"supplierTermsDaysContext":90},
+    "_note": "PLACEHOLDER DATA. This hospitality/catering roster (Al Manzil Hotels, Costa Grand, Nour Cafe, Desert Bloom, Al Waha, Marhaba, Sunrise) and the Streamlit source's supermarket/distribution roster (Carrefour, Spinneys, Choithrams, Zoom, Kibsons, Al Maya, Grand Hyper) were invented independently against the same brief (streamlit-employee-portal-and-b2b-brief.md §B) — neither traces to the GM or real Grandiose data; Streamlit's predates this one by 5 days (2026-09-05 vs 2026-09-10). Kept deliberately: hospitality fits the capacity-economics argument, and the Streamlit roster names Grandiose's own retail competitors. Phase 6 migration fix: revenue/netMarginPct/otifPct/otifLateCount/collectionDays are now all derived live from `clients` (deriveB2BSummary in b2bCalc.ts) rather than stored as independent flat numbers — netMarginPct had drifted to 21.4% here while the client-level marginPct values it should match average to 43.93% revenue-weighted; per-client otifPct is now backed by onTimeCount/totalDeliveries; receivables.total/past60/buckets are now derived from each client's own receivableAmount/daysOutstanding (previously a flat, unbacked company-wide figure with no per-client traceability at all). Sunrise Corporate Dining is deliberately margin-negative on full absorption but margin-positive at the margin — the core B2B insight (brief §B1).",
+    "summary": {"revenueDeltaPct":6.8,"supplierTermsDaysContext":90},
     "weeklyTrend": [
       {"week":1,"revenue":27496,"serviceCost":4372},
       {"week":2,"revenue":28035,"serviceCost":4570},
@@ -279,15 +279,14 @@
       }
     },
     "clients": [
-      {"name":"Al Manzil Hotels","location":"Deira","frequency":"weekly bulk","revenue":132000,"marginPct":53.33,"marginalMarginPct":80.4,"otifPct":99.1,"paymentTermsDays":30},
-      {"name":"Costa Grand Hotel Group","location":"Business Bay","frequency":"bi-weekly bulk","revenue":68000,"marginPct":56.76,"marginalMarginPct":81.84,"otifPct":96.8,"paymentTermsDays":45},
-      {"name":"Nour Cafe Chain","location":"Jumeirah","frequency":"daily","revenue":58000,"marginPct":40.69,"marginalMarginPct":75.09,"otifPct":91.2,"paymentTermsDays":30},
-      {"name":"Desert Bloom Hotel","location":"Downtown","frequency":"weekly bulk","revenue":42000,"marginPct":53.1,"marginalMarginPct":80.3,"otifPct":97.5,"paymentTermsDays":30},
-      {"name":"Al Waha Restaurants","location":"Al Barsha","frequency":"3x weekly","revenue":44000,"marginPct":38.18,"marginalMarginPct":74.04,"otifPct":88.4,"paymentTermsDays":60},
-      {"name":"Marhaba Retail Mart","location":"Al Qusais","frequency":"weekly","revenue":38000,"marginPct":35,"marginalMarginPct":72.7,"otifPct":93,"paymentTermsDays":45},
-      {"name":"Sunrise Corporate Dining","location":"DIFC","frequency":"daily","revenue":30000,"marginPct":-13.33,"marginalMarginPct":52.4,"otifPct":85.6,"paymentTermsDays":60}
+      {"name":"Al Manzil Hotels","location":"Deira","frequency":"weekly bulk","revenue":132000,"serviceCost":61604.4,"marginPct":53.33,"marginalMarginPct":80.4,"otifPct":100,"onTimeCount":4,"totalDeliveries":4,"paymentTermsDays":30,"receivableAmount":42000,"daysOutstanding":22},
+      {"name":"Costa Grand Hotel Group","location":"Business Bay","frequency":"bi-weekly bulk","revenue":68000,"serviceCost":29403.2,"marginPct":56.76,"marginalMarginPct":81.84,"otifPct":100,"onTimeCount":2,"totalDeliveries":2,"paymentTermsDays":45,"receivableAmount":33000,"daysOutstanding":38},
+      {"name":"Nour Cafe Chain","location":"Jumeirah","frequency":"daily","revenue":58000,"serviceCost":34399.8,"marginPct":40.69,"marginalMarginPct":75.09,"otifPct":95,"onTimeCount":19,"totalDeliveries":20,"paymentTermsDays":30,"receivableAmount":30000,"daysOutstanding":55},
+      {"name":"Desert Bloom Hotel","location":"Downtown","frequency":"weekly bulk","revenue":42000,"serviceCost":19698,"marginPct":53.1,"marginalMarginPct":80.3,"otifPct":100,"onTimeCount":4,"totalDeliveries":4,"paymentTermsDays":30,"receivableAmount":21000,"daysOutstanding":18},
+      {"name":"Al Waha Restaurants","location":"Al Barsha","frequency":"3x weekly","revenue":44000,"serviceCost":27200.8,"marginPct":38.18,"marginalMarginPct":74.04,"otifPct":91.7,"onTimeCount":11,"totalDeliveries":12,"paymentTermsDays":60,"receivableAmount":26000,"daysOutstanding":72},
+      {"name":"Marhaba Retail Mart","location":"Al Qusais","frequency":"weekly","revenue":38000,"serviceCost":24700,"marginPct":35,"marginalMarginPct":72.7,"otifPct":100,"onTimeCount":4,"totalDeliveries":4,"paymentTermsDays":45,"receivableAmount":19000,"daysOutstanding":41},
+      {"name":"Sunrise Corporate Dining","location":"DIFC","frequency":"daily","revenue":30000,"serviceCost":33999,"marginPct":-13.33,"marginalMarginPct":52.4,"otifPct":95,"onTimeCount":19,"totalDeliveries":20,"paymentTermsDays":60,"receivableAmount":18000,"daysOutstanding":95}
     ],
-    "receivables": {"total":187000,"past60":41000,"buckets":[63000,83000,25000,16000]},
     "recentDeliveries": [
       {"client":"Al Manzil Hotels","location":"Deira","time":"06:15","onTime":true,"value":4820},
       {"client":"Nour Cafe Chain","location":"Jumeirah","time":"05:50","onTime":true,"value":1120},

@@ -120,3 +120,101 @@ export function filterClients<T extends { name: string; location: string }>(clie
   if (q === '') return clients;
   return clients.filter((c) => c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q));
 }
+
+// --- Company-wide aggregates, all derived live from the client list ---------
+// Ported from Streamlit's b2b_calc.py (otif_rate_pct, late_count,
+// weighted_avg_days, aging_buckets, total_outstanding, past_60_days_total) —
+// the source's own explicit design principle: these are "computed FROM this
+// list, not hardcoded separately, so the two can never drift apart." Phase 6
+// of the migration found the localhost B2B page violating that principle for
+// every one of these except revenue (a flat netMarginPct, otifPct/
+// otifLateCount, and collectionDays were each stored independently of the
+// per-client figures the Account Profitability table already showed — one of
+// them, net margin, had drifted to roughly double what the client list
+// actually implies). These functions close that gap.
+
+/** null when totalDeliveries is 0. */
+export function otifRatePct(onTimeCount: number, totalDeliveries: number): number | null {
+  if (totalDeliveries === 0) return null;
+  return (onTimeCount / totalDeliveries) * 100;
+}
+
+export function lateDeliveryCount(totalDeliveries: number, onTimeCount: number): number {
+  return totalDeliveries - onTimeCount;
+}
+
+/** Weighted mean of days-outstanding, weighted by amount. null when the total amount is 0 or the list is empty. */
+export function weightedAvgDays(receivables: { amount: number; days: number }[]): number | null {
+  const totalAmount = receivables.reduce((sum, r) => sum + r.amount, 0);
+  if (receivables.length === 0 || totalAmount === 0) return null;
+  return receivables.reduce((sum, r) => sum + r.amount * r.days, 0) / totalAmount;
+}
+
+/** Buckets (amount, daysOutstanding) pairs into 0-30/31-60/61-90/90+, same edges as the source. */
+export function agingBuckets(receivables: { amount: number; days: number }[]): [number, number, number, number] {
+  const buckets: [number, number, number, number] = [0, 0, 0, 0];
+  for (const { amount, days } of receivables) {
+    if (days <= 30) buckets[0] += amount;
+    else if (days <= 60) buckets[1] += amount;
+    else if (days <= 90) buckets[2] += amount;
+    else buckets[3] += amount;
+  }
+  return buckets;
+}
+
+export function totalOutstanding(receivables: { amount: number; days: number }[]): number {
+  return receivables.reduce((sum, r) => sum + r.amount, 0);
+}
+
+/** Amount in the 61-90 and 90+ buckets combined. */
+export function past60DaysTotal(receivables: { amount: number; days: number }[]): number {
+  return receivables.filter((r) => r.days > 60).reduce((sum, r) => sum + r.amount, 0);
+}
+
+export interface B2BSummaryInput {
+  name: string;
+  revenue: number;
+  serviceCost: number;
+  onTimeCount: number;
+  totalDeliveries: number;
+  receivableAmount: number;
+  daysOutstanding: number;
+}
+
+export interface DerivedB2BSummary {
+  revenue: number;
+  netMarginPct: number | null;
+  otifPct: number | null;
+  otifLateCount: number;
+  collectionDays: number | null;
+}
+
+/**
+ * Company-wide revenue, net margin, OTIF, and average collection days — every
+ * one computed from the client list itself, matching Streamlit's company_margin_pct/
+ * otif_pct/avg_collection_days derivation (app.py's b2b_performance section).
+ */
+export function deriveB2BSummary(clients: B2BSummaryInput[]): DerivedB2BSummary {
+  const revenue = clients.reduce((sum, c) => sum + c.revenue, 0);
+  const totalServiceCost = clients.reduce((sum, c) => sum + c.serviceCost, 0);
+  const totalOnTime = clients.reduce((sum, c) => sum + c.onTimeCount, 0);
+  const totalDeliveries = clients.reduce((sum, c) => sum + c.totalDeliveries, 0);
+  const receivables = clients.map((c) => ({ amount: c.receivableAmount, days: c.daysOutstanding }));
+
+  return {
+    revenue,
+    netMarginPct: revenue === 0 ? null : ((revenue - totalServiceCost) / revenue) * 100,
+    otifPct: otifRatePct(totalOnTime, totalDeliveries),
+    otifLateCount: lateDeliveryCount(totalDeliveries, totalOnTime),
+    collectionDays: weightedAvgDays(receivables),
+  };
+}
+
+export function deriveReceivables(clients: { receivableAmount: number; daysOutstanding: number }[]): { total: number; past60: number; buckets: [number, number, number, number] } {
+  const receivables = clients.map((c) => ({ amount: c.receivableAmount, days: c.daysOutstanding }));
+  return {
+    total: totalOutstanding(receivables),
+    past60: past60DaysTotal(receivables),
+    buckets: agingBuckets(receivables),
+  };
+}
