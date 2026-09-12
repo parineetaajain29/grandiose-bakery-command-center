@@ -30,7 +30,7 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json();
 }
 
-async function sendJson<T = void>(method: 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
+async function sendJson<T = void>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -41,6 +41,17 @@ async function sendJson<T = void>(method: 'POST' | 'PUT', path: string, body?: u
     throw new Error(payload?.error ?? `${method} ${path} failed: ${res.status} ${res.statusText}`);
   }
   if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+async function sendForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(path, { method: 'POST', body: form });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    const err = new Error(payload?.error ?? `POST ${path} failed: ${res.status} ${res.statusText}`) as Error & { reason?: string };
+    err.reason = payload?.reason;
+    throw err;
+  }
   return res.json();
 }
 
@@ -297,4 +308,94 @@ export function adminDeactivate(employeeId: string): Promise<Employee> {
 
 export function adminResetPin(employeeId: string): Promise<{ employeeId: string; newPin: string }> {
   return sendJson('POST', `/api/admin/employees/${employeeId}/reset-pin`);
+}
+
+// --- Settings (write-only credential storage — manager/hr_admin only) ------
+
+export interface SettingsStatus {
+  anthropicConfigured: boolean;
+  emailConfigured: boolean;
+}
+
+export function getSettingsStatus(): Promise<SettingsStatus> {
+  return getJson('/api/settings/status');
+}
+
+export function saveAnthropicKey(apiKey: string): Promise<void> {
+  return sendJson('POST', '/api/settings/anthropic-key', { apiKey });
+}
+
+export function clearAnthropicKey(): Promise<void> {
+  return sendJson('DELETE', '/api/settings/anthropic-key');
+}
+
+export interface EmailCredentialsInput {
+  emailAddress: string;
+  appPassword: string;
+  smtpServer: string;
+  smtpPort: number;
+}
+
+export function saveEmailCredentials(input: EmailCredentialsInput): Promise<void> {
+  return sendJson('POST', '/api/settings/email', input);
+}
+
+export function clearEmailCredentials(): Promise<void> {
+  return sendJson('DELETE', '/api/settings/email');
+}
+
+// --- Data Processor (upload -> AI-interpret -> confirm -> export/email) ---
+
+export interface InterpretedSheet {
+  sheet_name: string;
+  title: string;
+  columns: string[];
+  rows: (string | number | null)[][];
+  insights: string[];
+}
+
+export interface InterpretationResult {
+  detected_data_type: string;
+  summary: string;
+  sheets: InterpretedSheet[];
+}
+
+export interface DataProcessorUpload {
+  id: number;
+  filename: string;
+  fileType: string;
+  uploadedByEmployeeId: string;
+  uploadedAt: string;
+  status: 'interpreted' | 'confirmed';
+  confirmedAt: string | null;
+  detectedDataType: string | null;
+  summary: string | null;
+  result: InterpretationResult | null;
+}
+
+export function getDataProcessorStatus(): Promise<SettingsStatus> {
+  return getJson('/api/data-processor/status');
+}
+
+export function listDataProcessorUploads(): Promise<DataProcessorUpload[]> {
+  return getJson('/api/data-processor/uploads');
+}
+
+/** Throws with a `.reason` of 'not_configured' | 'error' when the upload fails to interpret — the caller shows that reason inline, never a raw stack. */
+export function uploadFilesForInterpretation(files: File[]): Promise<DataProcessorUpload> {
+  const form = new FormData();
+  for (const file of files) form.append('files', file);
+  return sendForm('/api/data-processor/upload', form);
+}
+
+export function confirmDataProcessorUpload(id: number): Promise<DataProcessorUpload> {
+  return sendJson('POST', `/api/data-processor/${id}/confirm`);
+}
+
+export function getDataProcessorExportUrl(id: number): string {
+  return `/api/data-processor/${id}/export`;
+}
+
+export function emailDataProcessorReport(id: number, to: string): Promise<void> {
+  return sendJson('POST', `/api/data-processor/${id}/email`, { to });
 }

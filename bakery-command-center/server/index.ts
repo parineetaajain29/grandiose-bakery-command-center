@@ -10,6 +10,8 @@ import { feedbackRouter } from './routes/feedback.ts';
 import { auditRouter } from './routes/audit.ts';
 import { adminRouter } from './routes/admin.ts';
 import { alertsRouter } from './routes/alerts.ts';
+import { settingsRouter } from './routes/settings.ts';
+import { dataProcessorRouter } from './routes/dataProcessor.ts';
 import { resolveSession, parseCookies, SESSION_COOKIE } from './auth.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +36,8 @@ app.use('/api', feedbackRouter);
 app.use('/api', auditRouter);
 app.use('/api', adminRouter);
 app.use('/api', alertsRouter);
+app.use('/api', settingsRouter);
+app.use('/api', dataProcessorRouter);
 
 if (isProduction) {
   // Single-process shape for running unmodified on Grandiose's desktop:

@@ -157,4 +157,31 @@ db.exec(`
   WHERE idle_minutes IS NULL
 `);
 
+// Data Processor (migration Phase 7). app_settings holds the Anthropic API key
+// and SMTP credentials someone enters once via the Settings page — write-only
+// from the frontend's perspective (server/services/settings.ts never returns
+// a stored value, only whether one exists). Deliberately the same file as
+// every employee record and PIN hash, not a second file to track separately —
+// see the migration report for what that couples to for handover.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS data_processor_uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    uploaded_by_employee_id TEXT NOT NULL REFERENCES employees(id),
+    uploaded_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('interpreted', 'confirmed')) DEFAULT 'interpreted',
+    confirmed_at TEXT,
+    detected_data_type TEXT,
+    summary TEXT,
+    result_json TEXT
+  );
+`);
+
 export { DB_PATH };
