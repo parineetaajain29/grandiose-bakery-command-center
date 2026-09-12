@@ -15,6 +15,10 @@ dist-ssr
 # SQLite database — regenerate with `npm run db:seed`, never commit real data
 server/data/*.db
 
+# Internal working record (citation-debt/security ledger for the academic
+# write-up) — not source, not meant to enter repo history
+MIGRATION-PROVENANCE.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
