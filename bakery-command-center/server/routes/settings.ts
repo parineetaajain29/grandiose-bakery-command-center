@@ -3,9 +3,12 @@ import { requireRole } from '../rbac.ts';
 import {
   clearAnthropicApiKey,
   clearEmailCredentials,
+  clearOpenAiApiKey,
   getSettingsStatus,
+  setAiRiskMonthlyCap,
   setAnthropicApiKey,
   setEmailCredentials,
+  setOpenAiApiKey,
 } from '../services/settings.ts';
 
 export const settingsRouter = Router();
@@ -52,5 +55,32 @@ settingsRouter.delete('/settings/email', (req, res) => {
   const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   clearEmailCredentials();
+  res.status(204).end();
+});
+
+settingsRouter.post('/settings/openai-key', (req, res) => {
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
+  if (!session) return;
+  const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+  if (apiKey === '') return res.status(400).json({ error: 'apiKey is required' });
+  setOpenAiApiKey(apiKey);
+  res.status(204).end();
+});
+
+settingsRouter.delete('/settings/openai-key', (req, res) => {
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
+  if (!session) return;
+  clearOpenAiApiKey();
+  res.status(204).end();
+});
+
+settingsRouter.post('/settings/ai-risk-cap', (req, res) => {
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
+  if (!session) return;
+  const cap = Number(req.body?.monthlyCap);
+  if (!Number.isFinite(cap) || cap < 1 || !Number.isInteger(cap)) {
+    return res.status(400).json({ error: 'monthlyCap must be a positive whole number' });
+  }
+  setAiRiskMonthlyCap(cap);
   res.status(204).end();
 });

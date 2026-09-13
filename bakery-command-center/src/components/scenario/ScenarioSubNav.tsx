@@ -1,4 +1,4 @@
-const TABS = ['1 · Inflation Sensitivity', '2 · Supply Disruption Risk', '3 · Pandemic Preparedness', '4 · Supplier Alternatives'] as const;
+const TABS = ['1 · Inflation Sensitivity', '2 · Supply Disruption Risk', '3 · Pandemic Preparedness', '4 · Supplier Alternatives', '5 · AI Risk Intelligence'] as const;
 
 export type ScenarioSubTab = (typeof TABS)[number];
 export { TABS as SCENARIO_TABS };

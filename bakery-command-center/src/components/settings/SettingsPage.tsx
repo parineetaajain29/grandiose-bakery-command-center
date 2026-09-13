@@ -4,9 +4,14 @@ import { LoginScreen } from '../employee/LoginScreen';
 import {
   clearAnthropicKey,
   clearEmailCredentials,
+  clearOpenAiKey,
+  getAiUsageStats,
   getSettingsStatus,
+  saveAiRiskMonthlyCap,
   saveAnthropicKey,
   saveEmailCredentials,
+  saveOpenAiKey,
+  type AiUsageStats,
   type SettingsStatus,
 } from '../../data/api';
 
@@ -45,6 +50,29 @@ function SettingsForm() {
   const [emailBusy, setEmailBusy] = useState(false);
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
 
+  const [openAiKey, setOpenAiKey] = useState('');
+  const [openAiBusy, setOpenAiBusy] = useState(false);
+  const [openAiMsg, setOpenAiMsg] = useState<string | null>(null);
+
+  // null = "user hasn't edited yet" — displayed value falls back to the
+  // server's cap at render time (see monthlyCapValue below) instead of via a
+  // setState-in-effect sync, which the linter (correctly) flags as
+  // unnecessary here.
+  const [monthlyCap, setMonthlyCap] = useState<string | null>(null);
+  const [capBusy, setCapBusy] = useState(false);
+  const [capMsg, setCapMsg] = useState<string | null>(null);
+
+  const [usage, setUsage] = useState<AiUsageStats | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
+
+  function reloadUsage() {
+    getAiUsageStats()
+      .then(setUsage)
+      .catch((err) => setUsageError(err instanceof Error ? err.message : String(err)));
+  }
+
+  useEffect(reloadUsage, []);
+
   function reloadStatus() {
     getSettingsStatus()
       .then(setStatus)
@@ -52,6 +80,8 @@ function SettingsForm() {
   }
 
   useEffect(reloadStatus, []);
+
+  const monthlyCapValue = monthlyCap ?? String(status?.aiRiskMonthlyCap ?? 200);
 
   async function handleSaveAnthropic(e: React.FormEvent) {
     e.preventDefault();
@@ -118,6 +148,54 @@ function SettingsForm() {
       setEmailMsg(err instanceof Error ? err.message : String(err));
     } finally {
       setEmailBusy(false);
+    }
+  }
+
+  async function handleSaveOpenAi(e: React.FormEvent) {
+    e.preventDefault();
+    if (!openAiKey.trim()) return;
+    setOpenAiBusy(true);
+    setOpenAiMsg(null);
+    try {
+      await saveOpenAiKey(openAiKey.trim());
+      setOpenAiKey('');
+      setOpenAiMsg('Saved.');
+      reloadStatus();
+    } catch (err) {
+      setOpenAiMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOpenAiBusy(false);
+    }
+  }
+
+  async function handleClearOpenAi() {
+    setOpenAiBusy(true);
+    setOpenAiMsg(null);
+    try {
+      await clearOpenAiKey();
+      setOpenAiMsg('Cleared.');
+      reloadStatus();
+    } catch (err) {
+      setOpenAiMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setOpenAiBusy(false);
+    }
+  }
+
+  async function handleSaveCap(e: React.FormEvent) {
+    e.preventDefault();
+    const cap = Number(monthlyCapValue);
+    if (!Number.isFinite(cap) || cap < 1) return;
+    setCapBusy(true);
+    setCapMsg(null);
+    try {
+      await saveAiRiskMonthlyCap(cap);
+      setCapMsg('Saved.');
+      reloadUsage();
+    } catch (err) {
+      setCapMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCapBusy(false);
     }
   }
 
@@ -261,6 +339,107 @@ function SettingsForm() {
           </div>
         </form>
         {emailMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{emailMsg}</p>}
+      </section>
+
+      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-sans text-lg font-semibold text-text-primary">OpenAI API key</h2>
+          {status && <StatusDot configured={status.openAiConfigured ?? false} />}
+        </div>
+        <p className="mt-1.5 text-sm text-text-secondary">
+          Required for AI Risk Intelligence's live web research (Scenario &amp; Resilience). A second, separate key from
+          the Anthropic one above — one Grandiose account for research, one for report interpretation.
+        </p>
+
+        <form onSubmit={handleSaveOpenAi} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className={labelClass} htmlFor="openai-key">
+              API KEY
+            </label>
+            <input
+              id="openai-key"
+              type="password"
+              autoComplete="off"
+              placeholder="sk-..."
+              value={openAiKey}
+              onChange={(e) => setOpenAiKey(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={openAiBusy || !openAiKey.trim()}
+              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={handleClearOpenAi}
+              disabled={openAiBusy || !status?.openAiConfigured}
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+        {openAiMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{openAiMsg}</p>}
+
+        <div className="mt-5 border-t border-border-subtle pt-5">
+          <p className="text-sm text-text-primary">Monthly research cap</p>
+          <p className="mt-1 text-sm text-text-secondary">
+            Web search bills per search. This is an application-level limit only — the bypass-proof limit is a billing
+            cap set on the OpenAI account itself, which someone at Grandiose still needs to configure separately.
+          </p>
+          <form onSubmit={handleSaveCap} className="mt-3 flex items-end gap-2">
+            <div>
+              <label className={labelClass} htmlFor="ai-risk-cap">
+                SEARCHES / MONTH
+              </label>
+              <input
+                id="ai-risk-cap"
+                type="text"
+                inputMode="numeric"
+                value={monthlyCapValue}
+                onChange={(e) => setMonthlyCap(e.target.value.replace(/\D/g, ''))}
+                className={`${inputClass} w-32`}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={capBusy || !monthlyCapValue || Number(monthlyCapValue) < 1}
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50 disabled:opacity-50"
+            >
+              Save cap
+            </button>
+          </form>
+          {capMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{capMsg}</p>}
+        </div>
+
+        <div className="mt-5 border-t border-border-subtle pt-5">
+          <p className="text-sm text-text-primary">Usage this month</p>
+          {usageError && <p className="mt-1 font-mono text-xs text-accent-red">{usageError}</p>}
+          {usage && (
+            <>
+              <p className="mt-1 font-mono text-sm text-text-primary">
+                {usage.usedThisMonth} / {usage.monthlyCap} searches
+              </p>
+              {usage.topUsers.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-mono text-[10px] tracking-[0.1em] text-text-secondary">TOP 5 USERS</p>
+                  <ul className="mt-1 flex flex-col gap-0.5 font-mono text-xs text-text-secondary">
+                    {usage.topUsers.map((u) => (
+                      <li key={u.employeeId}>
+                        {u.employeeId} — {u.count}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </section>
     </div>
   );

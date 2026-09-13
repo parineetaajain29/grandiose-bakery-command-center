@@ -38,7 +38,13 @@ async function sendJson<T = void>(method: 'POST' | 'PUT' | 'DELETE', path: strin
   });
   if (!res.ok) {
     const payload = await res.json().catch(() => null);
-    throw new Error(payload?.error ?? `${method} ${path} failed: ${res.status} ${res.statusText}`);
+    const err = new Error(payload?.error ?? `${method} ${path} failed: ${res.status} ${res.statusText}`) as Error & {
+      reason?: string;
+      retryAfterSeconds?: number;
+    };
+    err.reason = payload?.reason;
+    err.retryAfterSeconds = payload?.retryAfterSeconds;
+    throw err;
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -315,6 +321,13 @@ export function adminResetPin(employeeId: string): Promise<{ employeeId: string;
 export interface SettingsStatus {
   anthropicConfigured: boolean;
   emailConfigured: boolean;
+  // Optional only so Data Processor's existing (Phase 7) fallback object
+  // literal — { anthropicConfigured: false, emailConfigured: false } —
+  // stays valid without editing that file. getSettingsStatus() server-side
+  // always populates both; nothing here can actually be missing at runtime,
+  // so don't add defensive undefined-handling for these on the Settings page.
+  openAiConfigured?: boolean;
+  aiRiskMonthlyCap?: number;
 }
 
 export function getSettingsStatus(): Promise<SettingsStatus> {
@@ -342,6 +355,18 @@ export function saveEmailCredentials(input: EmailCredentialsInput): Promise<void
 
 export function clearEmailCredentials(): Promise<void> {
   return sendJson('DELETE', '/api/settings/email');
+}
+
+export function saveOpenAiKey(apiKey: string): Promise<void> {
+  return sendJson('POST', '/api/settings/openai-key', { apiKey });
+}
+
+export function clearOpenAiKey(): Promise<void> {
+  return sendJson('DELETE', '/api/settings/openai-key');
+}
+
+export function saveAiRiskMonthlyCap(monthlyCap: number): Promise<void> {
+  return sendJson('POST', '/api/settings/ai-risk-cap', { monthlyCap });
 }
 
 // --- Data Processor (upload -> AI-interpret -> confirm -> export/email) ---
@@ -398,4 +423,151 @@ export function getDataProcessorExportUrl(id: number): string {
 
 export function emailDataProcessorReport(id: number, to: string): Promise<void> {
   return sendJson('POST', `/api/data-processor/${id}/email`, { to });
+}
+
+// --- AI Risk Intelligence (Scenario & Resilience, 5th module) --------------
+
+export type AiTimeHorizon = '7d' | '30d' | '90d' | '6mo' | '12mo';
+export type AiRiskType = 'All' | 'Commodity' | 'Geopolitical' | 'Supply Chain' | 'Logistics' | 'Supplier' | 'Climate' | 'Regulatory' | 'FX';
+export type AiRawMaterialFilter = 'All' | 'Wheat-Flour' | 'Butter-Dairy' | 'Sugar' | 'Cocoa' | 'Nuts' | 'Oils' | 'Eggs' | 'Yeast' | 'Packaging';
+export type AiResearchDepth = 'quick' | 'standard' | 'detailed';
+export type AiGeography = 'Global' | 'UAE' | 'GCC' | 'Europe' | 'Black Sea' | 'Asia';
+
+export interface AiResearchParams {
+  question: string;
+  horizon: AiTimeHorizon;
+  riskType: AiRiskType;
+  rawMaterial: AiRawMaterialFilter;
+  depth: AiResearchDepth;
+  geography: AiGeography;
+}
+
+/** The only five assumption parameters this module ever proposes. Two (freight_premium_pct, safety_stock_days) have no backing scenarioCalc function — see ASSUMPTION_HAS_MODEL. */
+export type AiAssumptionParam = 'raw_material_cost_increase_pct' | 'lead_time_extension_days' | 'freight_premium_pct' | 'stockout_probability' | 'safety_stock_days';
+
+export const ASSUMPTION_HAS_MODEL: Record<AiAssumptionParam, boolean> = {
+  raw_material_cost_increase_pct: true,
+  lead_time_extension_days: true,
+  freight_premium_pct: false,
+  stockout_probability: true,
+  safety_stock_days: false,
+};
+
+export interface AiSuggestedAssumption {
+  parameter: AiAssumptionParam;
+  suggestedValue: number;
+  rationale: string;
+}
+
+export interface AiSuggestedSpendMixRow {
+  origin: string;
+  sharePct: number;
+}
+
+export interface AiActionPlan {
+  now: string[];
+  in30Days: string[];
+  in90DaysPlus: string[];
+}
+
+export interface AiRiskResult {
+  title: string;
+  executiveSummary: string;
+  whatIsHappening: string;
+  whyItMattersToGrandiose: string;
+  whatToWatch: string;
+  affectedMaterials: string[];
+  horizon: string;
+  confidence: 'low' | 'moderate' | 'high';
+  overallRisk: 'low' | 'moderate' | 'high';
+  suggestedAssumptions: AiSuggestedAssumption[];
+  suggestedSpendMix?: AiSuggestedSpendMixRow[];
+  actionPlan: AiActionPlan;
+}
+
+export interface AiCitedSource {
+  title: string;
+  url: string;
+}
+
+export interface AiResearchRecord {
+  id: number;
+  question: string;
+  params: AiResearchParams;
+  result: AiRiskResult;
+  citedSources: AiCitedSource[];
+  allSources: string[];
+  sourcesRetrieved: boolean;
+  userAssumptions: AiSuggestedAssumption[] | null;
+  createdByEmployeeId: string;
+  createdAt: string;
+}
+
+export interface AiWatchlistItem {
+  id: number;
+  risk: string;
+  rawMaterial: string | null;
+  geography: string | null;
+  riskLevel: 'low' | 'moderate' | 'high';
+  keyIndicator: string | null;
+  lastResearchedAt: string | null;
+  reviewDate: string | null;
+  createdByEmployeeId: string;
+  createdAt: string;
+}
+
+export interface AiWatchlistInput {
+  risk: string;
+  rawMaterial?: string | null;
+  geography?: string | null;
+  riskLevel: 'low' | 'moderate' | 'high';
+  keyIndicator?: string | null;
+  reviewDate?: string | null;
+}
+
+export interface AiUsageStats {
+  usedThisMonth: number;
+  monthlyCap: number;
+  topUsers: { employeeId: string; count: number }[];
+}
+
+export function getAiRiskStatus(): Promise<{ configured: boolean }> {
+  return getJson('/api/ai-risk/status');
+}
+
+/** Throws with `.reason` of 'not_configured' | 'monthly_cap' | 'rate_limit' | 'error' on failure — the caller shows that reason inline. */
+export function runAiResearch(params: AiResearchParams, forceRefresh: boolean): Promise<{ research: AiResearchRecord; cached: boolean }> {
+  return sendJson('POST', '/api/ai-risk/research', { ...params, forceRefresh });
+}
+
+export function listAiResearch(): Promise<AiResearchRecord[]> {
+  return getJson('/api/ai-risk/research');
+}
+
+export function getAiResearch(id: number): Promise<AiResearchRecord> {
+  return getJson(`/api/ai-risk/research/${id}`);
+}
+
+export function saveAiResearchAssumptions(id: number, assumptions: AiSuggestedAssumption[]): Promise<AiResearchRecord> {
+  return sendJson('PUT', `/api/ai-risk/research/${id}/assumptions`, { assumptions });
+}
+
+export function listAiWatchlist(): Promise<AiWatchlistItem[]> {
+  return getJson('/api/ai-risk/watchlist');
+}
+
+export function addAiWatchlistItem(input: AiWatchlistInput): Promise<AiWatchlistItem> {
+  return sendJson('POST', '/api/ai-risk/watchlist', input);
+}
+
+export function updateAiWatchlistItem(id: number, patch: Partial<AiWatchlistInput>): Promise<AiWatchlistItem> {
+  return sendJson('PUT', `/api/ai-risk/watchlist/${id}`, patch);
+}
+
+export function deleteAiWatchlistItem(id: number): Promise<void> {
+  return sendJson('DELETE', `/api/ai-risk/watchlist/${id}`);
+}
+
+export function getAiUsageStats(): Promise<AiUsageStats> {
+  return getJson('/api/ai-risk/usage');
 }

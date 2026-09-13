@@ -101,6 +101,17 @@ export async function interpretUploadedFiles(fileContents: { filename: string; t
     }
     return { ok: true, result };
   } catch (err) {
+    // Leak shape here: none. Verified empirically (2026-09-13, invalid-key
+    // test) — Anthropic's auth-error body is clean JSON
+    // ({"type":"authentication_error","message":"API key is invalid."}) with
+    // no key material in it, masked or otherwise, so returning err.message
+    // as-is is safe. This is NOT the same for every provider — see
+    // aiRisk.ts, where OpenAI masks the key but still echoes a partial
+    // fragment (requires a key-shaped pattern-match redaction), and
+    // email.ts, where Nodemailer can echo the literal, unmasked app password
+    // (requires an exact-match redaction). A fourth provider needs its own
+    // empirical check of its actual error shape — don't assume "no
+    // redaction" carries over from here without re-testing.
     return { ok: false, reason: 'error', message: `Could not process files: ${err instanceof Error ? err.message : String(err)}` };
   }
 }

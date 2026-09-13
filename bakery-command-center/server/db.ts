@@ -184,4 +184,55 @@ db.exec(`
   );
 `);
 
+// AI Risk Intelligence (Scenario & Resilience, 5th module). A row is written
+// to ai_research only on a genuine successful OpenAI call — same "no partial
+// rows on failure" rule as data_processor_uploads. params_hash is the cache
+// key (question + horizon + risk type + material + depth + geography,
+// canonicalized); cited_sources_json/all_sources_json are populated only from
+// the OpenAI response's own annotation/action.sources fields, never composed
+// by this app. user_assumptions_json is written only once a saved research
+// record's Prepare-stage values are edited, so AI-suggested vs. user-edited
+// stays auditable. ai_usage exists purely for the monthly cap and per-user
+// rate limit — one row per actual OpenAI call, never per cache hit.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_research (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    question TEXT NOT NULL,
+    params_json TEXT NOT NULL,
+    params_hash TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    cited_sources_json TEXT NOT NULL,
+    all_sources_json TEXT NOT NULL,
+    user_assumptions_json TEXT,
+    created_by_employee_id TEXT NOT NULL REFERENCES employees(id),
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('completed')) DEFAULT 'completed'
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ai_research_params_hash ON ai_research(params_hash);
+
+  CREATE TABLE IF NOT EXISTS ai_watchlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    risk TEXT NOT NULL,
+    raw_material TEXT,
+    geography TEXT,
+    risk_level TEXT NOT NULL CHECK (risk_level IN ('low', 'moderate', 'high')),
+    key_indicator TEXT,
+    last_researched_at TEXT,
+    review_date TEXT,
+    created_by_employee_id TEXT NOT NULL REFERENCES employees(id),
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id TEXT NOT NULL REFERENCES employees(id),
+    searched_at TEXT NOT NULL,
+    depth TEXT NOT NULL CHECK (depth IN ('quick', 'standard', 'detailed')),
+    estimated_searches INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ai_usage_employee ON ai_usage(employee_id, searched_at);
+`);
+
 export { DB_PATH };

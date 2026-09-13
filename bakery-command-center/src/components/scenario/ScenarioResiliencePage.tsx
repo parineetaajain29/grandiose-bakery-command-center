@@ -4,6 +4,7 @@ import { InflationSensitivity } from './InflationSensitivity';
 import { SupplyDisruptionRisk } from './SupplyDisruptionRisk';
 import { PandemicPreparedness } from './PandemicPreparedness';
 import { SupplierAlternatives } from './SupplierAlternatives';
+import { AiRiskIntelligence } from './aiRisk/AiRiskIntelligence';
 
 /** Ported from the Streamlit Scenario & Resilience page (app.py lines 2186-2428) — four independent modules, tabbed exactly as the source's st.tabs. */
 export function ScenarioResiliencePage() {
@@ -26,6 +27,7 @@ export function ScenarioResiliencePage() {
       {tab === '2 · Supply Disruption Risk' && <SupplyDisruptionRisk />}
       {tab === '3 · Pandemic Preparedness' && <PandemicPreparedness />}
       {tab === '4 · Supplier Alternatives' && <SupplierAlternatives />}
+      {tab === '5 · AI Risk Intelligence' && <AiRiskIntelligence />}
     </div>
   );
 }

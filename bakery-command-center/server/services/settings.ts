@@ -6,10 +6,13 @@
 import { db } from '../db.ts';
 
 const ANTHROPIC_KEY = 'anthropic_api_key';
+const OPENAI_KEY = 'openai_api_key';
 const EMAIL_ADDRESS_KEY = 'email_address';
 const EMAIL_APP_PASSWORD_KEY = 'email_app_password';
 const SMTP_SERVER_KEY = 'smtp_server';
 const SMTP_PORT_KEY = 'smtp_port';
+const AI_RISK_MONTHLY_CAP_KEY = 'ai_risk_monthly_cap';
+const DEFAULT_AI_RISK_MONTHLY_CAP = 200;
 
 function getSetting(key: string): string | null {
   const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
@@ -39,6 +42,29 @@ export function clearAnthropicApiKey(): void {
 /** Only ever called server-side (the Anthropic client, never a route handler that echoes it back). */
 export function getAnthropicApiKey(): string | null {
   return getSetting(ANTHROPIC_KEY);
+}
+
+export function setOpenAiApiKey(apiKey: string): void {
+  setSetting(OPENAI_KEY, apiKey);
+}
+
+export function clearOpenAiApiKey(): void {
+  clearSetting(OPENAI_KEY);
+}
+
+/** Only ever called server-side (the OpenAI client, never a route handler that echoes it back). */
+export function getOpenAiApiKey(): string | null {
+  return getSetting(OPENAI_KEY);
+}
+
+/** Manager/hr_admin-configurable monthly search cap for AI Risk Intelligence — defaults to 200 when never set. */
+export function getAiRiskMonthlyCap(): number {
+  const raw = getSetting(AI_RISK_MONTHLY_CAP_KEY);
+  return raw ? Number(raw) : DEFAULT_AI_RISK_MONTHLY_CAP;
+}
+
+export function setAiRiskMonthlyCap(cap: number): void {
+  setSetting(AI_RISK_MONTHLY_CAP_KEY, String(cap));
 }
 
 export interface EmailCredentialsInput {
@@ -85,6 +111,8 @@ export function getEmailCredentials(): EmailCredentials | null {
 export interface SettingsStatus {
   anthropicConfigured: boolean;
   emailConfigured: boolean;
+  openAiConfigured: boolean;
+  aiRiskMonthlyCap: number;
 }
 
 /** The only thing the frontend is ever allowed to know about stored credentials — that they exist, never what they are. */
@@ -92,5 +120,7 @@ export function getSettingsStatus(): SettingsStatus {
   return {
     anthropicConfigured: getAnthropicApiKey() !== null,
     emailConfigured: getEmailCredentials() !== null,
+    openAiConfigured: getOpenAiApiKey() !== null,
+    aiRiskMonthlyCap: getAiRiskMonthlyCap(),
   };
 }

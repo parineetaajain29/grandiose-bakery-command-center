@@ -45,6 +45,17 @@ export async function sendReportEmail(input: {
     // failure, and the app password must not reach an HTTP response, a log
     // line, or anywhere outside this function. Same write-only guarantee as
     // settings.ts, applied to the one place a raw exception could violate it.
+    //
+    // Leak shape here: Nodemailer can echo the literal, unmasked app password
+    // in a connection/auth error, so an exact-match replace is sufficient.
+    // This is NOT the same shape every provider has — see aiRisk.ts, where
+    // OpenAI masks the key itself before the error ever reaches our code (an
+    // exact match against the stored key finds nothing there; a key-shaped
+    // pattern match is required instead), and anthropicInterpreter.ts, whose
+    // auth-error format carries no key material at all (checked empirically,
+    // not assumed — no redaction needed there). A fourth provider needs its
+    // own empirical check of its actual error shape before assuming either
+    // technique here covers it.
     const raw = err instanceof Error ? err.message : String(err);
     const redacted = raw.split(credentials.appPassword).join('[redacted]');
     console.error('sendReportEmail failed:', redacted);
