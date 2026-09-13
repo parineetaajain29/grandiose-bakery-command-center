@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, requireRole } from '../rbac.ts';
+import { requireRole } from '../rbac.ts';
 import {
   addWatchlistItem,
   deleteWatchlistItem,
@@ -19,13 +19,13 @@ export const aiRiskRouter = Router();
 const MANAGEMENT_ROLES = ['manager', 'hr_admin'] as const;
 
 aiRiskRouter.get('/ai-risk/status', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   res.json({ configured: isOpenAiConfigured() });
 });
 
 aiRiskRouter.post('/ai-risk/research', async (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
 
   const body = req.body ?? {};
@@ -54,13 +54,13 @@ aiRiskRouter.post('/ai-risk/research', async (req, res) => {
 });
 
 aiRiskRouter.get('/ai-risk/research', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   res.json(listResearch());
 });
 
 aiRiskRouter.get('/ai-risk/research/:id', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   const research = getResearch(Number(req.params.id));
   if (!research) return res.status(404).json({ error: 'research record not found' });
@@ -68,7 +68,7 @@ aiRiskRouter.get('/ai-risk/research/:id', (req, res) => {
 });
 
 aiRiskRouter.put('/ai-risk/research/:id/assumptions', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   const assumptions = Array.isArray(req.body?.assumptions) ? req.body.assumptions : null;
   if (!assumptions) return res.status(400).json({ error: 'assumptions must be an array' });
@@ -78,7 +78,7 @@ aiRiskRouter.put('/ai-risk/research/:id/assumptions', (req, res) => {
 });
 
 aiRiskRouter.get('/ai-risk/watchlist', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, [...MANAGEMENT_ROLES]);
   if (!session) return;
   res.json(listWatchlist());
 });

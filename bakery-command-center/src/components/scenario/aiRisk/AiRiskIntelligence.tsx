@@ -131,5 +131,22 @@ export function AiRiskIntelligence() {
   if (auth.status === 'anonymous') {
     return <LoginScreen onLogin={doLogin} />;
   }
+
+  // This is a fallback, not the primary gate — ScenarioResiliencePage.tsx
+  // already hides the "5 · AI Risk Intelligence" tab entirely for anyone who
+  // isn't manager/hr_admin, and every route this component calls returns 403
+  // for the same roles server-side. This only fires if a logged-in employee
+  // or supervisor lands here some other way (a stale bookmark, browser
+  // back/forward into old state, etc.). A login form would be misleading —
+  // logging in again as the same account changes nothing — so it's a plain
+  // access message instead.
+  if (auth.user.role !== 'manager' && auth.user.role !== 'hr_admin') {
+    return (
+      <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
+        <p className="font-mono text-sm text-text-secondary">You don't have access to this module.</p>
+      </section>
+    );
+  }
+
   return <AiRiskWorkspace role={auth.user.role} />;
 }

@@ -6,12 +6,15 @@ export { TABS as SCENARIO_TABS };
 interface ScenarioSubNavProps {
   active: ScenarioSubTab;
   onChange: (tab: ScenarioSubTab) => void;
+  /** Manager/hr_admin only — false (including while auth is still resolving) hides the tab entirely, not just its content. Modules 1-4 are unaffected either way. */
+  showAiRisk: boolean;
 }
 
-export function ScenarioSubNav({ active, onChange }: ScenarioSubNavProps) {
+export function ScenarioSubNav({ active, onChange, showAiRisk }: ScenarioSubNavProps) {
+  const visibleTabs = showAiRisk ? TABS : TABS.filter((tab) => tab !== '5 · AI Risk Intelligence');
   return (
     <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scenario & Resilience module">
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const isActive = tab === active;
         return (
           <button
