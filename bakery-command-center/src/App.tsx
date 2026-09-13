@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from './data/api';
+import type { AuthUser } from './data';
+import { LoginScreen } from './components/employee/LoginScreen';
 import { Header } from './components/Header';
 import { CommandCenterSubNav, type CommandCenterSubTab } from './components/CommandCenterSubNav';
 import { PerformanceTracker } from './components/performanceTracker/PerformanceTracker';
@@ -35,6 +38,23 @@ const APP_PAGES: { key: AppPage; label: string }[] = [
 // Management utility, not a content page — kept visually apart from
 // APP_PAGES rather than counted among the 7 content pages (see Phase 7 plan).
 const SETTINGS_PAGE: { key: AppPage; label: string } = { key: 'settings', label: 'Settings' };
+
+/**
+ * The single source of truth for "who can see what" at the nav level. Server
+ * routes enforce their own access independently (see rbac.ts and each
+ * router) — this only decides which buttons render and which page a role
+ * falls back to; it is not itself access control.
+ */
+function getAllowedPages(role: AuthUser['role']): AppPage[] {
+  if (role === 'employee') return ['employeePortal'];
+  const base: AppPage[] = ['commandCenter', 'scenarios', 'employeePortal', 'companyProfile', 'sku', 'b2b'];
+  if (role === 'supervisor') return base;
+  return [...base, 'dataProcessor']; // manager, hr_admin
+}
+
+function canSeeSettings(role: AuthUser['role']): boolean {
+  return role === 'manager' || role === 'hr_admin';
+}
 
 const MONTH_FULL: Record<string, string> = {
   Aug: 'August',
@@ -75,6 +95,7 @@ function getDateLabel(scenario: ScenarioKey, granularity: PeriodGranularity, mon
 }
 
 function App() {
+  const { auth, doLogin, doLogout } = useAuth();
   const [page, setPage] = useState<AppPage>('commandCenter');
   const [ccTab, setCcTab] = useState<CommandCenterSubTab>('Overview');
   const [scenario, setScenario] = useState<ScenarioKey>('actuals');
@@ -125,15 +146,37 @@ function App() {
 
   const varianceCell = !isModel && granularity === 'month' && selectedMonth === 'Jul' && scenario === 'actuals' ? scenariosFile.scenarios.actuals.months.Jul.variance : undefined;
 
+  if (auth.status === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg-primary text-text-primary">
+        <p className="font-mono text-sm text-text-secondary">Checking login…</p>
+      </div>
+    );
+  }
+
+  if (auth.status === 'anonymous') {
+    return (
+      <div className="min-h-screen bg-bg-primary text-text-primary">
+        <LoginScreen onLogin={doLogin} />
+      </div>
+    );
+  }
+
+  const { user } = auth;
+  const allowedPages = getAllowedPages(user.role);
+  const displayPage = allowedPages.includes(page) ? page : allowedPages[0];
+  const visiblePages = APP_PAGES.filter((p) => allowedPages.includes(p.key));
+  const showSettings = canSeeSettings(user.role);
+
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
-      <Header subtitle={cell.subtitle} dateLabel={dateLabel} />
+      <Header subtitle={cell.subtitle} dateLabel={dateLabel} user={user} onLogout={doLogout} />
 
       <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-8 sm:px-10">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="App section">
-            {APP_PAGES.map((p) => {
-              const isActive = p.key === page;
+            {visiblePages.map((p) => {
+              const isActive = p.key === displayPage;
               return (
                 <button
                   key={p.key}
@@ -152,30 +195,32 @@ function App() {
               );
             })}
           </div>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={page === SETTINGS_PAGE.key}
-            onClick={() => setPage(SETTINGS_PAGE.key)}
-            className={`rounded-full border px-4 py-2 font-mono text-xs tracking-wide transition-colors ${
-              page === SETTINGS_PAGE.key
-                ? 'border-accent-blue bg-accent-blue text-[#04070d]'
-                : 'border-border-subtle bg-bg-panel text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
-            }`}
-          >
-            {SETTINGS_PAGE.label}
-          </button>
+          {showSettings && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={displayPage === SETTINGS_PAGE.key}
+              onClick={() => setPage(SETTINGS_PAGE.key)}
+              className={`rounded-full border px-4 py-2 font-mono text-xs tracking-wide transition-colors ${
+                displayPage === SETTINGS_PAGE.key
+                  ? 'border-accent-blue bg-accent-blue text-[#04070d]'
+                  : 'border-border-subtle bg-bg-panel text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
+              }`}
+            >
+              {SETTINGS_PAGE.label}
+            </button>
+          )}
         </div>
 
-        {page === 'employeePortal' && <EmployeePortalGate />}
-        {page === 'b2b' && <B2BPage />}
-        {page === 'scenarios' && <ScenarioResiliencePage />}
-        {page === 'companyProfile' && <CompanyProfile />}
-        {page === 'sku' && <SkuPerformancePage />}
-        {page === 'dataProcessor' && <DataProcessorPage />}
-        {page === 'settings' && <SettingsPage />}
+        {displayPage === 'employeePortal' && <EmployeePortalGate user={user} onLogout={doLogout} />}
+        {displayPage === 'b2b' && <B2BPage />}
+        {displayPage === 'scenarios' && <ScenarioResiliencePage role={user.role} />}
+        {displayPage === 'companyProfile' && <CompanyProfile />}
+        {displayPage === 'sku' && <SkuPerformancePage />}
+        {displayPage === 'dataProcessor' && <DataProcessorPage user={user} />}
+        {displayPage === 'settings' && <SettingsPage user={user} />}
 
-        {page === 'commandCenter' && (
+        {displayPage === 'commandCenter' && (
           <>
             <CommandCenterSubNav active={ccTab} onChange={setCcTab} />
 

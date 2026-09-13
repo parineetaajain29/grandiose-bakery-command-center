@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import type { AuthUser } from '../data';
 
 interface HeaderProps {
   subtitle: string;
   dateLabel: string;
+  user: AuthUser;
+  onLogout: () => void;
 }
 
-export function Header({ subtitle, dateLabel }: HeaderProps) {
+export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
   const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
@@ -51,6 +54,19 @@ export function Header({ subtitle, dateLabel }: HeaderProps) {
             </div>
             <ThemeToggle />
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-4">
+          <p className="font-mono text-xs text-text-secondary">
+            {user.name} · {user.id} · {user.role === 'hr_admin' ? 'HR / Admin' : user.role[0].toUpperCase() + user.role.slice(1)}
+          </p>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="rounded-full border border-border-subtle px-4 py-2 font-mono text-xs text-text-secondary transition-colors hover:border-accent-red/50 hover:text-accent-red"
+          >
+            Log out
+          </button>
         </div>
 
         <div className="max-w-3xl">

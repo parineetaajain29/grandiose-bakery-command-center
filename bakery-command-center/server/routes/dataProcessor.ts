@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { requireAuth } from '../rbac.ts';
+import { requireRole } from '../rbac.ts';
 import { buildExcelExport, confirmUpload, getUpload, listUploads, processUpload } from '../services/dataProcessor.ts';
 import { isAnthropicConfigured } from '../services/anthropicInterpreter.ts';
 import { isEmailConfigured, sendReportEmail } from '../services/email.ts';
@@ -14,19 +14,19 @@ export const dataProcessorRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 5 } });
 
 dataProcessorRouter.get('/data-processor/status', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
   res.json({ anthropicConfigured: isAnthropicConfigured(), emailConfigured: isEmailConfigured() });
 });
 
 dataProcessorRouter.get('/data-processor/uploads', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
   res.json(listUploads());
 });
 
 dataProcessorRouter.post('/data-processor/upload', upload.array('files', 5), async (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
 
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
@@ -45,7 +45,7 @@ dataProcessorRouter.post('/data-processor/upload', upload.array('files', 5), asy
 });
 
 dataProcessorRouter.post('/data-processor/:id/confirm', (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
   const id = Number(req.params.id);
   const updated = confirmUpload(id);
@@ -54,7 +54,7 @@ dataProcessorRouter.post('/data-processor/:id/confirm', (req, res) => {
 });
 
 dataProcessorRouter.get('/data-processor/:id/export', async (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
   const id = Number(req.params.id);
   const upload = getUpload(id);
@@ -68,7 +68,7 @@ dataProcessorRouter.get('/data-processor/:id/export', async (req, res) => {
 });
 
 dataProcessorRouter.post('/data-processor/:id/email', async (req, res) => {
-  const session = requireAuth(req, res);
+  const session = requireRole(req, res, ['manager', 'hr_admin']);
   if (!session) return;
   const id = Number(req.params.id);
   const upload = getUpload(id);

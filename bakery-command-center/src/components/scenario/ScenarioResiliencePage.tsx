@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../../data/api';
+import type { AuthUser } from '../../data';
 import { ScenarioSubNav, type ScenarioSubTab } from './ScenarioSubNav';
 import { InflationSensitivity } from './InflationSensitivity';
 import { SupplyDisruptionRisk } from './SupplyDisruptionRisk';
@@ -7,21 +7,22 @@ import { PandemicPreparedness } from './PandemicPreparedness';
 import { SupplierAlternatives } from './SupplierAlternatives';
 import { AiRiskIntelligence } from './aiRisk/AiRiskIntelligence';
 
+interface ScenarioResiliencePageProps {
+  role: AuthUser['role'];
+}
+
 /**
  * Ported from the Streamlit Scenario & Resilience page (app.py lines 2186-2428)
  * — four independent modules, tabbed exactly as the source's st.tabs, reachable
- * with zero login exactly as before. The 5th module (AI Risk Intelligence, not
- * a Streamlit port) is manager/hr_admin only: this is the only place on this
- * page that calls useAuth(), and it exists solely to decide whether tab 5's
- * button appears at all — modules 1-4 never consult auth state in any form.
+ * by anyone who can reach this page at all (the login wall lives once, at the
+ * top of App.tsx). The 5th module (AI Risk Intelligence, not a Streamlit port)
+ * is manager/hr_admin only: `role` arrives as a prop from that single top-level
+ * auth check, not from a second useAuth() call here — it exists solely to
+ * decide whether tab 5's button appears; modules 1-4 never consult it.
  */
-export function ScenarioResiliencePage() {
+export function ScenarioResiliencePage({ role }: ScenarioResiliencePageProps) {
   const [tab, setTab] = useState<ScenarioSubTab>('1 · Inflation Sensitivity');
-  const { auth } = useAuth();
-  // False while auth is still resolving, not just when it resolves to "no
-  // access" — a manager seeing the tab appear slightly late is fine; an
-  // employee seeing it flash and vanish is not.
-  const canAccessAiRisk = auth.status === 'authenticated' && (auth.user.role === 'manager' || auth.user.role === 'hr_admin');
+  const canAccessAiRisk = role === 'manager' || role === 'hr_admin';
 
   // Guards against a stale tab selection (e.g. a session that loses
   // manager/hr_admin standing mid-visit) — the button being hidden isn't
@@ -48,7 +49,7 @@ export function ScenarioResiliencePage() {
       {displayTab === '2 · Supply Disruption Risk' && <SupplyDisruptionRisk />}
       {displayTab === '3 · Pandemic Preparedness' && <PandemicPreparedness />}
       {displayTab === '4 · Supplier Alternatives' && <SupplierAlternatives />}
-      {displayTab === '5 · AI Risk Intelligence' && canAccessAiRisk && <AiRiskIntelligence />}
+      {displayTab === '5 · AI Risk Intelligence' && canAccessAiRisk && <AiRiskIntelligence role={role} />}
     </div>
   );
 }

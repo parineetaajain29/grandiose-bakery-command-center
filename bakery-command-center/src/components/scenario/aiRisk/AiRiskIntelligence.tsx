@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useAuth, runAiResearch, getAiRiskStatus, type AiResearchParams, type AiResearchRecord } from '../../../data/api';
+import { runAiResearch, getAiRiskStatus, type AiResearchParams, type AiResearchRecord } from '../../../data/api';
 import type { AuthUser } from '../../../data';
-import { LoginScreen } from '../../employee/LoginScreen';
 import { ResearchStage } from './ResearchStage';
 import { UnderstandStage } from './UnderstandStage';
 import { PrepareStage } from './PrepareStage';
@@ -35,14 +34,7 @@ function SecondaryNav({ active, onChange }: { active: SecondaryView; onChange: (
   );
 }
 
-/**
- * Streamlit's app.py has no such page — this is a genuinely new 5th module,
- * approved as an addition to Scenario & Resilience, not a port. Gated by its
- * own useAuth() check, same as Settings/Data Processor: the other four
- * modules on this page stay fully public, unauthenticated, and untouched —
- * this is the only sub-module in the app with its own login wall inside an
- * otherwise-public page.
- */
+/** Streamlit's app.py has no such page — this is a genuinely new 5th module, approved as an addition to Scenario & Resilience, not a port. */
 function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
   const canWriteWatchlist = role === 'manager' || role === 'hr_admin';
   const [view, setView] = useState<SecondaryView>('flow');
@@ -118,29 +110,21 @@ function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
   );
 }
 
-export function AiRiskIntelligence() {
-  const { auth, doLogin } = useAuth();
+interface AiRiskIntelligenceProps {
+  role: AuthUser['role'];
+}
 
-  if (auth.status === 'loading') {
-    return (
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-        <p className="font-mono text-sm text-text-secondary">Checking login…</p>
-      </section>
-    );
-  }
-  if (auth.status === 'anonymous') {
-    return <LoginScreen onLogin={doLogin} />;
-  }
-
-  // This is a fallback, not the primary gate — ScenarioResiliencePage.tsx
-  // already hides the "5 · AI Risk Intelligence" tab entirely for anyone who
-  // isn't manager/hr_admin, and every route this component calls returns 403
-  // for the same roles server-side. This only fires if a logged-in employee
-  // or supervisor lands here some other way (a stale bookmark, browser
-  // back/forward into old state, etc.). A login form would be misleading —
-  // logging in again as the same account changes nothing — so it's a plain
-  // access message instead.
-  if (auth.user.role !== 'manager' && auth.user.role !== 'hr_admin') {
+/**
+ * `role` arrives as a prop from the single app-level auth check in App.tsx —
+ * no useAuth() call here, no login screen. The role check below is
+ * defence-in-depth, not the primary gate: ScenarioResiliencePage.tsx already
+ * hides the "5 · AI Risk Intelligence" tab entirely for anyone who isn't
+ * manager/hr_admin, and every route this component calls returns 403 for the
+ * same roles server-side. This only fires if a stale render somehow reaches
+ * this component anyway.
+ */
+export function AiRiskIntelligence({ role }: AiRiskIntelligenceProps) {
+  if (role !== 'manager' && role !== 'hr_admin') {
     return (
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
         <p className="font-mono text-sm text-text-secondary">You don't have access to this module.</p>
@@ -148,5 +132,5 @@ export function AiRiskIntelligence() {
     );
   }
 
-  return <AiRiskWorkspace role={auth.user.role} />;
+  return <AiRiskWorkspace role={role} />;
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../data/api';
-import { LoginScreen } from '../employee/LoginScreen';
+import type { AuthUser } from '../../data';
 import {
   clearAnthropicKey,
   clearEmailCredentials,
@@ -446,22 +445,18 @@ function SettingsForm() {
 }
 
 /** Gated exactly like Employee Portal — same useAuth() hook, no new auth mechanism — but restricted to manager/hr_admin since this holds real secrets. */
-export function SettingsPage() {
-  const { auth, doLogin } = useAuth();
+interface SettingsPageProps {
+  user: AuthUser;
+}
 
-  if (auth.status === 'loading') {
-    return (
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-        <p className="font-mono text-sm text-text-secondary">Checking login…</p>
-      </section>
-    );
-  }
-
-  if (auth.status === 'anonymous') {
-    return <LoginScreen onLogin={doLogin} />;
-  }
-
-  if (auth.user.role !== 'manager' && auth.user.role !== 'hr_admin') {
+/**
+ * The login wall itself lives once, at the top of App.tsx, which is why
+ * Settings never appears in the nav for anyone but manager/hr_admin. This
+ * role check is defence-in-depth, not the primary gate — kept deliberately
+ * in case nav filtering is ever loosened or bypassed some other way.
+ */
+export function SettingsPage({ user }: SettingsPageProps) {
+  if (user.role !== 'manager' && user.role !== 'hr_admin') {
     return (
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
         <p className="font-mono text-sm text-text-secondary">Settings is management only.</p>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../data/api';
-import { LoginScreen } from '../employee/LoginScreen';
+import type { AuthUser } from '../../data';
 import {
   confirmDataProcessorUpload,
   emailDataProcessorReport,
@@ -246,19 +245,24 @@ function Workspace() {
 }
 
 /** Any logged-in role may use Data Processor — it's a workforce productivity tool, not HR-only — but it still requires the same login wall as the rest of the portal, since uploads are attributed to a real employeeId. */
-export function DataProcessorPage() {
-  const { auth, doLogin } = useAuth();
+interface DataProcessorPageProps {
+  user: AuthUser;
+}
 
-  if (auth.status === 'loading') {
+/**
+ * The login wall lives once, at the top of App.tsx, which is why this page
+ * never appears in the nav for anyone but manager/hr_admin — tightened
+ * server-side too (server/routes/dataProcessor.ts), since this workspace
+ * triggers billable Anthropic API calls. This role check is defence-in-depth,
+ * matching the same pattern as SettingsPage, not the primary gate.
+ */
+export function DataProcessorPage({ user }: DataProcessorPageProps) {
+  if (user.role !== 'manager' && user.role !== 'hr_admin') {
     return (
       <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-        <p className="font-mono text-sm text-text-secondary">Checking login…</p>
+        <p className="font-mono text-sm text-text-secondary">Data Processor is management only.</p>
       </section>
     );
-  }
-
-  if (auth.status === 'anonymous') {
-    return <LoginScreen onLogin={doLogin} />;
   }
 
   return <Workspace />;
