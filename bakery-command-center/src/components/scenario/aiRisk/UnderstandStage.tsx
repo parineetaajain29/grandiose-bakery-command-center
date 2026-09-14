@@ -83,7 +83,10 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
           {showDetail ? 'Hide' : 'View'} Detailed Research
         </button>
         <button type="button" onClick={() => setShowSources((v) => !v)} className="font-mono text-xs text-accent-blue hover:underline">
-          {showSources ? 'Hide' : 'View'} Sources ({research.citedSources.length})
+          {/* allSources (the full audit trail from web_search_call.action.sources), not citedSources — citedSources is
+              legitimately 0 whenever the model correctly avoids inline-citing inside its pure-JSON answer (Rule 1),
+              which is nearly always. Counting citedSources here made a fully-sourced research run read as "0 sources". */}
+          {showSources ? 'Hide' : 'View'} Sources ({research.allSources.length})
         </button>
       </div>
 

@@ -71,16 +71,36 @@ export function ExecutiveBrief({ research, values, runResult }: ExecutiveBriefPr
         </p>
 
         <div>
-          <strong className="font-mono text-xs uppercase text-text-secondary">Sources ({research.citedSources.length})</strong>
-          <ul className="mt-1 flex flex-col gap-0.5">
-            {research.citedSources.map((s) => (
-              <li key={s.url} className="font-mono text-xs">
-                <a href={s.url} target="_blank" rel="noreferrer" className="text-accent-blue hover:underline">
-                  {s.title || s.url}
-                </a>
-              </li>
-            ))}
-          </ul>
+          {/* citedSources (inline url_citation annotations) is legitimately near-empty almost always — the model is
+              instructed not to inline-cite inside its pure-JSON answer (Rule 1). allSources (web_search_call.action.sources)
+              is the real audit trail of what was actually searched/opened; showing only citedSources here made a
+              fully-sourced brief read as having zero sources. */}
+          <strong className="font-mono text-xs uppercase text-text-secondary">Sources ({research.allSources.length})</strong>
+          {research.citedSources.length > 0 && (
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {research.citedSources.map((s) => (
+                <li key={s.url} className="font-mono text-xs">
+                  <a href={s.url} target="_blank" rel="noreferrer" className="text-accent-blue hover:underline">
+                    {s.title || s.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+          {research.allSources.length > 0 && (
+            <ul className="mt-1 flex max-h-32 flex-col gap-0.5 overflow-y-auto">
+              {research.allSources.map((url) => (
+                <li key={url} className="truncate font-mono text-xs">
+                  <a href={url} target="_blank" rel="noreferrer" className="text-accent-blue hover:underline">
+                    {url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+          {research.allSources.length === 0 && research.citedSources.length === 0 && (
+            <p className="mt-1 font-mono text-xs text-text-secondary">No external sources retrieved.</p>
+          )}
         </div>
       </div>
     </div>
