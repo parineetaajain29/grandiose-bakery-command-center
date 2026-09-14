@@ -164,9 +164,15 @@ function App() {
 
   const { user } = auth;
   const allowedPages = getAllowedPages(user.role);
-  const displayPage = allowedPages.includes(page) ? page : allowedPages[0];
-  const visiblePages = APP_PAGES.filter((p) => allowedPages.includes(p.key));
   const showSettings = canSeeSettings(user.role);
+  // getAllowedPages() deliberately never includes 'settings' — it's tracked
+  // via the separate showSettings boolean below, not folded into the content
+  // page list. displayPage's validity check has to account for both, or
+  // 'settings' always fails allowedPages.includes() and silently falls back
+  // to allowedPages[0] regardless of role.
+  const validPages: AppPage[] = showSettings ? [...allowedPages, SETTINGS_PAGE.key] : allowedPages;
+  const displayPage = validPages.includes(page) ? page : allowedPages[0];
+  const visiblePages = APP_PAGES.filter((p) => allowedPages.includes(p.key));
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
