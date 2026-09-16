@@ -15,12 +15,12 @@ import {
 } from '../../data/api';
 
 const inputClass =
-  'mt-1.5 w-full rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
-const labelClass = 'font-mono text-[11px] tracking-[0.14em] text-text-secondary';
+  'mt-1.5 w-full rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
+const labelClass = 'font-sans text-xs font-medium text-text-tertiary';
 
 function StatusDot({ configured }: { configured: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 font-mono text-xs ${configured ? 'text-accent-green' : 'text-text-secondary'}`}>
+    <span className={`inline-flex items-center gap-1.5 font-sans text-xs font-medium ${configured ? 'text-accent-green' : 'text-text-secondary'}`}>
       <span className={`inline-block h-2 w-2 rounded-full ${configured ? 'bg-accent-green' : 'bg-text-secondary/50'}`} />
       {configured ? 'Configured' : 'Not configured'}
     </span>
@@ -200,17 +200,17 @@ function SettingsForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SETTINGS</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Settings</p>
         <h1 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Integration credentials</h1>
         <p className="mt-2 max-w-2xl text-sm text-text-secondary">
           Stored write-only in this app's local database. Nothing entered here is ever displayed again once saved —
           only whether a value is currently set. Clearing a credential removes it immediately.
         </p>
-        {loadError && <p className="mt-3 font-mono text-xs text-accent-red">{loadError}</p>}
+        {loadError && <p className="mt-3 font-sans text-xs text-accent-red">{loadError}</p>}
       </section>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-sans text-lg font-semibold text-text-primary">Anthropic API key</h2>
           {status && <StatusDot configured={status.anthropicConfigured} />}
@@ -220,7 +220,7 @@ function SettingsForm() {
         <form onSubmit={handleSaveAnthropic} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className={labelClass} htmlFor="anthropic-key">
-              API KEY
+              API Key
             </label>
             <input
               id="anthropic-key"
@@ -229,14 +229,14 @@ function SettingsForm() {
               placeholder="sk-ant-..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} font-mono`}
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={anthropicBusy || !apiKey.trim()}
-              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               Save
             </button>
@@ -244,16 +244,16 @@ function SettingsForm() {
               type="button"
               onClick={handleClearAnthropic}
               disabled={anthropicBusy || !status?.anthropicConfigured}
-              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
             >
               Clear
             </button>
           </div>
         </form>
-        {anthropicMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{anthropicMsg}</p>}
+        {anthropicMsg && <p className="mt-2 font-sans text-xs text-text-secondary">{anthropicMsg}</p>}
       </section>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-sans text-lg font-semibold text-text-primary">Email (SMTP) credentials</h2>
           {status && <StatusDot configured={status.emailConfigured} />}
@@ -267,7 +267,7 @@ function SettingsForm() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={labelClass} htmlFor="email-address">
-                EMAIL ADDRESS
+                Email Address
               </label>
               <input
                 id="email-address"
@@ -276,12 +276,12 @@ function SettingsForm() {
                 placeholder="reports@grandiosebakery.com"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} font-sans`}
               />
             </div>
             <div>
               <label className={labelClass} htmlFor="email-app-password">
-                APP PASSWORD
+                App Password
               </label>
               <input
                 id="email-app-password"
@@ -290,24 +290,24 @@ function SettingsForm() {
                 placeholder="16-character app password"
                 value={appPassword}
                 onChange={(e) => setAppPassword(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} font-mono`}
               />
             </div>
             <div>
               <label className={labelClass} htmlFor="smtp-server">
-                SMTP SERVER
+                SMTP Server
               </label>
               <input
                 id="smtp-server"
                 type="text"
                 value={smtpServer}
                 onChange={(e) => setSmtpServer(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} font-sans`}
               />
             </div>
             <div>
               <label className={labelClass} htmlFor="smtp-port">
-                SMTP PORT
+                SMTP Port
               </label>
               <input
                 id="smtp-port"
@@ -315,7 +315,7 @@ function SettingsForm() {
                 inputMode="numeric"
                 value={smtpPort}
                 onChange={(e) => setSmtpPort(e.target.value.replace(/\D/g, ''))}
-                className={inputClass}
+                className={`${inputClass} font-sans`}
               />
             </div>
           </div>
@@ -323,7 +323,7 @@ function SettingsForm() {
             <button
               type="submit"
               disabled={emailBusy || !emailAddress.trim() || !appPassword.trim()}
-              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               Save
             </button>
@@ -331,16 +331,16 @@ function SettingsForm() {
               type="button"
               onClick={handleClearEmail}
               disabled={emailBusy || !status?.emailConfigured}
-              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
             >
               Clear
             </button>
           </div>
         </form>
-        {emailMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{emailMsg}</p>}
+        {emailMsg && <p className="mt-2 font-sans text-xs text-text-secondary">{emailMsg}</p>}
       </section>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <div className="flex items-center justify-between gap-4">
           <h2 className="font-sans text-lg font-semibold text-text-primary">OpenAI API key</h2>
           {status && <StatusDot configured={status.openAiConfigured ?? false} />}
@@ -353,7 +353,7 @@ function SettingsForm() {
         <form onSubmit={handleSaveOpenAi} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className={labelClass} htmlFor="openai-key">
-              API KEY
+              API Key
             </label>
             <input
               id="openai-key"
@@ -362,14 +362,14 @@ function SettingsForm() {
               placeholder="sk-..."
               value={openAiKey}
               onChange={(e) => setOpenAiKey(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} font-mono`}
             />
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={openAiBusy || !openAiKey.trim()}
-              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               Save
             </button>
@@ -377,13 +377,13 @@ function SettingsForm() {
               type="button"
               onClick={handleClearOpenAi}
               disabled={openAiBusy || !status?.openAiConfigured}
-              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40"
             >
               Clear
             </button>
           </div>
         </form>
-        {openAiMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{openAiMsg}</p>}
+        {openAiMsg && <p className="mt-2 font-sans text-xs text-text-secondary">{openAiMsg}</p>}
 
         <div className="mt-5 border-t border-border-subtle pt-5">
           <p className="text-sm text-text-primary">Monthly research cap</p>
@@ -394,7 +394,7 @@ function SettingsForm() {
           <form onSubmit={handleSaveCap} className="mt-3 flex items-end gap-2">
             <div>
               <label className={labelClass} htmlFor="ai-risk-cap">
-                SEARCHES / MONTH
+                Searches / Month
               </label>
               <input
                 id="ai-risk-cap"
@@ -402,32 +402,32 @@ function SettingsForm() {
                 inputMode="numeric"
                 value={monthlyCapValue}
                 onChange={(e) => setMonthlyCap(e.target.value.replace(/\D/g, ''))}
-                className={`${inputClass} w-32`}
+                className={`${inputClass} font-sans w-32`}
               />
             </div>
             <button
               type="submit"
               disabled={capBusy || !monthlyCapValue || Number(monthlyCapValue) < 1}
-              className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50 disabled:opacity-50"
+              className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50 disabled:opacity-50"
             >
               Save cap
             </button>
           </form>
-          {capMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{capMsg}</p>}
+          {capMsg && <p className="mt-2 font-sans text-xs text-text-secondary">{capMsg}</p>}
         </div>
 
         <div className="mt-5 border-t border-border-subtle pt-5">
           <p className="text-sm text-text-primary">Usage this month</p>
-          {usageError && <p className="mt-1 font-mono text-xs text-accent-red">{usageError}</p>}
+          {usageError && <p className="mt-1 font-sans text-xs text-accent-red">{usageError}</p>}
           {usage && (
             <>
-              <p className="mt-1 font-mono text-sm text-text-primary">
+              <p className="mt-1 font-sans font-tabular text-sm text-text-primary">
                 {usage.usedThisMonth} / {usage.monthlyCap} searches
               </p>
               {usage.topUsers.length > 0 && (
                 <div className="mt-2">
-                  <p className="font-mono text-[10px] tracking-[0.1em] text-text-secondary">TOP 5 USERS</p>
-                  <ul className="mt-1 flex flex-col gap-0.5 font-mono text-xs text-text-secondary">
+                  <p className="font-sans text-xs font-medium text-text-tertiary">Top 5 Users</p>
+                  <ul className="mt-1 flex flex-col gap-0.5 font-sans text-xs text-text-secondary">
                     {usage.topUsers.map((u) => (
                       <li key={u.employeeId}>
                         {u.employeeId} — {u.count}
@@ -458,8 +458,8 @@ interface SettingsPageProps {
 export function SettingsPage({ user }: SettingsPageProps) {
   if (user.role !== 'manager' && user.role !== 'hr_admin') {
     return (
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-        <p className="font-mono text-sm text-text-secondary">Settings is management only.</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-8 text-center">
+        <p className="font-sans text-sm text-text-secondary">Settings is management only.</p>
       </section>
     );
   }

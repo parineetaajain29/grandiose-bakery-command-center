@@ -19,15 +19,15 @@ function ResultsPreview({ upload }: { upload: DataProcessorUpload }) {
   return (
     <div className="mt-5 flex flex-col gap-5">
       <div>
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">DETECTED DATA TYPE</p>
+        <p className="font-sans text-xs font-medium text-text-tertiary">Detected Data Type</p>
         <p className="mt-1 text-sm text-text-primary">{upload.result.detected_data_type}</p>
       </div>
       <div>
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SUMMARY</p>
+        <p className="font-sans text-xs font-medium text-text-tertiary">Summary</p>
         <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">{upload.result.summary}</p>
       </div>
       {upload.result.sheets.map((sheet, i) => (
-        <div key={i} className="rounded-lg border border-border-subtle p-4">
+        <div key={i} className="rounded-card border border-border-subtle p-4">
           <p className="font-sans text-sm font-semibold text-text-primary">{sheet.title || sheet.sheet_name}</p>
           {sheet.rows.length > 0 && (
             <div className="mt-3 overflow-x-auto">
@@ -54,14 +54,14 @@ function ResultsPreview({ upload }: { upload: DataProcessorUpload }) {
                 </tbody>
               </table>
               {sheet.rows.length > 25 && (
-                <p className="mt-1.5 font-mono text-[11px] text-text-secondary">…{sheet.rows.length - 25} more rows in the export.</p>
+                <p className="mt-1.5 font-sans text-xs text-text-tertiary">…{sheet.rows.length - 25} more rows in the export.</p>
               )}
             </div>
           )}
           {sheet.insights.length > 0 && (
             <ul className="mt-3 flex flex-col gap-1">
               {sheet.insights.map((insight, ii) => (
-                <li key={ii} className="font-mono text-xs text-text-secondary">
+                <li key={ii} className="font-sans text-xs text-text-secondary">
                   · {insight}
                 </li>
               ))}
@@ -135,15 +135,15 @@ function Workspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">DATA PROCESSOR</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Data Processor</p>
         <h1 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Upload &amp; interpret a file</h1>
         <p className="mt-2 max-w-2xl text-sm text-text-secondary">
           Upload a PDF, Word, Excel, or CSV file for AI interpretation. Files are read in memory and are not stored
           beyond this session; only the interpreted summary is saved once you confirm it.
         </p>
         {status && !status.anthropicConfigured && (
-          <p className="mt-3 rounded-lg border border-accent-orange/40 px-3 py-2 font-mono text-xs text-accent-orange">
+          <p className="mt-3 rounded-lg border border-accent-orange/40 px-3 py-2 font-sans text-xs text-accent-orange">
             AI interpretation isn't configured — a manager or HR admin needs to add an Anthropic API key in Settings.
           </p>
         )}
@@ -154,13 +154,13 @@ function Workspace() {
             multiple
             accept={ACCEPTED}
             onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-            className="font-mono text-xs text-text-secondary file:mr-3 file:rounded-lg file:border file:border-border-subtle file:bg-bg-primary file:px-3 file:py-2 file:font-mono file:text-xs file:text-text-primary"
+            className="font-sans text-xs text-text-secondary file:mr-3 file:rounded-lg file:border file:border-border-subtle file:bg-bg-primary file:px-3 file:py-2 file:font-sans file:text-xs file:text-text-primary"
           />
           <button
             type="button"
             onClick={handleInterpret}
             disabled={busy || files.length === 0 || (status ? !status.anthropicConfigured : false)}
-            className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? 'Interpreting…' : 'Interpret'}
           </button>
@@ -168,8 +168,8 @@ function Workspace() {
       </section>
 
       {outcome && !outcome.ok && (
-        <section className="rounded-xl border border-accent-red/40 bg-bg-panel p-5 sm:p-7">
-          <p className="font-mono text-sm text-accent-red">
+        <section className="rounded-card border border-accent-red/40 bg-bg-panel p-5 shadow-card sm:p-7">
+          <p className="font-sans text-sm text-accent-red">
             {outcome.reason === 'not_configured' ? "AI interpretation isn't configured." : 'Interpretation failed.'}
           </p>
           <p className="mt-1.5 text-sm text-text-secondary">{outcome.message}</p>
@@ -177,10 +177,10 @@ function Workspace() {
       )}
 
       {outcome?.ok && (
-        <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+        <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-sans text-lg font-semibold text-text-primary">{outcome.upload.filename}</h2>
-            <span className={`font-mono text-xs ${confirmed ? 'text-accent-green' : 'text-accent-orange'}`}>
+            <span className={`font-sans text-xs font-medium ${confirmed ? 'text-accent-green' : 'text-accent-orange'}`}>
               {confirmed ? 'Confirmed' : 'Awaiting confirmation'}
             </span>
           </div>
@@ -196,7 +196,7 @@ function Workspace() {
                 type="button"
                 onClick={handleConfirm}
                 disabled={confirming}
-                className="whitespace-nowrap rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="whitespace-nowrap rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {confirming ? 'Confirming…' : 'Confirm this interpretation'}
               </button>
@@ -208,7 +208,7 @@ function Workspace() {
               <div className="flex flex-wrap items-center gap-3">
                 <a
                   href={getDataProcessorExportUrl(outcome.upload.id)}
-                  className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50"
+                  className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50"
                 >
                   Export as Excel
                 </a>
@@ -219,23 +219,23 @@ function Workspace() {
                   placeholder="Recipient email"
                   value={emailTo}
                   onChange={(e) => setEmailTo(e.target.value)}
-                  className="w-full max-w-xs rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none sm:w-auto"
+                  className="w-full max-w-xs rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 font-sans text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none sm:w-auto"
                 />
                 <button
                   type="button"
                   onClick={handleEmail}
                   disabled={emailBusy || !emailTo.trim() || (status ? !status.emailConfigured : false)}
-                  className="rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50 disabled:opacity-40"
+                  className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50 disabled:opacity-40"
                 >
                   {emailBusy ? 'Sending…' : 'Email report'}
                 </button>
               </div>
               {status && !status.emailConfigured && (
-                <p className="font-mono text-xs text-accent-orange">
+                <p className="font-sans text-xs text-accent-orange">
                   Emailing isn't configured — a manager or HR admin needs to add email credentials in Settings.
                 </p>
               )}
-              {emailMsg && <p className="font-mono text-xs text-text-secondary">{emailMsg}</p>}
+              {emailMsg && <p className="font-sans text-xs text-text-secondary">{emailMsg}</p>}
             </div>
           )}
         </section>
@@ -244,7 +244,6 @@ function Workspace() {
   );
 }
 
-/** Any logged-in role may use Data Processor — it's a workforce productivity tool, not HR-only — but it still requires the same login wall as the rest of the portal, since uploads are attributed to a real employeeId. */
 interface DataProcessorPageProps {
   user: AuthUser;
 }
@@ -259,8 +258,8 @@ interface DataProcessorPageProps {
 export function DataProcessorPage({ user }: DataProcessorPageProps) {
   if (user.role !== 'manager' && user.role !== 'hr_admin') {
     return (
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-        <p className="font-mono text-sm text-text-secondary">Data Processor is management only.</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-8 text-center">
+        <p className="font-sans text-sm text-text-secondary">Data Processor is management only.</p>
       </section>
     );
   }
