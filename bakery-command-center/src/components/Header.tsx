@@ -17,10 +17,10 @@ export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
       <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8 sm:px-10">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="font-mono text-xs tracking-[0.18em] text-text-secondary">
-              GRANDIOSE SUPERMARKET · BAKERY DIVISION
+            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-text-secondary">
+              Grandiose Supermarket · Bakery Division
             </p>
-            <h1 className="mt-2 font-sans text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+            <h1 className="mt-2 font-sans text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
               Bakery Command Center
             </h1>
           </div>
@@ -30,13 +30,13 @@ export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => setAboutOpen((v) => !v)}
-                className="rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-mono text-xs tracking-wide text-text-secondary transition-colors hover:border-accent-blue/60 hover:text-text-primary"
+                className="rounded-lg border border-border-subtle bg-bg-panel px-4 py-2 font-sans text-sm font-medium text-text-secondary transition-colors hover:border-accent-blue/60 hover:text-text-primary"
               >
                 About this dashboard
               </button>
               {aboutOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-border-subtle bg-bg-panel p-4 shadow-xl">
-                  <p className="font-mono text-[11px] uppercase tracking-wider text-text-secondary">About</p>
+                <div className="absolute right-0 z-20 mt-2 w-80 rounded-card border border-border-subtle bg-bg-panel p-4 shadow-card">
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wide text-text-tertiary">About</p>
                   <p className="mt-2 text-sm leading-relaxed text-text-primary">
                     A visual command center for Grandiose Supermarket's Bakery Division, cloned from a reference
                     finance-SaaS dashboard and retargeted to bakery production, cost, and procurement metrics.
@@ -45,7 +45,7 @@ export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
                   <button
                     type="button"
                     onClick={() => setAboutOpen(false)}
-                    className="mt-3 font-mono text-[11px] tracking-wide text-accent-blue hover:underline"
+                    className="mt-3 font-sans text-xs font-medium text-accent-blue hover:underline"
                   >
                     Close
                   </button>
@@ -57,13 +57,13 @@ export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-4">
-          <p className="font-mono text-xs text-text-secondary">
+          <p className="font-sans text-sm text-text-secondary">
             {user.name} · {user.id} · {user.role === 'hr_admin' ? 'HR / Admin' : user.role[0].toUpperCase() + user.role.slice(1)}
           </p>
           <button
             type="button"
             onClick={onLogout}
-            className="rounded-full border border-border-subtle px-4 py-2 font-mono text-xs text-text-secondary transition-colors hover:border-accent-red/50 hover:text-accent-red"
+            className="rounded-lg border border-border-subtle px-4 py-2 font-sans text-sm font-medium text-text-secondary transition-colors hover:border-accent-red/50 hover:text-accent-red"
           >
             Log out
           </button>
@@ -71,7 +71,7 @@ export function Header({ subtitle, dateLabel, user, onLogout }: HeaderProps) {
 
         <div className="max-w-3xl">
           <p className="text-sm leading-relaxed text-text-secondary sm:text-base">{subtitle}</p>
-          <p className="mt-2 font-mono text-xs tracking-wide text-text-secondary">
+          <p className="mt-2 font-sans text-xs text-text-tertiary">
             {dateLabel} · 112 bakery staff (target: 200) · figures confirmed by division finance
           </p>
         </div>

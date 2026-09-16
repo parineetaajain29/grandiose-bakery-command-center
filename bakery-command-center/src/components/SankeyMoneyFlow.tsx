@@ -164,16 +164,22 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
   const operatingMarginPct = (operatingResult / revenueTotal) * 100;
   const linkPath = sankeyLinkHorizontal();
 
+  // Operating Result/Margin are performance indicators, not fixed
+  // categories (unlike Revenue=blue, Cost=orange, which mirror the
+  // diagram's own structural node coloring) — color follows the sign.
+  const resultTone = operatingResult > 0 ? 'text-accent-green' : 'text-accent-red';
+  const marginTone = operatingMarginPct > 0 ? 'text-accent-green' : 'text-accent-red';
+
   const isDimmed = (kind: 'node' | 'link', id: string) => {
     if (!hovered) return false;
     return kind === 'node' ? !hovered.nodeIds.has(id) : !hovered.linkIds.has(id);
   };
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">MONEY FLOW</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Money Flow</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
             Where every dirham went
           </h2>
@@ -182,15 +188,15 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
           </p>
         </div>
         <div className="text-right">
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">OPERATING MARGIN</p>
-          <p className="mt-1 font-sans font-tabular text-2xl font-semibold text-accent-green">
+          <p className="font-sans text-xs font-medium text-text-tertiary">Operating Margin</p>
+          <p className={`mt-1 font-sans font-tabular text-2xl font-semibold ${marginTone}`}>
             {formatPercent(operatingMarginPct)}
           </p>
         </div>
       </div>
 
       {isDerived && (
-        <p className="mt-3 font-mono text-[11px] text-text-secondary">
+        <p className="mt-3 font-sans text-xs text-text-tertiary">
           Modeled from Jul actuals mix, scaled to this scenario/period's totals — not independently reported.
         </p>
       )}
@@ -258,7 +264,7 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
                         x={x + w / 2}
                         y={y - 16}
                         textAnchor="middle"
-                        className="font-mono text-[11px]"
+                        className="font-sans text-[11px] font-medium"
                         fill="var(--text-primary)"
                         opacity={dimmed ? 0.3 : 1}
                       >
@@ -268,7 +274,7 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
                         x={x + w / 2}
                         y={y - 4}
                         textAnchor="middle"
-                        className="font-mono text-[10px] font-tabular"
+                        className="font-sans text-[10px] font-tabular"
                         fill="var(--text-secondary)"
                         opacity={dimmed ? 0.3 : 1}
                       >
@@ -280,7 +286,7 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
                       x={labelOnLeft ? x - 8 : x + w + 8}
                       y={y + h / 2 + 3.5}
                       textAnchor={labelOnLeft ? 'end' : 'start'}
-                      className="font-mono text-[10.5px]"
+                      className="font-sans text-[10.5px]"
                       fill="var(--text-primary)"
                       opacity={dimmed ? 0.3 : 1}
                     >
@@ -304,10 +310,10 @@ export function SankeyMoneyFlow({ sankeyData, isDerived }: SankeyMoneyFlowProps)
           { label: 'Cost of Production', value: copTotal, color: 'text-accent-orange' },
           { label: 'Gross Profit', value: grossProfit, color: 'text-accent-blue' },
           { label: 'Operating Expense', value: opexTotal, color: 'text-accent-orange' },
-          { label: 'Operating Result', value: operatingResult, color: 'text-accent-green' },
+          { label: 'Operating Result', value: operatingResult, color: resultTone },
         ].map((s) => (
           <div key={s.label}>
-            <p className="font-mono text-[10px] tracking-wide text-text-secondary">{s.label.toUpperCase()}</p>
+            <p className="font-sans text-[11px] font-medium text-text-tertiary">{s.label}</p>
             <p className={`mt-1 font-sans font-tabular text-lg font-semibold ${s.color}`}>
               {formatAED(s.value, { compact: true })}
             </p>

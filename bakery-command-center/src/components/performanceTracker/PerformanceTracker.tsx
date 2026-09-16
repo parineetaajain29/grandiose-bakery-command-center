@@ -21,16 +21,16 @@ export function PerformanceTracker() {
       <PerformanceTrackerKpiStrip data={performanceTracker} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">WASTAGE</p>
+        <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+          <p className="font-sans text-xs font-medium text-text-tertiary">Wastage</p>
           <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Wastage % vs. target</h3>
           <div className="mt-4">
             <WastageGauge value={performanceTracker.baseline.wastagePct} />
           </div>
         </section>
 
-        <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">COST STRUCTURE</p>
+        <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+          <p className="font-sans text-xs font-medium text-text-tertiary">Cost Structure</p>
           <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Where revenue goes</h3>
           <div className="mt-4">
             <CostStructureDonut costStructure={performanceTracker.costStructure} grossMarginPct={performanceTracker.baseline.grossMarginPct} />
@@ -48,7 +48,7 @@ export function PerformanceTracker() {
 
       <WastageByDivision rows={performanceTracker.wastageByDivision} />
 
-      <p className="font-mono text-[11px] text-text-secondary">
+      <p className="font-sans text-xs text-text-tertiary">
         Financial performance and cost optimization for Grandiose Bakery operations · Bakery division only, catering
         excluded · Figures shown are illustrative benchmarks pending Grandiose-provided actuals.
       </p>

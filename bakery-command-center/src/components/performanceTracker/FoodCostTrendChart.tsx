@@ -32,10 +32,10 @@ export function FoodCostTrendChart({ months, foodCostTrend, targetFoodCostPct }:
   }, [isProjected, months, foodCostTrend, target, projection]);
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">FOOD COST TREND</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Food Cost Trend</p>
           <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Food cost % vs. target</h3>
         </div>
         <div className="flex gap-2" role="tablist" aria-label="Trend view">
@@ -46,7 +46,7 @@ export function FoodCostTrendChart({ months, foodCostTrend, targetFoodCostPct }:
               role="tab"
               aria-selected={view === v}
               onClick={() => setView(v)}
-              className={`rounded-full border px-3 py-1.5 font-mono text-[11px] transition-colors ${
+              className={`rounded-full border px-3 py-1.5 font-sans text-xs font-medium transition-colors ${
                 view === v ? 'border-accent-blue text-accent-blue' : 'border-border-subtle text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -62,7 +62,7 @@ export function FoodCostTrendChart({ months, foodCostTrend, targetFoodCostPct }:
             <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={{ stroke: 'var(--border-subtle)' }} tickLine={false} />
             <YAxis domain={[28, 34]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} width={38} />
             <Tooltip
-              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'IBM Plex Mono, monospace', fontSize: 12 }}
+              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
               formatter={(value, name) =>
                 value === null || value === undefined
                   ? ['', '']
@@ -79,7 +79,7 @@ export function FoodCostTrendChart({ months, foodCostTrend, targetFoodCostPct }:
       </div>
 
       {isProjected && (
-        <p className="mt-3 font-mono text-[11px] text-text-secondary">
+        <p className="mt-3 font-sans text-xs text-text-tertiary">
           * Projected months extrapolate the current trend line — illustrative, not a forecast model.
         </p>
       )}

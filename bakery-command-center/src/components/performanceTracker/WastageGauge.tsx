@@ -49,7 +49,7 @@ export function WastageGauge({ value }: WastageGaugeProps) {
         <circle cx={CX} cy={CY} r={4} fill="var(--text-primary)" />
       </svg>
       <p className="-mt-6 font-sans font-tabular text-2xl font-semibold text-text-primary">{formatPercent(value)}</p>
-      <p className="mt-3 max-w-xs text-center font-mono text-[11px] text-text-secondary">
+      <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-tertiary">
         Needle marks the {formatPercent(TARGET)} company target · current is {comparison} target.
       </p>
     </div>

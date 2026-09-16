@@ -14,17 +14,17 @@ const currentWastagePct = Number(
 
 export function ModelScenarioLevers({ hiring, onHiringChange, wastageTargetPct, onWastageTargetChange }: ModelScenarioLeversProps) {
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">LEVERS</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Levers</p>
       <h2 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Build your what-if</h2>
 
       <div className="mt-5 grid gap-6 sm:grid-cols-2">
         <div>
           <div className="flex items-center justify-between">
-            <label htmlFor="model-hiring" className="font-mono text-[11px] tracking-[0.1em] text-text-secondary">
-              INCREMENTAL HIRING
+            <label htmlFor="model-hiring" className="font-sans text-xs font-medium text-text-tertiary">
+              Incremental Hiring
             </label>
-            <span className="font-mono font-tabular text-sm text-text-primary">+{hiring}</span>
+            <span className="font-sans font-tabular text-sm text-text-primary">+{hiring}</span>
           </div>
           <input
             id="model-hiring"
@@ -36,17 +36,17 @@ export function ModelScenarioLevers({ hiring, onHiringChange, wastageTargetPct, 
             onChange={(e) => onHiringChange(Number(e.target.value))}
             className="mt-3 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-border-subtle accent-accent-blue"
           />
-          <p className="mt-2 font-mono text-[11px] text-text-secondary">
+          <p className="mt-2 font-sans text-xs text-text-tertiary">
             {meta.headcountCurrent} → {meta.headcountCurrent + hiring} of {meta.headcountTarget} target headcount
           </p>
         </div>
 
         <div>
           <div className="flex items-center justify-between">
-            <label htmlFor="model-wastage" className="font-mono text-[11px] tracking-[0.1em] text-text-secondary">
-              WASTAGE TARGET
+            <label htmlFor="model-wastage" className="font-sans text-xs font-medium text-text-tertiary">
+              Wastage Target
             </label>
-            <span className="font-mono font-tabular text-sm text-text-primary">{wastageTargetPct.toFixed(1)}%</span>
+            <span className="font-sans font-tabular text-sm text-text-primary">{wastageTargetPct.toFixed(1)}%</span>
           </div>
           <input
             id="model-wastage"
@@ -58,7 +58,7 @@ export function ModelScenarioLevers({ hiring, onHiringChange, wastageTargetPct, 
             onChange={(e) => onWastageTargetChange(Number(e.target.value))}
             className="mt-3 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-border-subtle accent-accent-orange"
           />
-          <p className="mt-2 font-mono text-[11px] text-text-secondary">
+          <p className="mt-2 font-sans text-xs text-text-tertiary">
             {currentWastagePct}% actual → {meta.wastageTarget}% target
           </p>
         </div>

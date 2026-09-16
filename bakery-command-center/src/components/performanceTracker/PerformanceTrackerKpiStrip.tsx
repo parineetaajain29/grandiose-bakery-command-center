@@ -32,15 +32,15 @@ function formatKpiValue(key: string, value: number): string {
 
 export function PerformanceTrackerKpiStrip({ data }: PerformanceTrackerKpiStripProps) {
   return (
-    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-4">
       {data.kpiCards.map((card) => {
         const value = data.baseline[card.key];
         const trend = data[TREND_FOR_KEY[card.key]] as number[];
         return (
           <div key={card.key} className="bg-bg-panel p-5">
-            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">{card.label.toUpperCase()}</p>
+            <p className="font-sans text-xs font-medium text-text-tertiary">{card.label}</p>
             <p className="mt-3 font-sans font-tabular text-2xl font-semibold text-text-primary sm:text-[28px]">{formatKpiValue(card.key, value)}</p>
-            <p className={`mt-1.5 font-mono text-xs ${TONE_CLASS[card.tone]}`}>{card.badge}</p>
+            <p className={`mt-1.5 font-sans text-xs font-medium ${TONE_CLASS[card.tone]}`}>{card.badge}</p>
             <div className="mt-2">
               <Sparkline data={trend} color={TONE_COLOR_VAR[card.tone]} />
             </div>

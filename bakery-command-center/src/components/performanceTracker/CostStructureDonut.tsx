@@ -37,27 +37,27 @@ export function CostStructureDonut({ costStructure, grossMarginPct }: CostStruct
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'IBM Plex Mono, monospace', fontSize: 12 }}
+              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
               formatter={(value, name) => [formatPercent(Number(value)), String(name)]}
             />
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="font-sans font-tabular text-2xl font-semibold text-text-primary">{formatPercent(grossMarginPct)}</p>
-          <p className="font-mono text-[10px] tracking-wide text-text-secondary">margin</p>
+          <p className="font-sans text-xs text-text-tertiary">margin</p>
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5">
         {rows.map((row, i) => (
           <div key={row.name} className="flex items-center gap-2">
             <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-            <span className="font-mono text-[11px] text-text-secondary">
+            <span className="font-sans text-xs text-text-secondary">
               {row.name} · {formatPercent(row.value)}
             </span>
           </div>
         ))}
       </div>
-      <p className="mt-3 max-w-xs text-center font-mono text-[11px] text-text-secondary">
+      <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-tertiary">
         Illustrative allocation, blending current actuals with target labour cost.
       </p>
     </div>
