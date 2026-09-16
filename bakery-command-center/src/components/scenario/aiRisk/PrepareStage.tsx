@@ -105,21 +105,20 @@ export function PrepareStage({ research }: PrepareStageProps) {
   }
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">STAGE 3 OF 3 — PREPARE</p>
-      <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Turn this research into a decision</h3>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <h3 className="font-sans text-lg font-semibold text-text-primary">Turn this research into a decision</h3>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
-              <th className="py-2 pr-4 font-normal">Parameter</th>
-              <th className="py-2 pr-4 text-right font-normal">Current</th>
-              <th className="py-2 pr-4 text-right font-normal">AI Suggested</th>
-              <th className="py-2 pr-4 text-right font-normal">Your Value</th>
+            <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
+              <th className="py-2 pr-4 font-medium">Parameter</th>
+              <th className="py-2 pr-4 text-right font-medium">Current</th>
+              <th className="py-2 pr-4 text-right font-medium">AI Suggested</th>
+              <th className="py-2 pr-4 text-right font-medium">Your Value</th>
             </tr>
           </thead>
-          <tbody className="font-mono text-sm">
+          <tbody className="font-sans text-sm">
             {PARAM_ORDER.map((param) => {
               const hasModel = ASSUMPTION_HAS_MODEL[param];
               const suggestion = suggestionFor(param);
@@ -128,13 +127,13 @@ export function PrepareStage({ research }: PrepareStageProps) {
                   <td className="py-2 pr-4 text-text-primary">
                     {PARAM_LABEL[param]}
                     {!hasModel && (
-                      <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-mono text-[10px] text-text-secondary">
+                      <span className="ml-2 rounded-full border border-border-subtle px-2 py-0.5 font-sans text-[11px] text-text-tertiary">
                         assumption only — no model
                       </span>
                     )}
                   </td>
-                  <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{CURRENT_VALUES[param]}</td>
-                  <td className="py-2 pr-4 text-right font-tabular text-accent-blue">{suggestion ? suggestion.suggestedValue : '—'}</td>
+                  <td className="py-2 pr-4 text-right font-mono text-text-secondary">{CURRENT_VALUES[param]}</td>
+                  <td className="py-2 pr-4 text-right font-mono text-accent-blue">{suggestion ? suggestion.suggestedValue : '—'}</td>
                   <td className="py-2 pr-4 text-right">
                     <input
                       type="number"
@@ -152,7 +151,7 @@ export function PrepareStage({ research }: PrepareStageProps) {
       {result.suggestedAssumptions.some((a) => a.rationale) && (
         <div className="mt-2 flex flex-col gap-1">
           {result.suggestedAssumptions.map((a) => (
-            <p key={a.parameter} className="font-mono text-[11px] text-text-secondary">
+            <p key={a.parameter} className="font-sans text-xs text-text-secondary">
               <strong className="text-text-primary">{PARAM_LABEL[a.parameter]}:</strong> {a.rationale}
             </p>
           ))}
@@ -163,31 +162,31 @@ export function PrepareStage({ research }: PrepareStageProps) {
         type="button"
         onClick={handleRunScenario}
         disabled={saving}
-        className="mt-4 rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="mt-4 rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         Run Scenario
       </button>
-      {saveMsg && <p className="mt-2 font-mono text-xs text-text-secondary">{saveMsg}</p>}
+      {saveMsg && <p className="mt-2 font-sans text-xs text-text-secondary">{saveMsg}</p>}
 
       {runResult && (
         <div className="mt-5 grid grid-cols-1 gap-4 border-t border-border-subtle pt-5 sm:grid-cols-2">
-          <div className="rounded-lg border border-border-subtle p-4">
-            <p className="font-mono text-[10px] tracking-[0.12em] text-text-secondary">INFLATION SENSITIVITY (computeInflationSensitivity)</p>
+          <div className="rounded-card border border-border-subtle bg-bg-panel p-4">
+            <p className="font-sans text-xs font-medium text-text-tertiary">Inflation sensitivity</p>
             <p className="mt-2 font-sans font-tabular text-lg font-semibold text-text-primary">
               AED {runResult.inflation.adjCostFood.toFixed(2)} <span className="text-sm font-normal text-text-secondary">/ unit</span>
             </p>
-            <p className="mt-1 font-mono text-xs text-text-secondary">Food cost % adjusted: {runResult.inflation.foodCostPctAdj}%</p>
+            <p className="mt-1 font-sans text-xs text-text-secondary">Food cost % adjusted: {runResult.inflation.foodCostPctAdj}%</p>
           </div>
-          <div className="rounded-lg border border-border-subtle p-4">
-            <p className="font-mono text-[10px] tracking-[0.12em] text-text-secondary">SUPPLY DISRUPTION (computeSupplyDisruption)</p>
+          <div className="rounded-card border border-border-subtle bg-bg-panel p-4">
+            <p className="font-sans text-xs font-medium text-text-tertiary">Supply disruption</p>
             <p className="mt-2 font-sans font-tabular text-lg font-semibold text-text-primary">
               AED {runResult.disruption.expectedStockoutCost.toLocaleString('en-AE')}{' '}
               <span className="text-sm font-normal text-text-secondary">expected stockout cost</span>
             </p>
-            <p className="mt-1 font-mono text-xs text-text-secondary">
+            <p className="mt-1 font-sans text-xs text-text-secondary">
               Buffer stock ({runResult.disruption.bufferStockDays}d): AED {runResult.disruption.bufferStockCost.toLocaleString('en-AE')}
             </p>
-            <p className="mt-2 flex items-start gap-1.5 font-mono text-[10px] text-accent-orange">
+            <p className="mt-2 flex items-start gap-1.5 font-sans text-xs text-accent-orange">
               <DataSourceBadge source="illustrative" />
               <span>
                 Includes an internal cost assumption (avg. daily cost = AED {supplyDisruption.avgDailyCostAed.toLocaleString('en-AE')}) with no
@@ -200,14 +199,14 @@ export function PrepareStage({ research }: PrepareStageProps) {
 
       {result.suggestedSpendMix && result.suggestedSpendMix.length > 0 && (
         <div className="mt-6 border-t border-border-subtle pt-5">
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">TEST SUGGESTED SOURCING MIX</p>
+          <p className="font-sans text-sm font-semibold text-text-primary">Test suggested sourcing mix</p>
           <p className="mt-1 text-sm text-text-secondary">
             Passes an editable spend mix into the existing HHI function. This never changes the stored default mix in
             Supplier Alternatives.
           </p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[360px] border-collapse text-left">
-              <tbody className="font-mono text-sm">
+              <tbody className="font-sans text-sm">
                 {spendMix.map((row, i) => (
                   <tr key={row.origin} className="border-b border-border-subtle/60 last:border-0">
                     <td className="py-2 pr-4 text-text-primary">{row.origin}</td>
@@ -229,20 +228,20 @@ export function PrepareStage({ research }: PrepareStageProps) {
           <button
             type="button"
             onClick={handleTestSourcingMix}
-            className="mt-3 rounded-lg border border-border-subtle px-4 py-2 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50"
+            className="mt-3 rounded-lg border border-border-subtle px-4 py-2 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50"
           >
             Test Suggested Sourcing Mix
           </button>
           {hhiResult && (
-            <p className="mt-3 font-mono text-sm text-text-primary">
-              HHI: <strong className="font-tabular">{hhiResult.hhi}</strong> — {hhiResult.riskLabel}
+            <p className="mt-3 font-sans text-sm text-text-primary">
+              HHI: <strong className="font-mono">{hhiResult.hhi}</strong> — {hhiResult.riskLabel}
             </p>
           )}
         </div>
       )}
 
       <div className="mt-6 border-t border-border-subtle pt-5">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">ACTION PLAN</p>
+        <p className="font-sans text-sm font-semibold text-text-primary">Action plan</p>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {(
             [
@@ -251,8 +250,8 @@ export function PrepareStage({ research }: PrepareStageProps) {
               ['90 days+', result.actionPlan.in90DaysPlus],
             ] as const
           ).map(([label, items]) => (
-            <div key={label} className="rounded-lg border border-border-subtle p-4">
-              <p className="font-mono text-[10px] tracking-[0.12em] text-text-secondary">{label}</p>
+            <div key={label} className="rounded-card border border-border-subtle bg-bg-panel p-4">
+              <p className="font-sans text-xs font-medium text-text-tertiary">{label}</p>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {items.map((item, i) => (
                   <li key={i} className="text-sm text-text-primary">
@@ -268,7 +267,7 @@ export function PrepareStage({ research }: PrepareStageProps) {
       <button
         type="button"
         onClick={() => setShowBrief((v) => !v)}
-        className="mt-6 rounded-lg border border-border-subtle px-4 py-2.5 font-mono text-sm text-text-primary transition-colors hover:border-accent-blue/50"
+        className="mt-6 rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50"
       >
         {showBrief ? 'Hide' : 'Generate'} Executive Brief
       </button>

@@ -6,9 +6,55 @@ import { UnderstandStage } from './UnderstandStage';
 import { PrepareStage } from './PrepareStage';
 import { WatchlistView } from './WatchlistView';
 import { HistoryView } from './HistoryView';
+import { DataSourceBadge } from '../../shared/DataSourceBadge';
+import { SparkleIcon } from './icons';
 
 type SecondaryView = 'flow' | 'watchlist' | 'history';
 type Stage = 'research' | 'understand' | 'prepare';
+
+const STAGE_ORDER: Stage[] = ['research', 'understand', 'prepare'];
+const STEPS: { key: Stage; label: string; caption: string }[] = [
+  { key: 'research', label: 'Research', caption: 'Ask a question and set your parameters' },
+  { key: 'understand', label: 'Understand', caption: 'Review AI insights and company impact' },
+  { key: 'prepare', label: 'Prepare', caption: 'Build and run your custom scenario' },
+];
+
+/**
+ * Surfaces the existing `stage` state as a visible progress indicator — the
+ * original build brief called for this ("revealed progressively") but no
+ * stepper was ever built; this is pure presentation over state that already
+ * exists, not a new concept.
+ */
+function Stepper({ stage }: { stage: Stage }) {
+  const currentIndex = STAGE_ORDER.indexOf(stage);
+  return (
+    <div className="flex items-start">
+      {STEPS.map((step, i) => {
+        const status = i < currentIndex ? 'complete' : i === currentIndex ? 'current' : 'upcoming';
+        return (
+          <div key={step.key} className={`flex items-start ${i < STEPS.length - 1 ? 'flex-1' : ''}`}>
+            <div className="flex items-start gap-3">
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-sans text-sm font-semibold ${
+                  status === 'upcoming'
+                    ? 'border border-border-strong text-text-tertiary'
+                    : 'bg-accent-blue text-[#04070d]'
+                }`}
+              >
+                {i + 1}
+              </span>
+              <div className="hidden sm:block">
+                <p className={`font-sans text-sm font-semibold ${status === 'upcoming' ? 'text-text-tertiary' : 'text-text-primary'}`}>{step.label}</p>
+                <p className="mt-0.5 font-sans text-xs text-text-secondary">{step.caption}</p>
+              </div>
+            </div>
+            {i < STEPS.length - 1 && <div className={`mt-4 h-px flex-1 self-start ${status === 'complete' ? 'bg-accent-blue' : 'bg-border-subtle'}`} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function SecondaryNav({ active, onChange }: { active: SecondaryView; onChange: (v: SecondaryView) => void }) {
   const items: { key: SecondaryView; label: string }[] = [
@@ -23,7 +69,7 @@ function SecondaryNav({ active, onChange }: { active: SecondaryView; onChange: (
           key={item.key}
           type="button"
           onClick={() => onChange(item.key)}
-          className={`border-b-2 px-3 py-2 font-mono text-xs tracking-wide transition-colors ${
+          className={`border-b-2 px-3 py-2 font-sans text-sm font-medium transition-colors ${
             active === item.key ? 'border-accent-blue text-accent-blue' : 'border-transparent text-text-secondary hover:text-text-primary'
           }`}
         >
@@ -78,10 +124,24 @@ function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SCENARIO &amp; RESILIENCE — MODULE 5</p>
-        <h3 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">AI Risk Intelligence</h3>
-        <p className="mt-1 max-w-2xl text-sm text-text-secondary">Research live risks. Turn them into decisions.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-blue/10 text-accent-blue">
+            <SparkleIcon width={20} height={20} />
+          </span>
+          <div>
+            <h3 className="font-sans text-2xl font-bold tracking-tight text-text-primary">AI Risk Intelligence</h3>
+            <p className="mt-1 max-w-xl text-sm text-text-secondary">Research real-world risks. Turn global developments into actionable scenarios for Grandiose Bakery.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <DataSourceBadge source="illustrative" />
+          <p className="font-mono text-[11px] text-text-tertiary">Powered by OpenAI · External insights, internal impact</p>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border-subtle bg-bg-panel px-5 py-4 shadow-card sm:px-7">
+        <Stepper stage={stage} />
       </div>
 
       <SecondaryNav active={view} onChange={setView} />

@@ -41,22 +41,21 @@ export function WatchlistView({ canWrite }: WatchlistViewProps) {
   }
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">WATCHLIST</p>
-      <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Risks being tracked over time</h3>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <h3 className="font-sans text-lg font-semibold text-text-primary">Risks being tracked over time</h3>
 
       {canWrite && (
-        <div className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-border-subtle p-3">
+        <div className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-border-subtle bg-bg-panel-raised p-3">
           <input
             value={risk}
             onChange={(e) => setRisk(e.target.value)}
             placeholder="Risk name"
-            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none"
+            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-sans text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none"
           />
           <select
             value={riskLevel}
             onChange={(e) => setRiskLevel(e.target.value as 'low' | 'moderate' | 'high')}
-            className="rounded-lg border border-border-subtle bg-bg-primary px-2 py-1.5 font-mono text-sm text-text-primary"
+            className="rounded-lg border border-border-subtle bg-bg-primary px-2 py-1.5 font-sans text-sm text-text-primary"
           >
             <option value="low">Low</option>
             <option value="moderate">Moderate</option>
@@ -66,19 +65,19 @@ export function WatchlistView({ canWrite }: WatchlistViewProps) {
             value={keyIndicator}
             onChange={(e) => setKeyIndicator(e.target.value)}
             placeholder="Key indicator (optional)"
-            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none"
+            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-sans text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none"
           />
           <input
             type="date"
             value={reviewDate}
             onChange={(e) => setReviewDate(e.target.value)}
-            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-mono text-sm text-text-primary"
+            className="rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-sans text-sm text-text-primary"
           />
           <button
             type="button"
             onClick={handleAdd}
             disabled={submitting || !risk.trim()}
-            className="rounded-lg border border-accent-blue bg-accent-blue px-3 py-1.5 font-mono text-sm font-semibold text-[#04070d] disabled:opacity-50"
+            className="rounded-lg border border-accent-blue bg-accent-blue px-3 py-1.5 font-sans text-sm font-semibold text-[#04070d] disabled:opacity-50"
           >
             Add
           </button>
@@ -86,25 +85,25 @@ export function WatchlistView({ canWrite }: WatchlistViewProps) {
       )}
 
       <div className="mt-4 flex flex-col gap-2">
-        {state.status === 'loading' && <p className="font-mono text-xs text-text-secondary">Loading…</p>}
-        {state.status === 'error' && <p className="font-mono text-xs text-accent-red">{state.message}</p>}
+        {state.status === 'loading' && <p className="font-sans text-sm text-text-secondary">Loading…</p>}
+        {state.status === 'error' && <p className="font-sans text-sm text-accent-red">{state.message}</p>}
         {state.status === 'ready' &&
           (state.data.length === 0 ? (
-            <p className="font-mono text-xs text-text-secondary">Nothing on the watchlist yet.</p>
+            <p className="font-sans text-sm text-text-secondary">Nothing on the watchlist yet.</p>
           ) : (
             state.data.map((item: AiWatchlistItem) => (
               <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-subtle p-3">
                 <div>
                   <p className="text-sm text-text-primary">{item.risk}</p>
-                  <p className="font-mono text-[11px] text-text-secondary">
+                  <p className="font-sans text-xs text-text-tertiary">
                     {item.keyIndicator ?? 'No key indicator set'}
                     {item.reviewDate ? ` · review by ${item.reviewDate}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full border px-2 py-0.5 font-mono text-[10px] ${RISK_CLASS[item.riskLevel]}`}>{item.riskLevel}</span>
+                  <span className={`rounded-full border px-2 py-0.5 font-sans text-[11px] font-medium capitalize ${RISK_CLASS[item.riskLevel]}`}>{item.riskLevel}</span>
                   {canWrite && (
-                    <button type="button" onClick={() => handleDelete(item.id)} className="font-mono text-[11px] text-accent-red hover:underline">
+                    <button type="button" onClick={() => handleDelete(item.id)} className="font-sans text-xs font-medium text-accent-red hover:underline">
                       Remove
                     </button>
                   )}

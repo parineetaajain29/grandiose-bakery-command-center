@@ -10,16 +10,15 @@ export function HistoryView({ onOpen }: HistoryViewProps) {
   const state = useApiData(listAiResearch, []);
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SAVED RESEARCH / HISTORY</p>
-      <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Past research runs</h3>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <h3 className="font-sans text-lg font-semibold text-text-primary">Past research runs</h3>
 
       <div className="mt-4 flex flex-col gap-2">
-        {state.status === 'loading' && <p className="font-mono text-xs text-text-secondary">Loading…</p>}
-        {state.status === 'error' && <p className="font-mono text-xs text-accent-red">{state.message}</p>}
+        {state.status === 'loading' && <p className="font-sans text-sm text-text-secondary">Loading…</p>}
+        {state.status === 'error' && <p className="font-sans text-sm text-accent-red">{state.message}</p>}
         {state.status === 'ready' &&
           (state.data.length === 0 ? (
-            <p className="font-mono text-xs text-text-secondary">No research has been run yet.</p>
+            <p className="font-sans text-sm text-text-secondary">No research has been run yet.</p>
           ) : (
             state.data.map((r) => (
               <button
@@ -30,9 +29,9 @@ export function HistoryView({ onOpen }: HistoryViewProps) {
               >
                 <div>
                   <p className="text-sm text-text-primary">{r.result.title}</p>
-                  <p className="font-mono text-[11px] text-text-secondary">{r.question}</p>
+                  <p className="font-sans text-xs text-text-tertiary">{r.question}</p>
                 </div>
-                <span className="font-mono text-[11px] text-text-secondary">{relativeTime(r.createdAt)}</span>
+                <span className="font-sans text-xs text-text-tertiary">{relativeTime(r.createdAt)}</span>
               </button>
             ))
           ))}
