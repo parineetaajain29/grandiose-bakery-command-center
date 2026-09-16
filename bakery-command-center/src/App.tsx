@@ -218,7 +218,7 @@ function App() {
           )}
         </div>
 
-        {displayPage === 'employeePortal' && <EmployeePortalGate user={user} onLogout={doLogout} />}
+        {displayPage === 'employeePortal' && <EmployeePortalGate user={user} />}
         {displayPage === 'b2b' && <B2BPage />}
         {displayPage === 'scenarios' && <ScenarioResiliencePage role={user.role} />}
         {displayPage === 'companyProfile' && <CompanyProfile />}

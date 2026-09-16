@@ -15,7 +15,6 @@ import { Admin } from './managerWorkspace/Admin';
 
 interface ManagerWorkspaceProps {
   user: AuthUser;
-  onLogout: () => void;
 }
 
 const ALL_TABS = [
@@ -56,7 +55,7 @@ function visibleTabs(role: AuthUser['role']): Tab[] {
   return ALL_TABS.filter((t) => t !== 'My Performance');
 }
 
-export function ManagerWorkspace({ user, onLogout }: ManagerWorkspaceProps) {
+export function ManagerWorkspace({ user }: ManagerWorkspaceProps) {
   const tabs = visibleTabs(user.role);
   const [tab, setTab] = useState<Tab>(user.role === 'supervisor' ? 'Department Analysis' : 'Workforce Overview');
   const [selectedDepartment, setSelectedDepartment] = useState(user.department);
@@ -74,20 +73,11 @@ export function ManagerWorkspace({ user, onLogout }: ManagerWorkspaceProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="font-sans text-2xl font-semibold text-text-primary">{user.name}</h2>
-          <p className="mt-1 font-mono text-xs text-text-secondary">
-            {user.id} · {user.department} · {user.role === 'hr_admin' ? 'HR / Admin' : user.role[0].toUpperCase() + user.role.slice(1)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="rounded-full border border-border-subtle px-4 py-2 font-mono text-xs text-text-secondary transition-colors hover:border-accent-red/50 hover:text-accent-red"
-        >
-          Log out
-        </button>
+      <div>
+        <h2 className="font-sans text-2xl font-semibold text-text-primary">{user.name}</h2>
+        <p className="mt-1 font-sans text-xs text-text-tertiary">
+          {user.id} · {user.department} · {user.role === 'hr_admin' ? 'HR / Admin' : user.role[0].toUpperCase() + user.role.slice(1)}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Manager workspace">
@@ -100,7 +90,7 @@ export function ManagerWorkspace({ user, onLogout }: ManagerWorkspaceProps) {
               role="tab"
               aria-selected={isActive}
               onClick={() => setTab(t)}
-              className={`rounded-full border px-4 py-2 font-mono text-xs tracking-wide transition-colors ${
+              className={`rounded-full border px-4 py-2 font-sans text-xs font-medium transition-colors ${
                 isActive
                   ? 'border-accent-blue bg-accent-blue text-[#04070d]'
                   : 'border-border-subtle bg-bg-panel text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
@@ -122,7 +112,7 @@ export function ManagerWorkspace({ user, onLogout }: ManagerWorkspaceProps) {
         (selectedEmployeeId ? (
           <EmployeeProfile employeeId={selectedEmployeeId} viewerRole={user.role} />
         ) : (
-          <p className="font-mono text-sm text-text-secondary">Select an employee from Employee Comparison first.</p>
+          <p className="font-sans text-sm text-text-secondary">Select an employee from Employee Comparison first.</p>
         ))}
       {tab === 'Goals & Feedback' && <GoalsFeedbackManager onSelectEmployee={goToEmployee} />}
       {tab === 'Alerts' && <Alerts onSelectEmployee={goToEmployee} />}

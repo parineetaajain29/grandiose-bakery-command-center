@@ -4,7 +4,6 @@ import { ManagerWorkspace } from './ManagerWorkspace';
 
 interface EmployeePortalGateProps {
   user: AuthUser;
-  onLogout: () => void;
 }
 
 /**
@@ -16,9 +15,9 @@ interface EmployeePortalGateProps {
  * section stays scoped to their own department server-side (rbac.ts), and
  * bakery-wide/HR-only sections are hidden for them inside ManagerWorkspace.
  */
-export function EmployeePortalGate({ user, onLogout }: EmployeePortalGateProps) {
+export function EmployeePortalGate({ user }: EmployeePortalGateProps) {
   if (user.role === 'manager' || user.role === 'hr_admin' || user.role === 'supervisor') {
-    return <ManagerWorkspace user={user} onLogout={onLogout} />;
+    return <ManagerWorkspace user={user} />;
   }
-  return <EmployeeWorkspace user={user} onLogout={onLogout} />;
+  return <EmployeeWorkspace user={user} />;
 }

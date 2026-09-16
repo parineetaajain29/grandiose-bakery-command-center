@@ -80,31 +80,31 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PeriodWindowSelector value={window_} onChange={setWindow} />
-        <p className="font-mono text-xs text-text-secondary">Trend vs. the prior {window_}-day window.</p>
+        <p className="font-sans text-xs text-text-secondary">Trend vs. the prior {window_}-day window.</p>
       </div>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">EMPLOYEE COMPARISON</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Employee Comparison</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">{departmentName}</h2>
 
-        {state.status === 'loading' && <p className="mt-4 font-mono text-sm text-text-secondary">Loading…</p>}
-        {state.status === 'error' && <p className="mt-4 font-mono text-sm text-accent-red">{state.message}</p>}
+        {state.status === 'loading' && <p className="mt-4 font-sans text-sm text-text-secondary">Loading…</p>}
+        {state.status === 'error' && <p className="mt-4 font-sans text-sm text-accent-red">{state.message}</p>}
 
         {state.status === 'ready' && (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[820px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
-                  <th className="py-2 pr-4 font-normal">Employee</th>
-                  <th className="py-2 pr-4 text-right font-normal">True Efficiency</th>
-                  <th className="py-2 pr-4 text-right font-normal">Performance While Working</th>
-                  <th className="py-2 pr-4 text-right font-normal">Productive Hours</th>
-                  <th className="py-2 pr-4 text-right font-normal">Downtime/day</th>
-                  <th className="py-2 pr-4 text-right font-normal">Changeover/day</th>
-                  <th className="py-2 pr-4 font-normal">Trend</th>
+                <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
+                  <th className="py-2 pr-4 font-medium">Employee</th>
+                  <th className="py-2 pr-4 text-right font-medium">True Efficiency</th>
+                  <th className="py-2 pr-4 text-right font-medium">Performance While Working</th>
+                  <th className="py-2 pr-4 text-right font-medium">Productive Hours</th>
+                  <th className="py-2 pr-4 text-right font-medium">Downtime/day</th>
+                  <th className="py-2 pr-4 text-right font-medium">Changeover/day</th>
+                  <th className="py-2 pr-4 font-medium">Trend</th>
                 </tr>
               </thead>
-              <tbody className="font-mono text-sm">
+              <tbody className="font-sans text-sm">
                 {state.data.map((row) => {
                   const tone = efficiencyTone(row.current.daysLogged > 0 ? row.current.trueEfficiencyPct : null);
                   return (
@@ -116,20 +116,20 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
                         {row.causeHint && <p className="mt-0.5 max-w-xs text-[11px] text-text-secondary">{row.causeHint}</p>}
                         {row.causeHint && row.causeHintHasLegacyData && (
                           <p className="mt-0.5 max-w-xs text-[11px] text-accent-orange">
-                            ⚠ Includes days logged before the productive-minutes integrity fix — idle/other time isn't directly
+                            Includes days logged before the productive-minutes integrity fix — idle/other time isn't directly
                             comparable to more recent days. See My Performance for that employee.
                           </p>
                         )}
                       </td>
-                      <td className={`py-2.5 pr-4 text-right font-tabular font-semibold ${TONE_TEXT_CLASS[tone]}`}>
+                      <td className={`py-2.5 pr-4 text-right font-mono font-tabular font-semibold ${TONE_TEXT_CLASS[tone]}`}>
                         {row.current.daysLogged > 0 ? formatPercentPrecise(row.current.trueEfficiencyPct) : '—'}
                       </td>
-                      <td className="py-2.5 pr-4 text-right font-tabular text-text-secondary">{formatPercentPrecise(row.current.performanceWhileWorkingPct)}</td>
-                      <td className="py-2.5 pr-4 text-right font-tabular text-text-secondary">{formatHoursFromMinutes(row.current.productiveMinutes)}</td>
-                      <td className="py-2.5 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(perDayAverage(row.current.downtimeMinutes, row.current.daysLogged))}</td>
-                      <td className="py-2.5 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(perDayAverage(row.current.changeoverMinutes, row.current.daysLogged))}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono font-tabular text-text-secondary">{formatPercentPrecise(row.current.performanceWhileWorkingPct)}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono font-tabular text-text-secondary">{formatHoursFromMinutes(row.current.productiveMinutes)}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono font-tabular text-text-secondary">{formatMinutes(perDayAverage(row.current.downtimeMinutes, row.current.daysLogged))}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono font-tabular text-text-secondary">{formatMinutes(perDayAverage(row.current.changeoverMinutes, row.current.daysLogged))}</td>
                       <td className="py-2.5 pr-4">
-                        <span className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] ${TREND_CLASS[row.trend]}`}>{row.trend}</span>
+                        <span className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-medium ${TREND_CLASS[row.trend]}`}>{row.trend}</span>
                       </td>
                     </tr>
                   );

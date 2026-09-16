@@ -21,28 +21,28 @@ export function AuditLog() {
   const state = useApiData(() => getAuditLogs(), []);
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">AUDIT LOG</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Audit Log</p>
       <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">Recent activity</h2>
-      <p className="mt-1 font-mono text-sm text-text-secondary">PIN values are never stored here — attribution only.</p>
+      <p className="mt-1 font-sans text-sm text-text-secondary">PIN values are never stored here — attribution only.</p>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
-              <th className="py-2 pr-4 font-normal">Time</th>
-              <th className="py-2 pr-4 font-normal">Actor</th>
-              <th className="py-2 pr-4 font-normal">Role</th>
-              <th className="py-2 pr-4 font-normal">Action</th>
-              <th className="py-2 pr-4 font-normal">Affected</th>
-              <th className="py-2 pr-4 font-normal">Details</th>
+            <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
+              <th className="py-2 pr-4 font-medium">Time</th>
+              <th className="py-2 pr-4 font-medium">Actor</th>
+              <th className="py-2 pr-4 font-medium">Role</th>
+              <th className="py-2 pr-4 font-medium">Action</th>
+              <th className="py-2 pr-4 font-medium">Affected</th>
+              <th className="py-2 pr-4 font-medium">Details</th>
             </tr>
           </thead>
-          <tbody className="font-mono text-xs">
+          <tbody className="font-sans text-xs">
             {state.status === 'ready' &&
               state.data.map((event) => (
                 <tr key={event.id} className="border-b border-border-subtle/60 last:border-0">
-                  <td className="py-2 pr-4 text-text-secondary">{new Date(event.at).toLocaleString()}</td>
+                  <td className="py-2 pr-4 font-mono text-text-secondary">{new Date(event.at).toLocaleString()}</td>
                   <td className="py-2 pr-4 text-text-primary">{event.actorName ?? event.actorEmployeeId ?? '—'}</td>
                   <td className="py-2 pr-4 text-text-secondary">{event.actorRole ?? '—'}</td>
                   <td className="py-2 pr-4 text-text-secondary">{ACTION_LABEL[event.action] ?? event.action}</td>

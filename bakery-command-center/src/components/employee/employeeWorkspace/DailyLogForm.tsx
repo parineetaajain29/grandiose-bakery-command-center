@@ -158,30 +158,30 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
   }
 
   const inputClass =
-    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary px-3 py-2 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
+    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary px-3 py-2 font-sans text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
   const readOnlyClass =
-    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary/60 px-3 py-2 font-mono text-sm text-text-secondary';
-  const labelClass = 'font-mono text-[11px] tracking-[0.1em] text-text-secondary';
+    'mt-1 w-full rounded-lg border border-border-subtle bg-bg-primary/60 px-3 py-2 font-sans text-sm text-text-secondary';
+  const labelClass = 'font-sans text-xs font-medium text-text-tertiary';
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">DAILY LOG</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Daily Log</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">
           {editingLogId ? 'Edit today’s entry' : 'Log today’s shift'}
         </h2>
-        <p className="mt-1 max-w-2xl font-mono text-sm text-text-secondary">
+        <p className="mt-1 max-w-2xl font-sans text-sm text-text-secondary">
           Enter break, changeover, downtime, and idle/other minutes — Productive Minutes is calculated from these, it's
           never entered directly. True Efficiency and Performance While Working are then calculated from that.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className={labelClass} htmlFor="dl-date">DATE</label>
+            <label className={labelClass} htmlFor="dl-date">Date</label>
             <input id="dl-date" type="date" max={todayIso()} value={fields.date} onChange={(e) => setField('date', e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-shift">SHIFT</label>
+            <label className={labelClass} htmlFor="dl-shift">Shift</label>
             <select id="dl-shift" value={fields.shift} onChange={(e) => setField('shift', e.target.value)} className={inputClass}>
               {VALID_SHIFTS.map((s) => (
                 <option key={s} value={s}>
@@ -191,7 +191,7 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             </select>
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-activity-type">SHIFT TYPE</label>
+            <label className={labelClass} htmlFor="dl-activity-type">Shift Type</label>
             <select
               id="dl-activity-type"
               value={fields.activityType}
@@ -206,15 +206,15 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             </select>
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-paid">PAID MINUTES</label>
+            <label className={labelClass} htmlFor="dl-paid">Paid Minutes</label>
             <input id="dl-paid" type="number" min={0} value={fields.paidMinutes} onChange={(e) => setField('paidMinutes', e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-break">BREAK MINUTES</label>
+            <label className={labelClass} htmlFor="dl-break">Break Minutes</label>
             <input id="dl-break" type="number" min={0} value={fields.breakMinutes} onChange={(e) => setField('breakMinutes', e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-changeover">CHANGEOVER MINUTES</label>
+            <label className={labelClass} htmlFor="dl-changeover">Changeover Minutes</label>
             <input
               id="dl-changeover"
               type="number"
@@ -226,7 +226,7 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
           </div>
           {Number(fields.changeoverMinutes || 0) > 0 && (
             <div>
-              <label className={labelClass} htmlFor="dl-changeover-cause">CHANGEOVER CAUSE</label>
+              <label className={labelClass} htmlFor="dl-changeover-cause">Changeover Cause</label>
               <select
                 id="dl-changeover-cause"
                 value={fields.changeoverCauseCode}
@@ -243,12 +243,12 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             </div>
           )}
           <div>
-            <label className={labelClass} htmlFor="dl-downtime">DOWNTIME MINUTES</label>
+            <label className={labelClass} htmlFor="dl-downtime">Downtime Minutes</label>
             <input id="dl-downtime" type="number" min={0} value={fields.downtimeMinutes} onChange={(e) => setField('downtimeMinutes', e.target.value)} className={inputClass} />
           </div>
           {Number(fields.downtimeMinutes || 0) > 0 && (
             <div>
-              <label className={labelClass} htmlFor="dl-downtime-cause">DOWNTIME CAUSE</label>
+              <label className={labelClass} htmlFor="dl-downtime-cause">Downtime Cause</label>
               <select
                 id="dl-downtime-cause"
                 value={fields.downtimeCauseCode}
@@ -265,28 +265,28 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             </div>
           )}
           <div>
-            <label className={labelClass} htmlFor="dl-idle">IDLE / OTHER MINUTES</label>
+            <label className={labelClass} htmlFor="dl-idle">Idle / Other Minutes</label>
             <input id="dl-idle" type="number" min={0} value={fields.idleMinutes} onChange={(e) => setField('idleMinutes', e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass} htmlFor="dl-productive">PRODUCTIVE MINUTES (CALCULATED)</label>
+            <label className={labelClass} htmlFor="dl-productive">Productive Minutes (Calculated)</label>
             <input id="dl-productive" readOnly value={derivedProductiveMinutes} className={readOnlyClass} />
           </div>
           <div>
             <label className={labelClass} htmlFor="dl-units">
-              UNITS PRODUCED{fields.activityType === 'production' ? '' : ' (OPTIONAL)'}
+              Units Produced{fields.activityType === 'production' ? '' : ' (Optional)'}
             </label>
             <input id="dl-units" type="number" min={0} value={fields.unitsProduced} onChange={(e) => setField('unitsProduced', e.target.value)} className={inputClass} />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
-            <label className={labelClass} htmlFor="dl-notes">NOTES (OPTIONAL)</label>
+            <label className={labelClass} htmlFor="dl-notes">Notes (Optional)</label>
             <textarea id="dl-notes" rows={2} value={fields.notes} onChange={(e) => setField('notes', e.target.value)} className={inputClass} />
           </div>
 
           {touched && clientErrors.length > 0 && (
             <div className="sm:col-span-2 lg:col-span-3">
               {clientErrors.map((err) => (
-                <p key={err} className="font-mono text-xs text-accent-red">
+                <p key={err} className="font-sans text-xs text-accent-red">
                   {err}
                 </p>
               ))}
@@ -297,61 +297,61 @@ export function DailyLogForm({ user }: DailyLogFormProps) {
             <button
               type="submit"
               disabled={status.kind === 'saving'}
-              className="rounded-full border border-accent-blue bg-accent-blue px-5 py-2 font-mono text-xs tracking-wide text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-full border border-accent-blue bg-accent-blue px-5 py-2 font-sans text-xs font-semibold tracking-wide text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {status.kind === 'saving' ? 'Saving…' : editingLogId ? 'Update entry' : 'Save log'}
             </button>
             {editingLogId && (
-              <button type="button" onClick={resetForm} className="font-mono text-xs text-text-secondary hover:text-text-primary">
+              <button type="button" onClick={resetForm} className="font-sans text-xs text-text-secondary hover:text-text-primary">
                 Cancel edit
               </button>
             )}
-            {status.kind === 'success' && <p className="font-mono text-xs text-accent-green">{status.message}</p>}
-            {status.kind === 'error' && <p className="font-mono text-xs text-accent-red">{status.message}</p>}
+            {status.kind === 'success' && <p className="font-sans text-xs text-accent-green">{status.message}</p>}
+            {status.kind === 'error' && <p className="font-sans text-xs text-accent-red">{status.message}</p>}
           </div>
         </form>
       </section>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">RECENT ENTRIES</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Recent Entries</p>
         <h2 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Last 7 days</h2>
-        <p className="mt-1 font-mono text-xs text-text-secondary">Only today's entry can be edited — older records are locked.</p>
+        <p className="mt-1 font-sans text-xs text-text-tertiary">Only today's entry can be edited — older records are locked.</p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
-                <th className="py-2 pr-4 font-normal">Date</th>
-                <th className="py-2 pr-4 font-normal">Shift</th>
-                <th className="py-2 pr-4 text-right font-normal">Productive</th>
-                <th className="py-2 pr-4 text-right font-normal">Downtime</th>
-                <th className="py-2 pr-4 text-right font-normal">Changeover</th>
-                <th className="py-2 pr-4 font-normal" />
+              <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
+                <th className="py-2 pr-4 font-medium">Date</th>
+                <th className="py-2 pr-4 font-medium">Shift</th>
+                <th className="py-2 pr-4 text-right font-medium">Productive</th>
+                <th className="py-2 pr-4 text-right font-medium">Downtime</th>
+                <th className="py-2 pr-4 text-right font-medium">Changeover</th>
+                <th className="py-2 pr-4 font-medium" />
               </tr>
             </thead>
-            <tbody className="font-mono text-sm">
+            <tbody className="font-sans text-sm">
               {recentState.status === 'ready' &&
                 [...recentState.data].reverse().map((log) => (
                   <tr key={log.id} className="border-b border-border-subtle/60 last:border-0">
                     <td className="py-2 pr-4 text-text-primary">{log.date}</td>
                     <td className="py-2 pr-4 text-text-secondary">{log.shift}</td>
-                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.productiveMinutes)}</td>
-                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.downtimeMinutes)}</td>
-                    <td className="py-2 pr-4 text-right font-tabular text-text-secondary">{formatMinutes(log.changeoverMinutes)}</td>
+                    <td className="py-2 pr-4 text-right font-mono font-tabular text-text-secondary">{formatMinutes(log.productiveMinutes)}</td>
+                    <td className="py-2 pr-4 text-right font-mono font-tabular text-text-secondary">{formatMinutes(log.downtimeMinutes)}</td>
+                    <td className="py-2 pr-4 text-right font-mono font-tabular text-text-secondary">{formatMinutes(log.changeoverMinutes)}</td>
                     <td className="py-2 pr-4 text-right">
                       {log.date === todayIso() ? (
-                        <button type="button" onClick={() => startEdit(log)} className="font-mono text-xs text-accent-blue hover:underline">
+                        <button type="button" onClick={() => startEdit(log)} className="font-sans text-xs text-accent-blue hover:underline">
                           Edit
                         </button>
                       ) : (
-                        <span className="font-mono text-[10px] text-text-secondary">Locked</span>
+                        <span className="font-sans text-[11px] text-text-tertiary">Locked</span>
                       )}
                     </td>
                   </tr>
                 ))}
               {recentState.status === 'ready' && recentState.data.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center font-mono text-xs text-text-secondary">
+                  <td colSpan={6} className="py-6 text-center font-sans text-xs text-text-secondary">
                     No entries in the last 7 days.
                   </td>
                 </tr>

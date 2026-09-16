@@ -42,7 +42,7 @@ export function TimeAllocationBar({ result }: TimeAllocationBarProps) {
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {segments.map((seg) => (
-          <div key={seg.label} className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+          <div key={seg.label} className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
             <span className={`h-2 w-2 rounded-full ${seg.colorClass}`} />
             {seg.label} ({formatMinutes(seg.minutes)})
           </div>

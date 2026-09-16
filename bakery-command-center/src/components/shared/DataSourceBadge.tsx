@@ -31,6 +31,6 @@ const CLASS: Record<DataSource, string> = {
  */
 export function DataSourceBadge({ source = 'illustrative' }: { source?: DataSource }) {
   return (
-    <span className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide ${CLASS[source]}`}>{LABEL[source]}</span>
+    <span className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-medium ${CLASS[source]}`}>{LABEL[source]}</span>
   );
 }

@@ -34,7 +34,7 @@ function GoalProgress({ metric, baseline, target, current }: { metric: string | 
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-border-subtle">
         <div className="h-full bg-accent-blue" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-1 font-mono text-[11px] text-text-secondary">
+      <p className="mt-1 font-sans text-xs text-text-tertiary">
         Current: {current.toFixed(1)} · Baseline {baseline} → Target {target}
       </p>
     </div>
@@ -56,29 +56,29 @@ export function GoalsFeedback({ user }: GoalsFeedbackProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">GOALS</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Goals</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">Active goals</h2>
 
         {goalsState.status === 'ready' && goalsState.data.length === 0 && (
-          <p className="mt-3 font-mono text-sm text-text-secondary">No goals set yet.</p>
+          <p className="mt-3 font-sans text-sm text-text-secondary">No goals set yet.</p>
         )}
 
         <div className="mt-4 flex flex-col gap-4">
           {goalsState.status === 'ready' &&
             goalsState.data.map((goal) => (
-              <div key={goal.id} className="rounded-lg border border-border-subtle p-4">
+              <div key={goal.id} className="rounded-card border border-border-subtle p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-sans text-sm font-semibold text-text-primary">{goal.title}</p>
-                    {goal.metric && <p className="font-mono text-[11px] text-text-secondary">{METRIC_LABEL[goal.metric] ?? goal.metric}</p>}
+                    {goal.metric && <p className="font-sans text-xs text-text-tertiary">{METRIC_LABEL[goal.metric] ?? goal.metric}</p>}
                   </div>
-                  <span className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase ${GOAL_STATUS_CLASS[goal.status]}`}>
+                  <span className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-medium uppercase ${GOAL_STATUS_CLASS[goal.status]}`}>
                     {goal.status}
                   </span>
                 </div>
-                {goal.deadline && <p className="mt-1.5 font-mono text-xs text-text-secondary">Deadline: {goal.deadline}</p>}
-                {goal.notes && <p className="mt-1.5 font-mono text-xs text-text-secondary">{goal.notes}</p>}
+                {goal.deadline && <p className="mt-1.5 font-sans text-xs text-text-tertiary">Deadline: {goal.deadline}</p>}
+                {goal.notes && <p className="mt-1.5 font-sans text-xs text-text-secondary">{goal.notes}</p>}
                 {metricsState.status === 'ready' && (
                   <GoalProgress
                     metric={goal.metric}
@@ -92,12 +92,12 @@ export function GoalsFeedback({ user }: GoalsFeedbackProps) {
         </div>
       </section>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">FEEDBACK</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Feedback</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">Manager feedback</h2>
 
         {feedbackState.status === 'ready' && feedbackState.data.length === 0 && (
-          <p className="mt-3 font-mono text-sm text-text-secondary">No feedback yet.</p>
+          <p className="mt-3 font-sans text-sm text-text-secondary">No feedback yet.</p>
         )}
 
         <div className="mt-4 flex flex-col gap-4">
@@ -127,19 +127,19 @@ function FeedbackCard({ feedback }: { feedback: import('../../../data').Feedback
   }
 
   return (
-    <div className="rounded-lg border border-border-subtle p-4">
+    <div className="rounded-card border border-border-subtle p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="rounded-full border border-border-subtle px-2.5 py-0.5 font-mono text-[10px] text-text-secondary">{feedback.category}</span>
-        <span className="font-mono text-[11px] text-text-secondary">{new Date(feedback.createdAt).toLocaleDateString()}</span>
+        <span className="rounded-full border border-border-subtle px-2.5 py-0.5 font-sans text-[11px] font-medium text-text-secondary">{feedback.category}</span>
+        <span className="font-sans text-xs text-text-tertiary">{new Date(feedback.createdAt).toLocaleDateString()}</span>
       </div>
       {feedback.assessment && <p className="mt-2 font-sans text-sm font-semibold text-text-primary">{feedback.assessment}</p>}
-      <p className="mt-1.5 font-mono text-sm text-text-secondary">{feedback.comment}</p>
-      {feedback.followUpDate && <p className="mt-1.5 font-mono text-[11px] text-text-secondary">Follow-up: {feedback.followUpDate}</p>}
+      <p className="mt-1.5 font-sans text-sm text-text-secondary">{feedback.comment}</p>
+      {feedback.followUpDate && <p className="mt-1.5 font-sans text-xs text-text-tertiary">Follow-up: {feedback.followUpDate}</p>}
 
       {acknowledgedAt ? (
         <div className="mt-3 border-t border-border-subtle pt-3">
-          <p className="font-mono text-[11px] text-accent-green">Acknowledged {new Date(acknowledgedAt).toLocaleDateString()}</p>
-          {savedResponse && <p className="mt-1 font-mono text-xs text-text-secondary">Your response: {savedResponse}</p>}
+          <p className="font-sans text-xs font-medium text-accent-green">Acknowledged {new Date(acknowledgedAt).toLocaleDateString()}</p>
+          {savedResponse && <p className="mt-1 font-sans text-xs text-text-secondary">Your response: {savedResponse}</p>}
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-2 border-t border-border-subtle pt-3 sm:flex-row sm:items-center">
@@ -148,13 +148,13 @@ function FeedbackCard({ feedback }: { feedback: import('../../../data').Feedback
             placeholder="Optional response…"
             value={response}
             onChange={(e) => setResponse(e.target.value)}
-            className="flex-1 rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-mono text-xs text-text-primary focus:border-accent-blue/60 focus:outline-none"
+            className="flex-1 rounded-lg border border-border-subtle bg-bg-primary px-3 py-1.5 font-sans text-xs text-text-primary focus:border-accent-blue/60 focus:outline-none"
           />
           <button
             type="button"
             onClick={handleAcknowledge}
             disabled={busy}
-            className="rounded-full border border-accent-blue px-3 py-1.5 font-mono text-[11px] text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d] disabled:opacity-50"
+            className="rounded-full border border-accent-blue px-3 py-1.5 font-sans text-xs font-medium text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d] disabled:opacity-50"
           >
             {busy ? 'Saving…' : 'Acknowledge'}
           </button>

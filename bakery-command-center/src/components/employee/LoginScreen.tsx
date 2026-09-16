@@ -39,19 +39,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   }
 
   const inputClass =
-    'mt-1.5 w-full rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 font-mono text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
-  const labelClass = 'font-mono text-[11px] tracking-[0.14em] text-text-secondary';
+    'mt-1.5 w-full rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none';
+  const labelClass = 'font-sans text-xs font-medium text-text-tertiary';
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm rounded-xl border border-border-subtle bg-bg-panel p-8">
-        <p className="font-mono text-xs tracking-[0.18em] text-text-secondary">GRANDIOSE BAKERY</p>
+      <div className="w-full max-w-sm rounded-card border border-border-subtle bg-bg-panel p-8 shadow-card">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Grandiose Bakery</p>
         <h1 className="mt-2 font-sans text-2xl font-semibold text-text-primary">Employee Performance Portal</h1>
 
         <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4">
           <div>
             <label className={labelClass} htmlFor="login-employee-id">
-              EMPLOYEE ID
+              Employee ID
             </label>
             <input
               id="login-employee-id"
@@ -60,7 +60,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               placeholder="e.g. emp-01"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} font-sans`}
             />
           </div>
           <div>
@@ -76,22 +76,22 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               placeholder="••••"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              className={`${inputClass} tracking-[0.4em]`}
+              className={`${inputClass} font-mono tracking-[0.4em]`}
             />
           </div>
 
-          {error && <p className="font-mono text-xs text-accent-red">{error}</p>}
+          {error && <p className="font-sans text-xs text-accent-red">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="mt-1 rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-mono text-sm font-semibold tracking-wide text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="mt-1 rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold tracking-wide text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? 'Logging in…' : 'Login'}
           </button>
         </form>
 
-        <p className="mt-6 text-center font-mono text-[11px] text-text-secondary">Contact HR if you need your PIN reset.</p>
+        <p className="mt-6 text-center font-sans text-xs text-text-tertiary">Contact HR if you need your PIN reset.</p>
       </div>
     </div>
   );

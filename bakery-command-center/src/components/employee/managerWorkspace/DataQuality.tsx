@@ -11,26 +11,26 @@ export function DataQuality({ onSelectEmployee }: { onSelectEmployee: (id: strin
     <div className="flex flex-col gap-6">
       <PeriodWindowSelector value={window_} onChange={setWindow} />
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">DATA QUALITY</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Data Quality</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">Records worth reviewing</h2>
-        <p className="mt-1 font-mono text-sm text-text-secondary">
+        <p className="mt-1 font-sans text-sm text-text-secondary">
           Every stored daily log is re-checked against the same validation rules the entry form enforces — anomalies here
           predate the current rules or came from the seeded demo history.
         </p>
 
-        {state.status === 'ready' && state.data.length === 0 && <p className="mt-4 font-mono text-sm text-accent-green">No data-quality issues found.</p>}
+        {state.status === 'ready' && state.data.length === 0 && <p className="mt-4 font-sans text-sm text-accent-green">No data-quality issues found.</p>}
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
-                <th className="py-2 pr-4 font-normal">Date</th>
-                <th className="py-2 pr-4 font-normal">Employee</th>
-                <th className="py-2 pr-4 font-normal">Issue</th>
+              <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
+                <th className="py-2 pr-4 font-medium">Date</th>
+                <th className="py-2 pr-4 font-medium">Employee</th>
+                <th className="py-2 pr-4 font-medium">Issue</th>
               </tr>
             </thead>
-            <tbody className="font-mono text-sm">
+            <tbody className="font-sans text-sm">
               {state.status === 'ready' &&
                 state.data.map((issue, i) => (
                   <tr key={i} className="border-b border-border-subtle/60 last:border-0">

@@ -59,13 +59,13 @@ export function MyPerformance({ user }: MyPerformanceProps) {
 
       {currentState.status === 'ready' && (
         <KpiCardGrid>
-          <KpiCard eyebrow="TRUE EFFICIENCY (NOW)" value={formatPercentPrecise(currentState.data.trueEfficiencyPct)} />
-          <KpiCard eyebrow="PERFORMANCE WHILE WORKING (NOW)" value={formatPercentPrecise(currentState.data.performanceWhileWorkingPct)} />
+          <KpiCard eyebrow="True Efficiency (Now)" value={formatPercentPrecise(currentState.data.trueEfficiencyPct)} />
+          <KpiCard eyebrow="Performance While Working (Now)" value={formatPercentPrecise(currentState.data.performanceWhileWorkingPct)} />
         </KpiCardGrid>
       )}
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">MY PERFORMANCE</p>
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">My Performance</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">
           {metric.label} — {window_} days
         </h2>
@@ -76,7 +76,7 @@ export function MyPerformance({ user }: MyPerformanceProps) {
               key={m.key}
               type="button"
               onClick={() => setMetricKey(m.key)}
-              className={`rounded-full border px-3 py-1.5 font-mono text-[11px] transition-colors ${
+              className={`rounded-full border px-3 py-1.5 font-sans text-xs font-medium transition-colors ${
                 m.key === metricKey
                   ? 'border-accent-blue text-accent-blue'
                   : 'border-border-subtle text-text-secondary hover:text-text-primary'
@@ -87,7 +87,7 @@ export function MyPerformance({ user }: MyPerformanceProps) {
           ))}
         </div>
 
-        {trendState.status === 'loading' && <p className="mt-4 font-mono text-sm text-text-secondary">Loading…</p>}
+        {trendState.status === 'loading' && <p className="mt-4 font-sans text-sm text-text-secondary">Loading…</p>}
 
         {trendState.status === 'ready' && (
           <div className="mt-4 h-64 w-full">
@@ -114,7 +114,7 @@ export function MyPerformance({ user }: MyPerformanceProps) {
                     background: 'var(--bg-panel)',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: 8,
-                    fontFamily: 'IBM Plex Mono, monospace',
+                    fontFamily: 'Inter, sans-serif',
                     fontSize: 12,
                   }}
                   formatter={(value) => [formatPercentPrecise(value === null || value === undefined ? null : Number(value)), metric.label]}
@@ -137,7 +137,7 @@ export function MyPerformance({ user }: MyPerformanceProps) {
         )}
 
         {legacyDates.length > 0 && (
-          <p className="mt-3 font-mono text-[11px] text-text-secondary">
+          <p className="mt-3 font-sans text-xs text-text-tertiary">
             <span className="mr-1.5 inline-block h-2 w-2 rounded-full border border-accent-blue align-middle" /> Shaded region, hollow points — productive minutes
             were self-reported before this data-integrity change. Solid points are calculated from logged categories.
           </p>
