@@ -33,10 +33,10 @@ export function SupplyDisruptionRisk() {
   ];
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🌪️ NATURAL CALAMITY &amp; SUPPLY DISRUPTION RISK</p>
+          <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Natural Calamity &amp; Supply Disruption Risk</p>
           <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Disruption scenario</h3>
         </div>
         <DataSourceBadge source="illustrative" />
@@ -48,7 +48,7 @@ export function SupplyDisruptionRisk() {
             key={name}
             type="button"
             onClick={() => setChoice(name)}
-            className={`rounded-full border px-3 py-1.5 font-mono text-[11px] transition-colors ${
+            className={`rounded-full border px-3 py-1.5 font-sans text-xs font-medium transition-colors ${
               choice === name ? 'border-accent-blue text-accent-blue' : 'border-border-subtle text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -64,7 +64,7 @@ export function SupplyDisruptionRisk() {
           <Slider id="dis-stockout" label="STOCKOUT PROBABILITY" value={customStockout} min={supplyDisruption.custom.stockoutProbability.min} max={supplyDisruption.custom.stockoutProbability.max} step={supplyDisruption.custom.stockoutProbability.step} onChange={setCustomStockout} />
         </div>
       ) : (
-        <p className="mt-4 font-mono text-xs text-text-secondary">
+        <p className="mt-4 font-sans text-sm text-text-secondary">
           Lead-time extension {delayDays}d · cost premium {costPremiumPct}% · stockout probability {stockoutProbability.toFixed(2)}
         </p>
       )}
@@ -83,7 +83,7 @@ export function SupplyDisruptionRisk() {
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={{ stroke: 'var(--border-subtle)' }} tickLine={false} />
             <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} width={40} />
             <Tooltip
-              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'IBM Plex Mono, monospace', fontSize: 12 }}
+              contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
               formatter={(value) => [`AED ${Number(value).toLocaleString('en-AE')}`, 'Cost']}
             />
             <Bar dataKey="value" fill="var(--accent-orange)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
@@ -91,7 +91,7 @@ export function SupplyDisruptionRisk() {
         </ResponsiveContainer>
       </div>
 
-      <p className="mt-4 font-mono text-[11px] text-text-secondary">{supplyDisruption.context}</p>
+      <p className="mt-4 font-sans text-xs text-text-tertiary">{supplyDisruption.context}</p>
     </section>
   );
 }

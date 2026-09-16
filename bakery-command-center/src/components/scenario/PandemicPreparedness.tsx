@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../data';
 import { Slider } from './Slider';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { BoxIcon } from './aiRisk/icons';
 
 const { pandemicPreparedness } = scenariosFile.scenarioResilience;
 const { customerRetention, supplyChain } = pandemicPreparedness;
@@ -10,7 +11,7 @@ function StatusBadge({ flags }: { flags: string[] }) {
   const hasFlags = flags.length > 0;
   return (
     <span
-      className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-wide ${
+      className={`rounded-full border px-2.5 py-0.5 font-sans text-[11px] font-medium ${
         hasFlags ? 'border-accent-red/40 text-accent-red' : 'border-accent-green/40 text-accent-green'
       }`}
     >
@@ -46,22 +47,22 @@ export function PandemicPreparedness() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">🦠 PANDEMIC PREPAREDNESS</p>
+            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Pandemic Preparedness</p>
             <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Two linked panels</h3>
           </div>
           <DataSourceBadge source="illustrative" />
         </div>
-        <p className="mt-1 max-w-2xl font-mono text-xs text-text-secondary">
+        <p className="mt-1 max-w-2xl font-sans text-sm text-text-secondary">
           Customer retention/attraction (demand side) and supply chain optimization (supply side).
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-lg border border-border-subtle p-5">
+          <div className="rounded-card border border-border-subtle p-5">
             <div className="flex items-center justify-between">
-              <h4 className="font-sans text-sm font-semibold text-text-primary">👥 Customer retention / attraction</h4>
+              <h4 className="font-sans text-sm font-semibold text-text-primary">Customer retention / attraction</h4>
               <StatusBadge flags={retentionFlags} />
             </div>
             <div className="mt-4 flex flex-col gap-4">
@@ -70,16 +71,17 @@ export function PandemicPreparedness() {
               <Slider id="pan-basket" label="AVERAGE BASKET SIZE (AED)" value={basketSize} min={customerRetention.basketSizeAed.min} max={customerRetention.basketSizeAed.max} onChange={setBasketSize} />
             </div>
             {retentionFlags.map((f) => (
-              <p key={f} className="mt-2 font-mono text-xs text-accent-red">
-                ⚠️ {f}
+              <p key={f} className="mt-2 font-sans text-xs font-medium text-accent-red">
+                {f}
               </p>
             ))}
           </div>
 
-          <div className="rounded-lg border border-border-subtle p-5">
-            <div className="flex items-center justify-between">
-              <h4 className="font-sans text-sm font-semibold text-text-primary">🚚 Supply chain optimization</h4>
-              <StatusBadge flags={supplyFlags} />
+          <div className="rounded-card border border-border-subtle p-5">
+            <div className="flex items-center gap-2">
+              <BoxIcon className="text-text-tertiary" />
+              <h4 className="font-sans text-sm font-semibold text-text-primary">Supply chain optimization</h4>
+              <span className="ml-auto"><StatusBadge flags={supplyFlags} /></span>
             </div>
             <div className="mt-4 flex flex-col gap-4">
               <Slider id="pan-safety" label="SAFETY STOCK (DAYS OF COVER)" value={safetyDays} min={supplyChain.safetyStockDays.min} max={supplyChain.safetyStockDays.max} unit="d" onChange={setSafetyDays} />
@@ -87,14 +89,14 @@ export function PandemicPreparedness() {
               <Slider id="pan-single" label="% INGREDIENTS SINGLE-SOURCED" value={singleSourced} min={supplyChain.singleSourcedPct.min} max={supplyChain.singleSourcedPct.max} unit="%" onChange={setSingleSourced} />
             </div>
             {supplyFlags.map((f) => (
-              <p key={f} className="mt-2 font-mono text-xs text-accent-red">
-                ⚠️ {f}
+              <p key={f} className="mt-2 font-sans text-xs font-medium text-accent-red">
+                {f}
               </p>
             ))}
           </div>
         </div>
 
-        <p className="mt-5 font-mono text-[11px] text-text-secondary">{pandemicPreparedness.context}</p>
+        <p className="mt-5 font-sans text-xs text-text-tertiary">{pandemicPreparedness.context}</p>
       </section>
     </div>
   );

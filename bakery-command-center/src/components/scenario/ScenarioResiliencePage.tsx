@@ -35,8 +35,8 @@ export function ScenarioResiliencePage({ role }: ScenarioResiliencePageProps) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SCENARIO &amp; RESILIENCE</p>
-        <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Forward-looking risk analysis</h2>
+        <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Scenario &amp; Resilience</p>
+        <h2 className="mt-1.5 font-sans text-xl font-bold tracking-tight text-text-primary sm:text-2xl">Forward-looking risk analysis</h2>
         <p className="mt-1 max-w-2xl text-sm text-text-secondary">
           Four independent what-if modules — none of these feed back into Command Center's KPIs; each is scoped to its
           own module, exactly as in the source.

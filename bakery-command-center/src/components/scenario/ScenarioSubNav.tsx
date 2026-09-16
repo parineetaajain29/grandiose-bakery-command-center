@@ -13,7 +13,7 @@ interface ScenarioSubNavProps {
 export function ScenarioSubNav({ active, onChange, showAiRisk }: ScenarioSubNavProps) {
   const visibleTabs = showAiRisk ? TABS : TABS.filter((tab) => tab !== '5 · AI Risk Intelligence');
   return (
-    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scenario & Resilience module">
+    <div className="flex flex-wrap gap-1 rounded-lg bg-bg-panel-raised p-1" role="tablist" aria-label="Scenario & Resilience module">
       {visibleTabs.map((tab) => {
         const isActive = tab === active;
         return (
@@ -23,10 +23,8 @@ export function ScenarioSubNav({ active, onChange, showAiRisk }: ScenarioSubNavP
             role="tab"
             aria-selected={isActive}
             onClick={() => onChange(tab)}
-            className={`rounded-full border px-4 py-2 font-mono text-xs tracking-wide transition-colors ${
-              isActive
-                ? 'border-accent-blue bg-accent-blue text-[#04070d]'
-                : 'border-border-subtle bg-bg-panel text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
+            className={`rounded-md px-3.5 py-1.5 font-sans text-sm font-medium transition-colors ${
+              isActive ? 'bg-bg-panel text-accent-blue shadow-card' : 'text-text-secondary hover:text-text-primary'
             }`}
           >
             {tab}
