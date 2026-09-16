@@ -43,30 +43,30 @@ export function ReceivablesPanel({ receivables, clients }: ReceivablesPanelProps
   const pastDuePct = computePastDuePct(receivables.total, receivables.past60);
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">RECEIVABLES</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Receivables</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">B2B receivables</h2>
         </div>
         <button
           type="button"
           onClick={() => downloadCsv(toCsv(clients), 'b2b-account-statement.csv')}
-          className="rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-mono text-xs tracking-wide text-text-secondary transition-colors hover:border-accent-blue/60 hover:text-text-primary"
+          className="rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-sans text-xs font-medium text-text-secondary transition-colors hover:border-accent-blue/60 hover:text-text-primary"
         >
           Export statement
         </button>
       </div>
 
-      <div className="mt-5 grid gap-px overflow-hidden rounded-lg border border-border-subtle bg-border-subtle sm:grid-cols-2">
+      <div className="mt-5 grid gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle sm:grid-cols-2">
         <div className="bg-bg-panel p-4">
-          <p className="font-mono text-[10px] tracking-wide text-text-secondary">TOTAL OUTSTANDING</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Total Outstanding</p>
           <p className="mt-1.5 font-sans font-tabular text-2xl font-semibold text-text-primary">
             {formatCurrencyPrecise(receivables.total)}
           </p>
         </div>
         <div className="bg-bg-panel p-4">
-          <p className="font-mono text-[10px] tracking-wide text-text-secondary">PAST 60 DAYS</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Past 60 Days</p>
           <p className="mt-1.5 font-sans font-tabular text-2xl font-semibold text-accent-red">
             {formatCurrencyPrecise(receivables.past60)}
             {pastDuePct !== null && <span className="ml-2 text-sm text-text-secondary">({formatPercentPrecise(pastDuePct)})</span>}
@@ -86,7 +86,7 @@ export function ReceivablesPanel({ receivables, clients }: ReceivablesPanelProps
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {receivables.buckets.map((v, i) => (
-          <div key={BUCKET_LABELS[i]} className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+          <div key={BUCKET_LABELS[i]} className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
             <span className={`h-2 w-2 rounded-full ${BUCKET_COLORS[i]}`} />
             {BUCKET_LABELS[i]} ({formatCurrencyPrecise(v)})
           </div>

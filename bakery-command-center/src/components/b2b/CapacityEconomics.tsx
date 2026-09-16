@@ -17,8 +17,8 @@ export function CapacityEconomics({ capacity }: CapacityEconomicsProps) {
   const overtimeMarginalPct = computeMarginalMarginPct(capacity.marginalScenarios.overtimeOrder);
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">CAPACITY ECONOMICS</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Capacity Economics</p>
       <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Oven capacity &amp; marginal margin</h2>
 
       <div className="mt-5 flex h-6 w-full overflow-hidden rounded-full border border-border-subtle">
@@ -33,34 +33,34 @@ export function CapacityEconomics({ capacity }: CapacityEconomicsProps) {
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {SEGMENTS.map((seg) => (
-          <div key={seg.key} className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+          <div key={seg.key} className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
             <span className={`h-2 w-2 rounded-full ${seg.colorClass}`} />
             {seg.label} ({formatPercentPrecise(capacity[seg.key])})
           </div>
         ))}
       </div>
 
-      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-border-subtle bg-border-subtle sm:grid-cols-2">
+      <div className="mt-6 grid gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle sm:grid-cols-2">
         <div className="bg-bg-panel p-4">
-          <p className="font-mono text-[10px] tracking-wide text-text-secondary">MARGINAL MARGIN — IDLE CAPACITY ORDER</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Marginal Margin — Idle Capacity Order</p>
           <p className="mt-1.5 font-sans font-tabular text-2xl font-semibold text-accent-green">
             {formatPercentPrecise(idleMarginalPct)}
           </p>
         </div>
         <div className="bg-bg-panel p-4">
-          <p className="font-mono text-[10px] tracking-wide text-text-secondary">MARGINAL MARGIN — FORCES OVERTIME</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Marginal Margin — Forces Overtime</p>
           <p className="mt-1.5 font-sans font-tabular text-2xl font-semibold text-accent-red">
             {formatPercentPrecise(overtimeMarginalPct)}
           </p>
         </div>
       </div>
 
-      <p className="mt-4 font-mono text-sm text-text-secondary">
+      <p className="mt-4 font-sans text-sm text-text-secondary">
         <span className="text-text-primary">{capacity.ordersInOvertimeSlots}</span> of next week's{' '}
         <span className="text-text-primary">{capacity.ordersNextWeek}</span> orders fall into overtime slots.
       </p>
 
-      <p className="mt-3 font-mono text-[11px] text-text-secondary">
+      <p className="mt-3 font-sans text-xs text-text-tertiary">
         Marginal view assumes fixed costs are absorbed by retail volume. Holds while utilisation stays low.
       </p>
     </section>

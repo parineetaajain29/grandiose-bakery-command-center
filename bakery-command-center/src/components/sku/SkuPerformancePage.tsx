@@ -39,23 +39,23 @@ export function SkuPerformancePage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">SKU PERFORMANCE</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">SKU Performance</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Bakery product performance</h2>
         </div>
         <DataSourceBadge source="illustrative" />
       </div>
 
-      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-5">
         {kpiCards.map((card) => (
           <div key={card.label} className="bg-bg-panel p-5">
-            <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">{card.label.toUpperCase()}</p>
+            <p className="font-sans text-xs font-medium text-text-tertiary">{card.label}</p>
             <p className={`mt-3 font-sans font-tabular text-xl font-semibold sm:text-2xl ${card.accent ? 'text-accent-blue' : 'text-text-primary'}`}>{card.value}</p>
-            {card.sub && <p className={`mt-2 font-mono text-xs ${TONE_CLASS[card.trend ?? 'none']}`}>{card.sub}</p>}
+            {card.sub && <p className={`mt-2 font-sans text-xs font-medium ${TONE_CLASS[card.trend ?? 'none']}`}>{card.sub}</p>}
           </div>
         ))}
       </div>
 
-      <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Division filter">
             {(['All', ...DIVISIONS] as const).map((d) => (
@@ -63,7 +63,7 @@ export function SkuPerformancePage() {
                 key={d}
                 type="button"
                 onClick={() => setDivisionFilter(d)}
-                className={`rounded-full border px-3 py-1.5 font-mono text-[11px] transition-colors ${
+                className={`rounded-full border px-3 py-1.5 font-sans text-xs font-medium transition-colors ${
                   divisionFilter === d ? 'border-accent-blue text-accent-blue' : 'border-border-subtle text-text-secondary hover:text-text-primary'
                 }`}
               >
@@ -76,16 +76,16 @@ export function SkuPerformancePage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search SKU or product…"
-            className="w-full max-w-xs rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-mono text-xs text-text-primary placeholder:text-text-secondary focus:border-accent-blue/60 focus:outline-none"
+            className="w-full max-w-xs rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-sans text-xs text-text-primary placeholder:text-text-secondary focus:border-accent-blue/60 focus:outline-none"
           />
         </div>
 
         {selected && (
           <div className="mt-4 flex items-center gap-3 rounded-full border border-accent-blue/40 bg-accent-blue/10 px-4 py-2">
-            <p className="font-mono text-xs text-text-primary">
+            <p className="font-sans text-xs text-text-primary">
               Selected · {selected.product} ({selected.sku}) — {selected.division}
             </p>
-            <button type="button" onClick={() => setSelectedSku(null)} className="font-mono text-[11px] text-accent-blue hover:underline">
+            <button type="button" onClick={() => setSelectedSku(null)} className="font-sans text-xs text-accent-blue hover:underline">
               Clear
             </button>
           </div>
@@ -99,16 +99,16 @@ export function SkuPerformancePage() {
           {chartDivisions.map((d) => (
             <div key={d} className="flex items-center gap-1.5">
               <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: SKU_DIVISION_COLORS[d] }} />
-              <span className="font-mono text-[10px] tracking-wide text-text-secondary">{d.toUpperCase()}</span>
+              <span className="font-sans text-[11px] font-medium text-text-secondary">{d}</span>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-center font-mono text-[10px] text-text-secondary">Bubble size = units sold. Hover for detail, click to select.</p>
+        <p className="mt-2 text-center font-sans text-[11px] text-text-tertiary">Bubble size = units sold. Hover for detail, click to select.</p>
       </section>
 
       <SkuTable divisions={chartDivisions} products={filtered} selectedSku={visibleSelectedSku} onSelect={setSelectedSku} />
 
-      <p className="font-mono text-[11px] text-text-secondary">
+      <p className="font-sans text-xs text-text-tertiary">
         Figures are illustrative pending Grandiose-provided SKU actuals. Contribution % is each SKU's share of total
         bakery sales; rank is by sales value across all divisions.
       </p>

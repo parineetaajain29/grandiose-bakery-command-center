@@ -16,10 +16,10 @@ export function ConcentrationRisk({ clients }: ConcentrationRiskProps) {
   }
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">CONCENTRATION RISK</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Concentration Risk</p>
       <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Client concentration</h2>
-      <p className="mt-1 font-mono text-sm text-text-secondary">
+      <p className="mt-1 font-sans text-sm text-text-secondary">
         Top-2 accounts are <span className="text-text-primary">{formatPercentPrecise(result.topTwoPct)}</span> of B2B
         revenue.
       </p>
@@ -36,14 +36,14 @@ export function ConcentrationRisk({ clients }: ConcentrationRiskProps) {
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {result.segments.map((seg, i) => (
-          <div key={seg.name} className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+          <div key={seg.name} className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
             <span className={`h-2 w-2 rounded-full ${SEGMENT_COLORS[i % SEGMENT_COLORS.length]}`} />
             {seg.name} ({formatPercentPrecise(seg.pct)})
           </div>
         ))}
       </div>
 
-      <p className="mt-4 rounded-lg border border-accent-red/30 bg-accent-red/10 px-3.5 py-2.5 text-sm text-text-primary">
+      <p className="mt-4 rounded-card border border-accent-red/30 bg-accent-red/10 px-3.5 py-2.5 text-sm text-text-primary">
         Losing {result.topAccountName} would cut B2B revenue by nearly {formatPercentPrecise(result.topAccountPct)}.
       </p>
     </section>

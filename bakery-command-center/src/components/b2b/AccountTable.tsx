@@ -47,16 +47,16 @@ export function AccountTable({ clients, searchQuery }: AccountTableProps) {
   }
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">ACCOUNTS</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Accounts</p>
       <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Account profitability</h2>
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-border-subtle font-mono text-[11px] tracking-wide text-text-secondary">
+            <tr className="border-b border-border-subtle font-sans text-xs font-medium text-text-secondary">
               {COLUMNS.map((col) => (
-                <th key={col.key} className={`py-2 pr-4 font-normal ${col.align === 'right' ? 'text-right' : ''}`}>
+                <th key={col.key} className={`py-2 pr-4 font-medium ${col.align === 'right' ? 'text-right' : ''}`}>
                   <button
                     type="button"
                     onClick={() => toggleSort(col.key)}
@@ -74,7 +74,7 @@ export function AccountTable({ clients, searchQuery }: AccountTableProps) {
               <tr key={c.name} className="border-b border-border-subtle/60 text-sm last:border-0">
                 <td className="py-2.5 pr-4">
                   <p className="font-sans text-text-primary">{c.name}</p>
-                  <p className="font-mono text-[11px] text-text-secondary">
+                  <p className="font-sans text-xs text-text-tertiary">
                     {c.location} · {c.frequency}
                   </p>
                 </td>
@@ -94,7 +94,7 @@ export function AccountTable({ clients, searchQuery }: AccountTableProps) {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length} className="py-6 text-center font-mono text-xs text-text-secondary">
+                <td colSpan={COLUMNS.length} className="py-6 text-center font-sans text-xs text-text-secondary">
                   No accounts match this search.
                 </td>
               </tr>
@@ -104,7 +104,7 @@ export function AccountTable({ clients, searchQuery }: AccountTableProps) {
       </div>
 
       {flippedAccount && (
-        <p className="mt-3 font-mono text-[11px] text-text-secondary">
+        <p className="mt-3 font-sans text-xs text-text-tertiary">
           {flippedAccount.name} is negative on full absorption ({formatPercentPrecise(flippedAccount.marginPct)}) but
           positive at the margin ({formatPercentPrecise(flippedAccount.marginalMarginPct)}) — it fills otherwise-idle
           capacity, so the order is still worth taking even though it doesn't cover its full allocated cost.

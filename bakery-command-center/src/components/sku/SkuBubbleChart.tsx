@@ -55,7 +55,7 @@ function BubbleTooltip({ active, payload }: { active?: boolean; payload?: { payl
   if (!active || !payload || payload.length === 0) return null;
   const p = payload[0].payload;
   return (
-    <div className="rounded-lg border border-border-subtle bg-bg-panel p-3 font-mono text-xs" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+    <div className="rounded-card border border-border-subtle bg-bg-panel p-3 font-sans text-xs" style={{ fontFamily: 'Inter, sans-serif' }}>
       <p className="font-semibold text-text-primary">{p.product}</p>
       <p className="mt-1 text-text-secondary">{p.division}</p>
       <p className="mt-1 text-text-secondary">

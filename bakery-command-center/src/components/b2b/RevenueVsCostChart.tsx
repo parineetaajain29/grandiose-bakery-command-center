@@ -11,8 +11,8 @@ export function RevenueVsCostChart({ weeklyTrend }: RevenueVsCostChartProps) {
   const rows = computeWeeklyMargins(weeklyTrend).map((r) => ({ ...r, weekLabel: `W${r.week}` }));
 
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-5 sm:p-7">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">B2B PERFORMANCE</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+      <p className="font-sans text-xs font-medium text-text-tertiary">Revenue vs. Service Cost</p>
       <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">
         Revenue vs. service cost, 13 weeks
       </h2>
@@ -41,7 +41,7 @@ export function RevenueVsCostChart({ weeklyTrend }: RevenueVsCostChartProps) {
                 background: 'var(--bg-panel)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: 8,
-                fontFamily: 'IBM Plex Mono, monospace',
+                fontFamily: 'Inter, sans-serif',
                 fontSize: 12,
               }}
               formatter={(value, name) => [
@@ -57,10 +57,10 @@ export function RevenueVsCostChart({ weeklyTrend }: RevenueVsCostChartProps) {
       </div>
 
       <div className="mt-3 flex gap-4">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+        <div className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
           <span className="h-2 w-2 rounded-full bg-accent-green" /> Revenue
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-text-secondary">
+        <div className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
           <span className="h-2 w-2 rounded-full bg-accent-orange" /> Service cost
         </div>
       </div>

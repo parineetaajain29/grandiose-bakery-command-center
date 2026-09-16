@@ -22,17 +22,17 @@ const TONE_CLASS: Record<'green' | 'red' | 'neutral', string> = {
 function KpiCard({ eyebrow, value, caption, tone = 'neutral' }: { eyebrow: string; value: string; caption: string; tone?: 'green' | 'red' | 'neutral' }) {
   return (
     <div className="bg-bg-panel p-5">
-      <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">{eyebrow}</p>
+      <p className="font-sans text-xs font-medium text-text-tertiary">{eyebrow}</p>
       <p className="mt-3 font-sans font-tabular text-2xl font-semibold text-text-primary sm:text-[28px]">{value}</p>
-      <p className={`mt-2 font-mono text-xs ${TONE_CLASS[tone]}`}>{caption}</p>
+      <p className={`mt-2 font-sans text-xs font-medium ${TONE_CLASS[tone]}`}>{caption}</p>
     </div>
   );
 }
 
 function Placeholder({ label }: { label: string }) {
   return (
-    <section className="rounded-xl border border-border-subtle bg-bg-panel p-8 text-center">
-      <p className="font-mono text-sm text-text-secondary">{label} — coming in a later phase.</p>
+    <section className="rounded-card border border-border-subtle bg-bg-panel p-8 text-center">
+      <p className="font-sans text-sm text-text-secondary">{label} — coming in a later phase.</p>
     </section>
   );
 }
@@ -60,7 +60,7 @@ export function B2BPage() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] tracking-[0.14em] text-text-secondary">B2B PERFORMANCE</p>
+          <p className="font-sans text-xs font-medium text-text-tertiary">B2B Performance</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Client account economics</h2>
         </div>
         <DataSourceBadge source="illustrative" />
@@ -73,7 +73,7 @@ export function B2BPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search client name or location…"
-          className="w-full max-w-xs rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-mono text-xs text-text-primary placeholder:text-text-secondary focus:border-accent-blue/60 focus:outline-none lg:w-64"
+          className="w-full max-w-xs rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-sans text-xs text-text-primary placeholder:text-text-secondary focus:border-accent-blue/60 focus:outline-none lg:w-64"
         />
       </div>
 
@@ -81,22 +81,22 @@ export function B2BPage() {
 
       {tab === 'Overview' && (
         <>
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard eyebrow="B2B REVENUE" value={formatCurrencyPrecise(summary.revenue)} caption={`${formatDelta(b2b.summary.revenueDeltaPct)} MoM`} tone={deltaTone(b2b.summary.revenueDeltaPct)} />
+          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard eyebrow="B2B Revenue" value={formatCurrencyPrecise(summary.revenue)} caption={`${formatDelta(b2b.summary.revenueDeltaPct)} MoM`} tone={deltaTone(b2b.summary.revenueDeltaPct)} />
             <KpiCard
-              eyebrow="NET MARGIN AFTER SERVICE COST"
+              eyebrow="Net Margin After Service Cost"
               value={formatPercentPrecise(summary.netMarginPct)}
               caption={netMarginDelta === undefined ? '—' : `${formatDelta(netMarginDelta)} vs. retail margin (${formatPercentPrecise(retailMarginPct)})`}
               tone={deltaTone(netMarginDelta)}
             />
             <KpiCard
-              eyebrow="OTIF RATE"
+              eyebrow="OTIF Rate"
               value={formatPercentPrecise(summary.otifPct)}
               caption={`${summary.otifLateCount} late drop${summary.otifLateCount === 1 ? '' : 's'} this period`}
               tone={summary.otifLateCount > 0 ? 'red' : 'green'}
             />
             <KpiCard
-              eyebrow="AVG COLLECTION DAYS"
+              eyebrow="Avg Collection Days"
               value={summary.collectionDays === null ? '—' : `${summary.collectionDays.toFixed(0)}d`}
               caption={`vs. ${b2b.summary.supplierTermsDaysContext}-day supplier terms`}
               tone={collectionsVsTerms !== null && collectionsVsTerms > 0 ? 'red' : 'neutral'}
@@ -104,7 +104,7 @@ export function B2BPage() {
           </div>
 
           {collectionsVsTerms !== null && (
-            <p className="font-mono text-[11px] text-text-secondary">
+            <p className="font-sans text-xs text-text-tertiary">
               Customer collections average {summary.collectionDays!.toFixed(0)} days against {b2b.summary.supplierTermsDaysContext}-day
               supplier payment terms — Grandiose collects from B2B customers slower than it pays its own suppliers, a working-capital
               gap worth watching as B2B volume grows. Pending GM confirmation on real collection-days data.
