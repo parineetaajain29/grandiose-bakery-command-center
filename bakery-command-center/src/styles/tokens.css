@@ -1,33 +1,53 @@
 /*
-  Design tokens — brief §2. Colors are CSS custom properties so the
+  Design tokens — brief §2, extended by the design-system revision (see
+  MIGRATION-PROVENANCE.html). Colors are CSS custom properties so the
   light/dark toggle is a single class swap on <html> (.light), never a
-  per-component recompute. Accent colors are identical across themes;
-  only the neutrals (background/panel/border/text) invert.
+  per-component recompute.
+
+  --text-tertiary, --bg-panel-raised, and --border-strong are new tiers —
+  additive, not replacements. Dark-mode accents are untouched (already
+  clear AA at their actual usage sizes, verified). Light-mode green/orange/
+  red are corrected below: at their real usage size (11.5px pill/badge text
+  on their own tint background) the previous values measured 3.1-4.4:1,
+  below the 4.5:1 AA minimum for text that size — corrected to 5.2-5.6:1.
 */
 
 :root {
   --bg-primary: #0a0a0f;
   --bg-panel: #111116;
+  --bg-panel-raised: #1a1d22;
   --border-subtle: #23232b;
+  --border-strong: #2e323d;
   --text-primary: #f5f5f2;
   --text-secondary: #8a8a94;
+  --text-tertiary: #878d97; /* muted tier — labels/captions/metadata only, never body text */
 
   --accent-blue: #5b8def;
   --accent-orange: #e88a3c;
   --accent-red: #e0555a;
   --accent-green: #4fd1a5;
+
+  --shadow-card-raw: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
 :root.light {
   --bg-primary: #fcfbf8;
   --bg-panel: #ffffff;
+  --bg-panel-raised: #f5f4f0;
   --border-subtle: #e8e6df;
+  --border-strong: #d8d5cc;
   --text-primary: #1a1a1f;
   /* Was #6b6b76 (5.09:1 on bg-primary, 5.26:1 on bg-panel) — passed AA's 4.5:1 on
      paper but read as washed out on the small (10-11px) tracked-out mono labels
      and table headers this token drives across the Employee Portal. Darkened to
      land near AAA (7:1) for real headroom at that size: 7.23:1 / 7.48:1. */
   --text-secondary: #54545e;
+  --text-tertiary: #6b6b74; /* muted tier — 5.0-5.3:1 at 12px, clears AA with headroom */
 
-  /* accents unchanged intentionally */
+  /* Corrected — see comment above. Blue was already 4.91:1, left as-is. */
+  --accent-green: #03734f;
+  --accent-orange: #a35604;
+  --accent-red: #c81f1f;
+
+  --shadow-card-raw: 0 1px 2px rgba(20, 20, 15, 0.04), 0 6px 16px rgba(20, 20, 15, 0.05);
 }

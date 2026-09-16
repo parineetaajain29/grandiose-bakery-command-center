@@ -1,16 +1,44 @@
 /*
-  Self-hosted fonts (brief §2: Space Grotesk for headings/numbers, IBM Plex
-  Mono for eyebrow labels/data). Self-hosted rather than a Google Fonts
-  <link> so the page never depends on an external request at render time
-  (ad blockers, tracking-protection, or offline demos won't blank the type).
+  Self-hosted fonts. Inter is now the primary sans (design-system revision —
+  replaces Space Grotesk for headings/body/UI everywhere it's applied);
+  IBM Plex Mono stays for eyebrow labels/technical data only. Self-hosted
+  rather than a Google Fonts <link> so the page never depends on an external
+  request at render time (ad blockers, tracking-protection, or offline demos
+  won't blank the type). Files extracted from @fontsource/inter's static
+  build (4 discrete weights, not the variable font, to match the existing
+  IBM Plex Mono pattern of one file per weight).
 */
 
 @font-face {
-  font-family: 'Space Grotesk';
+  font-family: 'Inter';
   font-style: normal;
-  font-weight: 300 700; /* variable font: one file covers the whole range */
+  font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/SpaceGrotesk-Variable.woff2') format('woff2');
+  src: url('../assets/fonts/Inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/Inter-700.woff2') format('woff2');
 }
 
 @font-face {

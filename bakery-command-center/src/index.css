@@ -5,17 +5,26 @@
 @theme {
   --color-bg-primary: var(--bg-primary);
   --color-bg-panel: var(--bg-panel);
+  --color-bg-panel-raised: var(--bg-panel-raised);
   --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
 
   --color-accent-blue: var(--accent-blue);
   --color-accent-orange: var(--accent-orange);
   --color-accent-red: var(--accent-red);
   --color-accent-green: var(--accent-green);
 
-  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Named radius tier, replacing the ad hoc rounded-lg/rounded-xl mix on
+     cards — see MIGRATION-PROVENANCE.html's design-system section. */
+  --radius-card: 0.875rem; /* 14px */
+
+  --shadow-card: var(--shadow-card-raw);
 }
 
 @layer base {
@@ -35,7 +44,13 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
+    font-weight: 400;
+    /* -webkit-font-smoothing: antialiased was here and is the confirmed
+       cause of body text reading as thin (live investigation, this round) —
+       it overrides the browser's default subpixel-hinted rendering with a
+       lighter-looking one, most visible for regular-weight text on light
+       backgrounds. Removed rather than paired with a -moz companion:
+       legibility is controlled by explicit font-weight per tier instead. */
     transition:
       background-color 150ms ease,
       color 150ms ease;
