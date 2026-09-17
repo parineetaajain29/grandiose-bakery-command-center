@@ -6,6 +6,7 @@ interface ModelScenarioLeversProps {
   wastageTargetPct: number;
   onWastageTargetChange: (v: number) => void;
   onContinueAnalysis: () => void;
+  onSeeEffect: () => void;
 }
 
 const { meta } = scenariosFile;
@@ -19,6 +20,7 @@ export function ModelScenarioLevers({
   wastageTargetPct,
   onWastageTargetChange,
   onContinueAnalysis,
+  onSeeEffect,
 }: ModelScenarioLeversProps) {
   return (
     <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
@@ -31,13 +33,22 @@ export function ModelScenarioLevers({
             Scenario Analysis.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onContinueAnalysis}
-          className="shrink-0 rounded-full border border-accent-blue px-3.5 py-1.5 font-sans text-xs font-medium text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d]"
-        >
-          Open in Scenario Analysis →
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onSeeEffect}
+            className="shrink-0 rounded-full border border-accent-blue px-3.5 py-1.5 font-sans text-xs font-medium text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d]"
+          >
+            See effect in Performance Tracker →
+          </button>
+          <button
+            type="button"
+            onClick={onContinueAnalysis}
+            className="shrink-0 rounded-full border border-accent-blue px-3.5 py-1.5 font-sans text-xs font-medium text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d]"
+          >
+            Open in Scenario Analysis →
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-6 sm:grid-cols-2">

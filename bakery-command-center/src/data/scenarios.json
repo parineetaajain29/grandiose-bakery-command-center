@@ -166,8 +166,8 @@
     "modelScenario": {
       "label": "Model a scenario",
       "default": {
-        "incrementalHiring": 0,
-        "wastageReductionTarget": 2.3,
+        "incrementalHiring": 20,
+        "wastageReductionTarget": 1.8,
         "months": {
           "Jul": {
             "subtitle": "Your custom what-if, built from the levers below.",

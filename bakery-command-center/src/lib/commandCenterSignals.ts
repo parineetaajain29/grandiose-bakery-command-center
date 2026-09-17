@@ -16,6 +16,17 @@ export interface AttentionItem {
 }
 
 /**
+ * Wastage cost as a % of revenue for the given period's own KPIs — the same
+ * formula used in ModelScenarioLevers.tsx (there, always pinned to actuals/Jul
+ * for slider-bounds purposes) and now also in PerformanceTracker.tsx's live
+ * Wastage Gauge. Kept here since this file is already the Command Center
+ * home for wastage-related derived values.
+ */
+export function wastagePctFromKpis(kpis: Kpis): number {
+  return (kpis.wastageCost.value / kpis.revenue.value) * 100;
+}
+
+/**
  * gmTargetPlan only has data for Jul (month), Q4 (quarter), and YTD — it does
  * not cover Aug-Jun. Returns undefined rather than falling back to a
  * mismatched period's target.
@@ -35,7 +46,7 @@ export function computeAttentionItems(
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
 
-  const wastagePct = (kpis.wastageCost.value / kpis.revenue.value) * 100;
+  const wastagePct = wastagePctFromKpis(kpis);
   if (wastagePct > meta.wastageTarget) {
     items.push({
       signal: 'wastage',

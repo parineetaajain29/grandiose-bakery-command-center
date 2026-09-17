@@ -181,6 +181,16 @@ function App() {
     setPage('scenarios');
   }
 
+  function seeQuickWhatIfEffect() {
+    setAnalysisContext({
+      signal: 'wastage',
+      reason: `Viewing effect of your Quick What-If adjustment: +${modelHiring} hires, ${modelWastageTarget.toFixed(1)}% wastage target.`,
+      originPeriodLabel: dateLabel,
+      originPage: 'overview',
+    });
+    setCcTab('Performance Tracker');
+  }
+
   function goToSkuPerformance(context: AnalysisContext) {
     setSkuHandoff(context);
     setPage('sku');
@@ -335,6 +345,7 @@ function App() {
                     wastageTargetPct={modelWastageTarget}
                     onWastageTargetChange={setModelWastageTarget}
                     onContinueAnalysis={openInScenarioAnalysis}
+                    onSeeEffect={seeQuickWhatIfEffect}
                   />
                 )}
 
@@ -369,6 +380,7 @@ function App() {
 
             {ccTab === 'Performance Tracker' && (
               <PerformanceTracker
+                kpis={cell.kpis}
                 context={analysisContext}
                 onClearContext={() => setAnalysisContext(null)}
                 onAnalyzeSkus={goToSkuPerformance}
