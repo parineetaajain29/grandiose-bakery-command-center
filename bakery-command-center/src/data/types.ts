@@ -66,6 +66,35 @@ export type ScenarioKey = 'actuals' | 'gmTargetPlan' | 'efficiencyCase' | 'expan
 
 export type PeriodGranularity = 'month' | 'quarter' | 'ytd';
 
+/**
+ * Cross-page "what to investigate" handoff (Command Center Overview ->
+ * Performance Tracker, and later Performance Tracker -> SKU Performance).
+ * Deliberately carries no numeric value — Overview's and Performance
+ * Tracker's datasets are independently sourced and do not agree numerically
+ * (see the product-flow audit), so this only ever identifies WHAT to look
+ * at, never asserts a specific figure the destination is expected to match.
+ */
+export type AnalysisSignal = 'wastage' | 'foodCost' | 'margin' | 'costPerUnit';
+
+export interface AnalysisContext {
+  signal: AnalysisSignal;
+  /** Only meaningful for 'wastage' today — the one signal with division-level
+   * data (Performance Tracker's WastageByDivision). Absent for every other signal. */
+  division?: string;
+  /** What Overview was showing when this was created (e.g. "Jul actuals"),
+   * for display/provenance in Performance Tracker's context indicator only.
+   * Never used to filter or select anything there — Performance Tracker's
+   * data has no period axis, so this is never treated as a real parameter. */
+  originPeriodLabel?: string;
+  /** Short, human-readable reason this was surfaced — the same text shown in
+   * the originating Needs Attention item, reused for the destination's
+   * context indicator / entry banner. */
+  reason: string;
+  /** Where the handoff originated. Already includes 'performanceTracker' so a
+   * later Performance Tracker -> SKU Performance handoff needs no type change. */
+  originPage: 'overview' | 'performanceTracker';
+}
+
 export interface SupplierRow {
   name: string;
   category: string;

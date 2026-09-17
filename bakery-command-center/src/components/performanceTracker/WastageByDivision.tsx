@@ -6,6 +6,10 @@ import { DataSourceBadge } from '../shared/DataSourceBadge';
 
 interface WastageByDivisionProps {
   rows: WastageByDivisionRow[];
+  /** Which division's bar to visually emphasize — e.g. when arriving via a
+   * context handoff that names a division. Defaults to the worst-performing
+   * division (today's exact original behavior) when not provided. */
+  highlightDivision?: string;
 }
 
 const TARGET = scenariosFile.meta.wastageTarget;
@@ -17,8 +21,9 @@ const TARGET = scenariosFile.meta.wastageTarget;
  * brief, using the same six product divisions as SKU Performance. Illustrative
  * data, disclosed as such — not a Streamlit-sourced figure.
  */
-export function WastageByDivision({ rows }: WastageByDivisionProps) {
+export function WastageByDivision({ rows, highlightDivision }: WastageByDivisionProps) {
   const worst = rows.reduce((a, b) => (b.wastagePct > a.wastagePct ? b : a), rows[0]);
+  const emphasized = highlightDivision ?? worst.division;
   const sorted = [...rows].sort((a, b) => b.wastagePct - a.wastagePct);
 
   return (
@@ -49,7 +54,7 @@ export function WastageByDivision({ rows }: WastageByDivisionProps) {
             <ReferenceLine x={TARGET} stroke="var(--accent-green)" strokeDasharray="4 4" label={{ value: `${TARGET}% target`, position: 'top', fill: 'var(--accent-green)', fontSize: 10 }} />
             <Bar dataKey="wastagePct" radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {sorted.map((row) => (
-                <Cell key={row.division} fill={row.division === worst.division ? 'var(--accent-red)' : 'var(--accent-orange)'} fillOpacity={row.division === worst.division ? 0.85 : 0.5} />
+                <Cell key={row.division} fill={row.division === emphasized ? 'var(--accent-red)' : 'var(--accent-orange)'} fillOpacity={row.division === emphasized ? 0.85 : 0.5} />
               ))}
             </Bar>
           </BarChart>

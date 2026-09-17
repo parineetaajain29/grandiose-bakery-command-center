@@ -8,6 +8,7 @@ import { PerformanceTracker } from './components/performanceTracker/PerformanceT
 import { ScenarioTabs } from './components/ScenarioTabs';
 import { PeriodSelector } from './components/PeriodSelector';
 import { KpiStrip } from './components/KpiStrip';
+import { NeedsAttention } from './components/NeedsAttention';
 import { ModelScenarioLevers } from './components/ModelScenarioLevers';
 import { SankeyMoneyFlow } from './components/SankeyMoneyFlow';
 import { ForecastModule } from './components/ForecastModule';
@@ -21,7 +22,8 @@ import { SkuPerformancePage } from './components/sku/SkuPerformancePage';
 import { DataProcessorPage } from './components/dataProcessor/DataProcessorPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { computeModelScenarioKpis, getSankeyForCell, scenariosFile } from './data';
-import type { PeriodGranularity, ScenarioKey } from './data';
+import type { AnalysisContext, PeriodGranularity, ScenarioKey } from './data';
+import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSignals';
 
 type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'companyProfile' | 'sku' | 'b2b' | 'dataProcessor' | 'settings';
 
@@ -107,6 +109,26 @@ function App() {
   const [modelHiring, setModelHiring] = useState(modelDefault.incrementalHiring);
   const [modelWastageTarget, setModelWastageTarget] = useState(modelDefault.wastageReductionTarget);
 
+  // Command Center Overview -> Performance Tracker handoff. Carries a signal
+  // identity only, never a specific figure — Overview's and Performance
+  // Tracker's datasets are independently sourced and don't agree numerically
+  // (see the product-flow audit), so this must never imply the destination
+  // will confirm a number seen here. Persists until overwritten by a new
+  // investigate click or dismissed on the destination side — not cleared
+  // automatically on navigation, a deliberate minimal choice.
+  const [analysisContext, setAnalysisContext] = useState<AnalysisContext | null>(null);
+
+  // Quick What-If -> Scenario Analysis handoff. A different payload (lever
+  // assumptions, not a signal identity) to a different, currently
+  // non-consuming destination — kept separate from analysisContext rather
+  // than folded into one "any handoff" type.
+  const [scenarioHandoff, setScenarioHandoff] = useState<{ hiring: number; wastageTargetPct: number } | null>(null);
+
+  // Performance Tracker -> SKU Performance handoff (Stage 4e's "Analyse
+  // affected SKUs"). SKU Performance doesn't consume this yet — same
+  // handoff-architecture-only treatment as scenarioHandoff.
+  const [skuHandoff, setSkuHandoff] = useState<AnalysisContext | null>(null);
+
   const isModel = scenario === 'modelScenario';
   const scenarioData = isModel ? null : scenariosFile.scenarios[scenario];
 
@@ -143,6 +165,26 @@ function App() {
 
   const { sankey, isDerived } = getSankeyForCell(cell);
   const dateLabel = getDateLabel(scenario, granularity, selectedMonth, selectedQuarter);
+
+  const attentionItems = useMemo(
+    () => computeAttentionItems(cell.kpis, granularity, selectedMonth, selectedQuarter),
+    [cell.kpis, granularity, selectedMonth, selectedQuarter],
+  );
+
+  function goToPerformanceTracker(item: AttentionItem) {
+    setAnalysisContext({ signal: item.signal, reason: item.reason, originPeriodLabel: dateLabel, originPage: 'overview' });
+    setCcTab('Performance Tracker');
+  }
+
+  function openInScenarioAnalysis() {
+    setScenarioHandoff({ hiring: modelHiring, wastageTargetPct: modelWastageTarget });
+    setPage('scenarios');
+  }
+
+  function goToSkuPerformance(context: AnalysisContext) {
+    setSkuHandoff(context);
+    setPage('sku');
+  }
 
   const varianceCell = !isModel && granularity === 'month' && selectedMonth === 'Jul' && scenario === 'actuals' ? scenariosFile.scenarios.actuals.months.Jul.variance : undefined;
 
@@ -220,9 +262,47 @@ function App() {
 
         {displayPage === 'employeePortal' && <EmployeePortalGate user={user} />}
         {displayPage === 'b2b' && <B2BPage />}
-        {displayPage === 'scenarios' && <ScenarioResiliencePage role={user.role} />}
+        {displayPage === 'scenarios' && (
+          <>
+            {scenarioHandoff && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+                <p className="font-sans text-xs text-text-primary">
+                  Carried over from Quick What-If: +{scenarioHandoff.hiring} hires, {scenarioHandoff.wastageTargetPct.toFixed(1)}%
+                  wastage target — not yet applied to Scenario Analysis.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setScenarioHandoff(null)}
+                  className="shrink-0 font-sans text-xs font-medium text-accent-blue hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+            <ScenarioResiliencePage role={user.role} />
+          </>
+        )}
         {displayPage === 'companyProfile' && <CompanyProfile />}
-        {displayPage === 'sku' && <SkuPerformancePage />}
+        {displayPage === 'sku' && (
+          <>
+            {skuHandoff && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+                <p className="font-sans text-xs text-text-primary">
+                  Carried over from Performance Tracker: investigating {skuHandoff.signal}
+                  {skuHandoff.division ? ` — ${skuHandoff.division}` : ''} — not yet applied as a filter on this page.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSkuHandoff(null)}
+                  className="shrink-0 font-sans text-xs font-medium text-accent-blue hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+            <SkuPerformancePage />
+          </>
+        )}
         {displayPage === 'dataProcessor' && <DataProcessorPage user={user} />}
         {displayPage === 'settings' && <SettingsPage user={user} />}
 
@@ -254,10 +334,13 @@ function App() {
                     onHiringChange={setModelHiring}
                     wastageTargetPct={modelWastageTarget}
                     onWastageTargetChange={setModelWastageTarget}
+                    onContinueAnalysis={openInScenarioAnalysis}
                   />
                 )}
 
-                <KpiStrip kpis={cell.kpis} granularity={granularity} />
+                <KpiStrip kpis={cell.kpis} granularity={granularity} attentionItems={attentionItems} onInvestigate={goToPerformanceTracker} />
+
+                <NeedsAttention items={attentionItems} onInvestigate={goToPerformanceTracker} />
 
                 <SankeyMoneyFlow sankeyData={sankey} isDerived={isDerived} />
 
@@ -284,7 +367,13 @@ function App() {
               </>
             )}
 
-            {ccTab === 'Performance Tracker' && <PerformanceTracker />}
+            {ccTab === 'Performance Tracker' && (
+              <PerformanceTracker
+                context={analysisContext}
+                onClearContext={() => setAnalysisContext(null)}
+                onAnalyzeSkus={goToSkuPerformance}
+              />
+            )}
           </>
         )}
 

@@ -6,6 +6,7 @@ import { formatPercent } from '../../lib/format';
 interface CostStructureDonutProps {
   costStructure: CostStructureBaseline;
   grossMarginPct: number;
+  targetFoodCostPct: number;
 }
 
 const COLORS = ['var(--accent-blue)', 'var(--accent-orange)', 'var(--text-secondary)', 'var(--accent-red)', 'var(--accent-green)'];
@@ -16,7 +17,7 @@ const COLORS = ['var(--accent-blue)', 'var(--accent-orange)', 'var(--text-second
  * slice total below it — both numbers are reproduced exactly as the source
  * shows them, including that mismatch (see migration report).
  */
-export function CostStructureDonut({ costStructure, grossMarginPct }: CostStructureDonutProps) {
+export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCostPct }: CostStructureDonutProps) {
   const marginAndOther = costStructureRemainder(costStructure);
   const rows = [
     { name: 'Food cost', value: costStructure.foodCostPct },
@@ -25,6 +26,15 @@ export function CostStructureDonut({ costStructure, grossMarginPct }: CostStruct
     { name: 'Overhead', value: costStructure.overheadPct },
     { name: 'Margin & other', value: marginAndOther },
   ];
+
+  // Data-derived interpretation — genuinely computed (not hardcoded to food
+  // cost always winning): the largest of the four real cost lines, excluding
+  // "Margin & other" since that's the residual, not a cost. Only food cost
+  // has a defined target in this dataset, so the vs.-target framing only
+  // applies when it happens to be the largest line.
+  const costLines = rows.slice(0, 4);
+  const largestCostLine = costLines.reduce((a, b) => (b.value > a.value ? b : a));
+  const foodCostGap = costStructure.foodCostPct - targetFoodCostPct;
 
   return (
     <div className="flex flex-col items-center">
@@ -57,8 +67,12 @@ export function CostStructureDonut({ costStructure, grossMarginPct }: CostStruct
           </div>
         ))}
       </div>
-      <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-tertiary">
-        Illustrative allocation, blending current actuals with target labour cost.
+      <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-secondary">
+        <strong className="text-text-primary">{largestCostLine.name}</strong> is the largest line in the cost
+        structure at {formatPercent(largestCostLine.value)} of revenue
+        {largestCostLine.name === 'Food cost' &&
+          ` — ${foodCostGap.toFixed(1)}pt above the ${formatPercent(targetFoodCostPct)} target`}
+        .
       </p>
     </div>
   );

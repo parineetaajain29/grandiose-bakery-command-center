@@ -5,7 +5,7 @@ const TABS: { key: ScenarioKey; label: string }[] = [
   { key: 'gmTargetPlan', label: 'GM Target Plan' },
   { key: 'efficiencyCase', label: 'Efficiency Case' },
   { key: 'expansionCase', label: 'Expansion Case' },
-  { key: 'modelScenario', label: 'Model a scenario' },
+  { key: 'modelScenario', label: 'Quick What-If' },
 ];
 
 interface ScenarioTabsProps {

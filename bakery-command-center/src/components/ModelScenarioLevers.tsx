@@ -5,6 +5,7 @@ interface ModelScenarioLeversProps {
   onHiringChange: (v: number) => void;
   wastageTargetPct: number;
   onWastageTargetChange: (v: number) => void;
+  onContinueAnalysis: () => void;
 }
 
 const { meta } = scenariosFile;
@@ -12,11 +13,32 @@ const currentWastagePct = Number(
   ((scenariosFile.scenarios.actuals.months.Jul.kpis.wastageCost.value / scenariosFile.scenarios.actuals.months.Jul.kpis.revenue.value) * 100).toFixed(1),
 );
 
-export function ModelScenarioLevers({ hiring, onHiringChange, wastageTargetPct, onWastageTargetChange }: ModelScenarioLeversProps) {
+export function ModelScenarioLevers({
+  hiring,
+  onHiringChange,
+  wastageTargetPct,
+  onWastageTargetChange,
+  onContinueAnalysis,
+}: ModelScenarioLeversProps) {
   return (
     <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
-      <p className="font-sans text-xs font-medium text-text-tertiary">Levers</p>
-      <h2 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Build your what-if</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Quick What-If</p>
+          <h2 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Build your what-if</h2>
+          <p className="mt-1 max-w-md font-sans text-xs text-text-tertiary">
+            A lightweight, two-lever preview — not the full scenario engine. For detailed modeling, continue in
+            Scenario Analysis.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onContinueAnalysis}
+          className="shrink-0 rounded-full border border-accent-blue px-3.5 py-1.5 font-sans text-xs font-medium text-accent-blue transition-colors hover:bg-accent-blue hover:text-[#04070d]"
+        >
+          Open in Scenario Analysis →
+        </button>
+      </div>
 
       <div className="mt-5 grid gap-6 sm:grid-cols-2">
         <div>
