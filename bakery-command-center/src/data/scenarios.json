@@ -322,8 +322,8 @@
       "standardCostPerUnit": 3.60
     },
     "kpiCards": [
-      { "key": "foodCostPct", "label": "Food cost %", "badge": "↑ 1.2pt vs target", "tone": "up-bad" },
-      { "key": "wastagePct", "label": "Wastage %", "badge": "↓ 0.3pt vs last month", "tone": "down-good" },
+      { "key": "foodCostPct", "label": "Food cost %", "badge": "↑ 1.4pt vs target", "tone": "up-bad" },
+      { "key": "wastagePct", "label": "Wastage %", "badge": "↓ 0.1pt vs last month", "tone": "down-good" },
       { "key": "grossMarginPct", "label": "Gross margin", "badge": "flat vs last month", "tone": "flat" },
       { "key": "costPerUnit", "label": "Cost / unit (AED)", "badge": "↑ vs std 3.60", "tone": "up-bad" }
     ],

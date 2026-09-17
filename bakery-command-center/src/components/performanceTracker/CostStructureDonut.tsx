@@ -15,7 +15,9 @@ const COLORS = ['var(--accent-blue)', 'var(--accent-orange)', 'var(--text-second
  * Streamlit cost_labels/cost_values (app.py lines 2104-2107). The center label
  * (grossMarginPct) is an independently-sourced figure, not the "Margin & other"
  * slice total below it — both numbers are reproduced exactly as the source
- * shows them, including that mismatch (see migration report).
+ * shows them. Confirmed via the product-flow audit (2026-09) as a genuine
+ * different-basis calculation (target labour% vs. actual costs throughout),
+ * not a bug — the gap is now labeled on-page instead of left unexplained.
  */
 export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCostPct }: CostStructureDonutProps) {
   const marginAndOther = costStructureRemainder(costStructure);
@@ -67,6 +69,12 @@ export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCo
           </div>
         ))}
       </div>
+      <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-tertiary">
+        "Margin &amp; other" is a residual — actual food cost subtracted from 100%, alongside{' '}
+        <em>target</em> labour, packaging, and overhead. It is a different calculation from the{' '}
+        {formatPercent(grossMarginPct)} gross margin shown above, which reflects actual costs throughout — the two
+        are not expected to match.
+      </p>
       <p className="mt-3 max-w-xs text-center font-sans text-xs text-text-secondary">
         <strong className="text-text-primary">{largestCostLine.name}</strong> is the largest line in the cost
         structure at {formatPercent(largestCostLine.value)} of revenue
