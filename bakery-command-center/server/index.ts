@@ -13,6 +13,7 @@ import { alertsRouter } from './routes/alerts.ts';
 import { settingsRouter } from './routes/settings.ts';
 import { dataProcessorRouter } from './routes/dataProcessor.ts';
 import { aiRiskRouter } from './routes/aiRisk.ts';
+import { optimizationRouter } from './routes/optimization.ts';
 import { resolveSession, parseCookies, SESSION_COOKIE } from './auth.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +41,7 @@ app.use('/api', alertsRouter);
 app.use('/api', settingsRouter);
 app.use('/api', dataProcessorRouter);
 app.use('/api', aiRiskRouter);
+app.use('/api', optimizationRouter);
 
 if (isProduction) {
   // Single-process shape for running unmodified on Grandiose's desktop:
@@ -62,6 +64,9 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   res.status(500).json({ error: 'something went wrong' });
 });
 
-app.listen(PORT, () => {
+// Explicit host (rather than relying on the default all-interfaces bind) so
+// this reliably accepts traffic on hosting platforms whose container network
+// disables IPv6 dual-stack — Render and most PaaS route to 0.0.0.0.
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`API server listening on http://localhost:${PORT}${isProduction ? ' (serving built frontend too)' : ''}`);
 });

@@ -15,13 +15,22 @@ interface EmployeeRow {
   active: number;
 }
 
+// Same NODE_ENV === 'production' signal server/index.ts already uses to
+// decide whether to serve the built frontend — the app is only ever actually
+// deployed behind HTTPS in that mode (Render, or any real domain), while
+// local dev runs on plain http://localhost and would silently drop a
+// Secure-flagged cookie if it were always set.
+const isProduction = process.env.NODE_ENV === 'production';
+
 function setSessionCookie(res: Response, token: string, expiresAt: string) {
   const expires = new Date(expiresAt).toUTCString();
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax; Expires=${expires}`);
+  const secure = isProduction ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax${secure}; Expires=${expires}`);
 }
 
 function clearSessionCookie(res: Response) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  const secure = isProduction ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; Path=/; SameSite=Lax${secure}; Max-Age=0`);
 }
 
 function publicEmployee(e: EmployeeRow) {

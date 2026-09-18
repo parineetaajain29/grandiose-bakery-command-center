@@ -4,7 +4,12 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, 'data');
+// Defaults to today's local path (server/data/) so nothing changes for local
+// dev or the single-machine desktop deployment — but on a host with an
+// ephemeral container filesystem (Render or similar), DB_DIR should point at
+// a mounted persistent-disk directory instead, or every restart/redeploy
+// silently wipes employees, sessions, and saved settings.
+const DATA_DIR = process.env.DB_DIR ?? path.join(__dirname, 'data');
 const DB_PATH = path.join(DATA_DIR, 'bakery.db');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

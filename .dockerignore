@@ -1,0 +1,26 @@
+# Host-platform node_modules must never reach the image — installed fresh via
+# `npm ci` inside the container instead. Copying a macOS-built node_modules
+# (native bindings for tsx/esbuild etc.) into a Linux container silently
+# breaks it in a way that's easy to miss until runtime.
+**/node_modules
+
+# Rebuilt fresh by the image's own `npm run build` — no reason to ship a
+# stale local build.
+**/dist
+
+# Local Python virtualenv — wrong platform, unnecessary (the image installs
+# requirements.txt into its own system Python instead).
+.venv
+__pycache__
+**/__pycache__
+**/*.pyc
+
+# Local dev SQLite database and any locally-processed upload artifacts —
+# production reads/writes via DB_DIR (a mounted persistent disk), never this
+# path. Shipping it would be dead weight at best, confusing stale state if
+# DB_DIR is ever misconfigured, at worst.
+bakery-command-center/server/data
+
+.git
+.DS_Store
+*.log
