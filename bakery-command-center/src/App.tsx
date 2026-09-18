@@ -294,24 +294,7 @@ function App() {
         )}
         {displayPage === 'companyProfile' && <CompanyProfile />}
         {displayPage === 'sku' && (
-          <>
-            {skuHandoff && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
-                <p className="font-sans text-xs text-text-primary">
-                  Carried over from Performance Tracker: investigating {skuHandoff.signal}
-                  {skuHandoff.division ? ` — ${skuHandoff.division}` : ''} — not yet applied as a filter on this page.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setSkuHandoff(null)}
-                  className="shrink-0 font-sans text-xs font-medium text-accent-blue hover:underline"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-            <SkuPerformancePage />
-          </>
+          <SkuPerformancePage context={skuHandoff} onContextConsumed={() => setSkuHandoff(null)} />
         )}
         {displayPage === 'dataProcessor' && <DataProcessorPage user={user} />}
         {displayPage === 'settings' && <SettingsPage user={user} />}

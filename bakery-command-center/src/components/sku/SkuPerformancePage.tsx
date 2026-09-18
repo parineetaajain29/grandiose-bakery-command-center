@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { AnalysisContext } from '../../data';
 import { DIVISIONS, SKU_DIVISION_COLORS } from '../../data/skuData';
 import { loadProducts, skuKpiCards } from '../../lib/skuCalc';
 import { SkuBubbleChart } from './SkuBubbleChart';
@@ -13,11 +14,45 @@ const TONE_CLASS: Record<'up' | 'down' | 'none', string> = {
   none: 'text-text-secondary',
 };
 
+/** context.division is a general string (shared across every AnalysisContext
+ * destination), so it's validated against the real DIVISIONS union at
+ * runtime rather than blindly cast — it happens to always be one of these six
+ * today (the only source is Performance Tracker's wastageByDivision, which
+ * uses this exact same division set), but this doesn't assume that forever. */
+function initialDivisionFilter(context: AnalysisContext | null | undefined): 'All' | (typeof DIVISIONS)[number] {
+  if (context?.division && (DIVISIONS as readonly string[]).includes(context.division)) {
+    return context.division as (typeof DIVISIONS)[number];
+  }
+  return 'All';
+}
+
+interface SkuPerformancePageProps {
+  /** Set when arriving via "Analyse affected SKUs ->" from Performance
+   * Tracker. Optional — direct-tab navigation has no context and behaves
+   * exactly as before. Only seeds divisionFilter once, on mount; the user
+   * can freely change it afterward like any other filter click. */
+  context?: AnalysisContext | null;
+  /** Called once after mount if `context` was present, so App.tsx can clear
+   * its handoff state — otherwise leaving this page and returning later
+   * (without a fresh handoff) would silently re-seed the same stale
+   * division again, which would look like an unexplained bug, not a filter. */
+  onContextConsumed?: () => void;
+}
+
 /** Ported from the Streamlit SKU / Bakery Product Performance page (app.py lines 3006-3126). */
-export function SkuPerformancePage() {
-  const [divisionFilter, setDivisionFilter] = useState<'All' | (typeof DIVISIONS)[number]>('All');
+export function SkuPerformancePage({ context, onContextConsumed }: SkuPerformancePageProps) {
+  const [divisionFilter, setDivisionFilter] = useState<'All' | (typeof DIVISIONS)[number]>(() =>
+    initialDivisionFilter(context),
+  );
   const [search, setSearch] = useState('');
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (context) onContextConsumed?.();
+    // Runs once on mount only — the seed above already happened in the
+    // lazy useState initializer; this just signals "consumed" afterward.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
