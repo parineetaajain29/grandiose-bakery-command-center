@@ -1,13 +1,29 @@
 // Seeds the SQLite database from the placeholder employee roster in
 // scenarios.json: departments, employees (with roles), demo login PINs, ~90
 // days of daily-log history per employee, and a handful of sample goals/
-// feedback so those screens aren't empty on first load. Safe to re-run: clears
-// and re-inserts every table.
+// feedback so those screens aren't empty on first load.
+//
+// Idempotent by default: if the employees table already has any rows, this
+// exits immediately without touching the database — safe to run on every
+// deploy (e.g. a Render Pre-Deploy Command) without silently wiping real
+// logins, sessions, and daily logs on the second and every subsequent run.
+// Pass --force (or run `npm run db:seed:force`) for the original destructive
+// behavior — clear and re-insert every table from scratch — kept available
+// for a genuine local reset, never automatic.
 import { db } from './db.ts';
 import scenarios from '../src/data/scenarios.json' with { type: 'json' };
 import { hashPin } from './auth.ts';
 import type { Role } from './auth.ts';
 import { CHANGEOVER_CAUSES, DOWNTIME_CAUSES } from '../src/lib/labourCalc.ts';
+
+const FORCE = process.argv.includes('--force');
+
+const existingEmployeeCount = (db.prepare('SELECT COUNT(*) AS n FROM employees').get() as { n: number }).n;
+if (existingEmployeeCount > 0 && !FORCE) {
+  console.log(`Already seeded (${existingEmployeeCount} employees found) — skipping. Pass --force to clear and re-seed.`);
+  db.close();
+  process.exit(0);
+}
 
 const { employeePortal } = scenarios;
 

@@ -11,6 +11,7 @@
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "db:seed": "tsx server/seed.ts",
+    "db:seed:force": "tsx server/seed.ts --force",
     "start": "NODE_ENV=production tsx server/index.ts",
     "lint": "oxlint",
     "preview": "vite preview",
