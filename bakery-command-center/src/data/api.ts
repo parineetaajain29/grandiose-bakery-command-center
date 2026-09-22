@@ -425,6 +425,93 @@ export function emailDataProcessorReport(id: number, to: string): Promise<void> 
   return sendJson('POST', `/api/data-processor/${id}/email`, { to });
 }
 
+// --- Optimization Lab (production-mix optimizer, server/services/optimization.ts) ---
+// The app has no real Grandiose per-SKU cost/resource-consumption data (see
+// skuData.ts's own comment), so the demo-dataset mode always runs the Python
+// engine's illustrative 5-SKU dataset. A custom-data mode also exists
+// (OptimizationLabPage.tsx) for a user's own numbers — `isDemoData` on the
+// result is the authoritative signal for which one actually ran; branch UI
+// on that, never on which mode was selected client-side.
+
+export interface OptimizationSkuInput {
+  sku: string;
+  selling_price: number;
+  variable_cost: number;
+  current_production: number;
+  forecast_demand: number;
+  retail_minimum: number;
+  b2b_commitment: number;
+  labour_minutes: number;
+  oven_minutes: number;
+  flour_kg: number;
+  butter_kg: number;
+}
+
+export type OptimizationResourceLimits = Record<OptimizationResourceName, number>;
+
+export interface OptimizationSkuChange {
+  sku: string;
+  current_production: number;
+  optimized_production: number;
+  absolute_change: number;
+  percentage_change: number | null;
+  selling_price: number;
+  variable_cost: number;
+  contribution_margin_per_unit: number;
+  forecast_demand: number;
+  retail_minimum: number;
+  b2b_commitment: number;
+  effective_minimum: number;
+}
+
+export type OptimizationResourceName = 'labour_minutes' | 'oven_minutes' | 'flour_kg' | 'butter_kg';
+
+export interface OptimizationResource {
+  name: OptimizationResourceName;
+  used: number;
+  available: number;
+  slack: number;
+  utilization_percentage: number;
+  binding: boolean;
+}
+
+export interface OptimizationOptimalResult {
+  status: 'optimal';
+  sku_changes: OptimizationSkuChange[];
+  current_revenue: number;
+  optimized_revenue: number;
+  current_variable_cost: number;
+  optimized_variable_cost: number;
+  current_contribution: number;
+  optimized_contribution: number;
+  contribution_improvement: number;
+  improvement_percentage: number | null;
+  resources: OptimizationResource[];
+  binding_constraints: OptimizationResourceName[];
+  isDemoData: boolean;
+}
+
+export interface OptimizationInfeasibleResult {
+  status: 'infeasible';
+  message: string;
+  minimum_resource_requirements: Record<OptimizationResourceName, number>;
+  resource_availability: Record<OptimizationResourceName, number>;
+  resource_shortfalls: Record<OptimizationResourceName, number>;
+  isDemoData: boolean;
+}
+
+export type OptimizationResult = OptimizationOptimalResult | OptimizationInfeasibleResult;
+
+export interface OptimizationCustomInput {
+  sku_data: OptimizationSkuInput[];
+  resource_limits: OptimizationResourceLimits;
+}
+
+/** Omit `input` to run the engine's own illustrative demo dataset (`isDemoData: true` on the result); pass one to run a user's own numbers instead (`isDemoData: false`). Throws on a 400 (invalid input, message from the engine's own validation) or 502 (engine process failure) — the caller shows `.message` inline. */
+export function runOptimization(input?: OptimizationCustomInput): Promise<OptimizationResult> {
+  return sendJson('POST', '/api/optimization/run', input ?? {});
+}
+
 // --- AI Risk Intelligence (Scenario & Resilience, 5th module) --------------
 
 export type AiTimeHorizon = '7d' | '30d' | '90d' | '6mo' | '12mo';

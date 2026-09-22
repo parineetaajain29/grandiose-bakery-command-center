@@ -20,12 +20,13 @@ import { ScenarioResiliencePage } from './components/scenario/ScenarioResilience
 import { CompanyProfile } from './components/CompanyProfile';
 import { SkuPerformancePage } from './components/sku/SkuPerformancePage';
 import { DataProcessorPage } from './components/dataProcessor/DataProcessorPage';
+import { OptimizationLabPage } from './components/optimization/OptimizationLabPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { computeModelScenarioKpis, getSankeyForCell, scenariosFile } from './data';
 import type { AnalysisContext, PeriodGranularity, ScenarioKey } from './data';
 import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSignals';
 
-type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'companyProfile' | 'sku' | 'b2b' | 'dataProcessor' | 'settings';
+type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'companyProfile' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
 
 const APP_PAGES: { key: AppPage; label: string }[] = [
   { key: 'commandCenter', label: 'Command Center' },
@@ -35,6 +36,7 @@ const APP_PAGES: { key: AppPage; label: string }[] = [
   { key: 'sku', label: 'SKU Performance' },
   { key: 'b2b', label: 'B2B Performance' },
   { key: 'dataProcessor', label: 'Data Processor' },
+  { key: 'optimizationLab', label: 'Optimization Lab' },
 ];
 
 // Management utility, not a content page — kept visually apart from
@@ -51,7 +53,7 @@ function getAllowedPages(role: AuthUser['role']): AppPage[] {
   if (role === 'employee') return ['employeePortal'];
   const base: AppPage[] = ['commandCenter', 'scenarios', 'employeePortal', 'companyProfile', 'sku', 'b2b'];
   if (role === 'supervisor') return base;
-  return [...base, 'dataProcessor']; // manager, hr_admin
+  return [...base, 'dataProcessor', 'optimizationLab']; // manager, hr_admin
 }
 
 function canSeeSettings(role: AuthUser['role']): boolean {
@@ -297,6 +299,7 @@ function App() {
           <SkuPerformancePage context={skuHandoff} onContextConsumed={() => setSkuHandoff(null)} />
         )}
         {displayPage === 'dataProcessor' && <DataProcessorPage user={user} />}
+        {displayPage === 'optimizationLab' && <OptimizationLabPage user={user} />}
         {displayPage === 'settings' && <SettingsPage user={user} />}
 
         {displayPage === 'commandCenter' && (

@@ -1,10 +1,11 @@
-type DataSource = 'illustrative' | 'local' | 'gm-confirmed' | 'live-research';
+type DataSource = 'illustrative' | 'local' | 'gm-confirmed' | 'live-research' | 'user-entered';
 
 const LABEL: Record<DataSource, string> = {
   illustrative: 'Illustrative / Demo',
   local: 'Local Data',
   'gm-confirmed': 'GM Confirmed',
   'live-research': 'External Research — Live',
+  'user-entered': 'Your Custom Data',
 };
 
 const CLASS: Record<DataSource, string> = {
@@ -18,6 +19,10 @@ const CLASS: Record<DataSource, string> = {
   // page-level badge, and never blend it with an 'illustrative' badge on the
   // same element.
   'live-research': 'border-accent-blue/40 text-accent-blue',
+  // Neutral, not green/orange: this is real user-typed input for this run
+  // only (Optimization Lab's custom-data mode) — neither a known-demo figure
+  // nor a GM-confirmed one, so neither existing tone would be honest here.
+  'user-entered': 'border-border-subtle text-text-secondary',
 };
 
 /**
