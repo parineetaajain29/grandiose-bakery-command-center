@@ -12,7 +12,7 @@
     "build": "tsc -b && vite build",
     "db:seed": "tsx server/seed.ts",
     "db:seed:force": "tsx server/seed.ts --force",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "start": "npm run db:seed && NODE_ENV=production tsx server/index.ts",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run"
