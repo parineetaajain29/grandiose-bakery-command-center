@@ -132,6 +132,17 @@ export function ResearchStage({ configured, submitting, errorMessage, onSubmit }
           </button>
         </div>
 
+        {submitting && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-4 py-3">
+            <div className="flex items-center gap-1" aria-hidden="true">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-accent-blue [animation-delay:-0.3s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-accent-blue [animation-delay:-0.15s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-accent-blue" />
+            </div>
+            <p className="font-sans text-sm text-text-primary">Researching — this can take up to a minute, longer for Detailed Analysis…</p>
+          </div>
+        )}
+
         <p className="mt-4 font-sans text-xs font-medium text-text-secondary">Try these example prompts:</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {SUGGESTED_PROMPTS.map((prompt) => (
