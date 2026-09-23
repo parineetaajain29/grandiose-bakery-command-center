@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import type { AuthUser } from '../../data';
 import {
+  exportCsv,
+  exportXlsx,
   runOptimization,
   type OptimizationCustomInput,
   type OptimizationInfeasibleResult,
@@ -10,9 +12,11 @@ import {
   type OptimizationResult,
   type OptimizationSkuChange,
   type OptimizationSkuInput,
+  type TableSheet,
 } from '../../data/api';
 import { formatAED, formatPercent } from '../../lib/format';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { ExportMenu } from '../shared/ExportMenu';
 import { KpiCard, KpiCardGrid } from '../employee/shared/KpiCard';
 import { RAW_PRODUCTS } from '../../data/skuData';
 
@@ -35,6 +39,82 @@ const RESOURCE_LABEL: Record<OptimizationResourceName, string> = {
 function formatResourceValue(name: OptimizationResourceName, value: number): string {
   const suffix = name.endsWith('_kg') ? 'kg' : 'min';
   return `${value.toLocaleString('en-AE', { maximumFractionDigits: 2 })} ${suffix}`;
+}
+
+/** Exports raw numeric values (AED, units, percentages as plain numbers),
+ * matching every other page's export — not the formatted display strings.
+ * Infeasible results get their own single diagnostic sheet (shortfalls,
+ * minimum requirements) rather than nothing — export stays available and
+ * honest for that outcome too, same as the on-screen infeasible card. */
+function buildOptimizationSheets(result: OptimizationResult): TableSheet[] {
+  if (result.status === 'infeasible') {
+    const names = Object.keys(result.resource_availability) as OptimizationResourceName[];
+    return [
+      {
+        name: 'Infeasible Diagnostics',
+        columns: ['Resource', 'Required at Minimums', 'Available', 'Shortfall'],
+        rows: names.map((n) => [
+          RESOURCE_LABEL[n],
+          result.minimum_resource_requirements[n],
+          result.resource_availability[n],
+          result.resource_shortfalls[n],
+        ]),
+      },
+    ];
+  }
+
+  const summarySheet: TableSheet = {
+    name: 'Financial Summary',
+    columns: ['Metric', 'Value'],
+    rows: [
+      ['Current Revenue (AED)', result.current_revenue],
+      ['Optimized Revenue (AED)', result.optimized_revenue],
+      ['Current Variable Cost (AED)', result.current_variable_cost],
+      ['Optimized Variable Cost (AED)', result.optimized_variable_cost],
+      ['Current Contribution (AED)', result.current_contribution],
+      ['Optimized Contribution (AED)', result.optimized_contribution],
+      ['Contribution Improvement (AED)', result.contribution_improvement],
+      ['Improvement %', result.improvement_percentage ?? ''],
+    ],
+  };
+
+  const planSheet: TableSheet = {
+    name: 'Production Plan',
+    columns: [
+      'SKU',
+      'Current',
+      'Optimized',
+      'Change',
+      'Change %',
+      'Selling Price (AED)',
+      'Variable Cost (AED)',
+      'Contribution Margin/Unit (AED)',
+      'Forecast Demand',
+      'Retail Minimum',
+      'B2B Commitment',
+    ],
+    rows: result.sku_changes.map((r) => [
+      r.sku,
+      r.current_production,
+      r.optimized_production,
+      r.absolute_change,
+      r.percentage_change ?? '',
+      r.selling_price,
+      r.variable_cost,
+      r.contribution_margin_per_unit,
+      r.forecast_demand,
+      r.retail_minimum,
+      r.b2b_commitment,
+    ]),
+  };
+
+  const resourcesSheet: TableSheet = {
+    name: 'Resources',
+    columns: ['Resource', 'Used', 'Available', 'Slack', 'Utilization %', 'Binding'],
+    rows: result.resources.map((r) => [RESOURCE_LABEL[r.name], r.used, r.available, r.slack, r.utilization_percentage, r.binding ? 'Yes' : 'No']),
+  };
+
+  return [summarySheet, planSheet, resourcesSheet];
 }
 
 // Shared field styling — matches DailyLogForm.tsx / SettingsPage.tsx exactly, not a new form pattern.
@@ -158,9 +238,27 @@ function InfeasibleResultCard({ result }: { result: OptimizationInfeasibleResult
 function ResultsSection({ result }: { result: OptimizationResult }) {
   return (
     <>
-      <div className="flex items-center gap-2">
-        <p className="font-sans text-xs font-medium text-text-tertiary">Results</p>
-        <DataSourceBadge source={result.isDemoData ? 'illustrative' : 'user-entered'} />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <p className="font-sans text-xs font-medium text-text-tertiary">Results</p>
+          <DataSourceBadge source={result.isDemoData ? 'illustrative' : 'user-entered'} />
+        </div>
+        <ExportMenu
+          label="Export"
+          options={
+            result.status === 'infeasible'
+              ? [
+                  { label: 'Excel', onExport: () => exportXlsx(buildOptimizationSheets(result)) },
+                  { label: 'CSV', onExport: () => exportCsv(buildOptimizationSheets(result)[0]) },
+                ]
+              : [
+                  { label: 'Excel (all sheets)', onExport: () => exportXlsx(buildOptimizationSheets(result)) },
+                  { label: 'Financial Summary (CSV)', onExport: () => exportCsv(buildOptimizationSheets(result)[0]) },
+                  { label: 'Production Plan (CSV)', onExport: () => exportCsv(buildOptimizationSheets(result)[1]) },
+                  { label: 'Resources (CSV)', onExport: () => exportCsv(buildOptimizationSheets(result)[2]) },
+                ]
+          }
+        />
       </div>
 
       {result.status === 'infeasible' && <InfeasibleResultCard result={result} />}

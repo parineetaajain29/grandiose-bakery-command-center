@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../data';
-import { computeHhi } from '../../lib/scenarioCalc';
+import { computeHhi, type HhiResult } from '../../lib/scenarioCalc';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { ExportMenu } from '../shared/ExportMenu';
 
 const { supplierAlternatives } = scenariosFile.scenarioResilience;
 
@@ -10,6 +12,29 @@ const RISK_CLASS: Record<string, string> = {
   'Moderate concentration risk': 'border-accent-orange/40 text-accent-orange',
   'High concentration risk': 'border-accent-red/40 text-accent-red',
 };
+
+/** Two sheets, matching the module's two on-screen tables: the editable
+ * spend-mix + HHI result, and the static pre-identified alternates table. */
+function buildSupplierAlternativesSheets(shares: number[], total: number, result: HhiResult): TableSheet[] {
+  const concentrationSheet: TableSheet = {
+    name: 'Supplier Concentration',
+    columns: ['Supplier / Origin', 'Spend Share (%)'],
+    rows: [
+      ...supplierAlternatives.defaultSpendMix.map((row, i): (string | number)[] => [row.origin, shares[i]]),
+      ['Total', total],
+      ['HHI', result.hhi],
+      ['Risk Label', result.riskLabel],
+    ],
+  };
+
+  const alternatesSheet: TableSheet = {
+    name: 'Alternate Suppliers',
+    columns: ['Alternate Supplier', 'Cost Delta % vs Current', 'Lead-Time Delta (days)'],
+    rows: supplierAlternatives.alternateSuppliers.map((row) => [row.supplier, row.costDeltaPct, row.leadTimeDeltaDays]),
+  };
+
+  return [concentrationSheet, alternatesSheet];
+}
 
 /** Streamlit Module 4 — Supplier Alternatives (app.py lines 2340-2408). */
 export function SupplierAlternatives() {
@@ -30,7 +55,17 @@ export function SupplierAlternatives() {
             <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Raw Material &amp; Supplier Alternatives</p>
             <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Supplier concentration (HHI)</h3>
           </div>
-          <DataSourceBadge source="illustrative" />
+          <div className="flex items-center gap-3">
+            <DataSourceBadge source="illustrative" />
+            <ExportMenu
+              label="Export Result"
+              options={[
+                { label: 'Excel (both tables)', onExport: () => exportXlsx(buildSupplierAlternativesSheets(shares, total, result)) },
+                { label: 'Supplier Concentration (CSV)', onExport: () => exportCsv(buildSupplierAlternativesSheets(shares, total, result)[0]) },
+                { label: 'Alternate Suppliers (CSV)', onExport: () => exportCsv(buildSupplierAlternativesSheets(shares, total, result)[1]) },
+              ]}
+            />
+          </div>
         </div>
         <p className="mt-1 max-w-2xl font-sans text-sm text-text-secondary">{supplierAlternatives.context}</p>
 

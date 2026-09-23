@@ -2,6 +2,9 @@ import { scenariosFile } from '../../data';
 import type { AnalysisContext, Kpis } from '../../data';
 import { formatPercent } from '../../lib/format';
 import { wastagePctFromKpis } from '../../lib/commandCenterSignals';
+import { costStructureRemainder } from '../../lib/performanceCalc';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
+import { ExportMenu } from '../shared/ExportMenu';
 import { PerformanceTrackerKpiStrip } from './PerformanceTrackerKpiStrip';
 import { WastageGauge } from './WastageGauge';
 import { CostStructureDonut } from './CostStructureDonut';
@@ -10,6 +13,45 @@ import { CategoryPanels } from './CategoryPanels';
 import { WastageByDivision } from './WastageByDivision';
 
 const { performanceTracker } = scenariosFile;
+
+/** Wastage/cost-structure/food-cost data only — matches this page's three
+ * named export targets, not every chart on the page (e.g. Category Panels,
+ * the KPI strip). "Margin & other" reuses costStructureRemainder() from
+ * performanceCalc.ts, the same function CostStructureDonut.tsx itself calls
+ * — never recomputed separately here. Food Cost Trend exports the Historical
+ * series only, not the client-side "Projected (+2 months)" extrapolation
+ * toggle — that's a synthetic view, explicitly disclosed on-page as
+ * "illustrative, not a forecast model," not underlying source data. */
+function buildPerformanceTrackerSheets(): TableSheet[] {
+  const wastageSheet: TableSheet = {
+    name: 'Wastage by Division',
+    columns: ['Division', 'Wastage %'],
+    rows: performanceTracker.wastageByDivision.map((d) => [d.division, d.wastagePct]),
+  };
+
+  const marginAndOther = costStructureRemainder(performanceTracker.costStructure);
+  const costStructureSheet: TableSheet = {
+    name: 'Cost Structure',
+    columns: ['Line', '% of Revenue'],
+    rows: [
+      ['Food cost', performanceTracker.costStructure.foodCostPct],
+      ['Labour (target)', performanceTracker.costStructure.labourTargetPct],
+      ['Packaging', performanceTracker.costStructure.packagingPct],
+      ['Overhead', performanceTracker.costStructure.overheadPct],
+      ['Margin & other (residual)', marginAndOther],
+      ['Gross Margin % (actual — independent figure, see on-page note)', performanceTracker.baseline.grossMarginPct],
+      ['Target Food Cost %', performanceTracker.targetFoodCostPct],
+    ],
+  };
+
+  const foodCostTrendSheet: TableSheet = {
+    name: 'Food Cost Trend',
+    columns: ['Month', 'Food Cost %', 'Target %'],
+    rows: performanceTracker.months.map((month, i) => [month, performanceTracker.foodCostTrend[i], performanceTracker.targetFoodCostPct]),
+  };
+
+  return [wastageSheet, costStructureSheet, foodCostTrendSheet];
+}
 
 const SIGNAL_LABEL: Record<AnalysisContext['signal'], string> = {
   wastage: 'Wastage',
@@ -82,6 +124,18 @@ export function PerformanceTracker({ kpis, context, onClearContext, onAnalyzeSku
         dataset — independent of the scenario and period selected on Command Center Overview. They are separate
         datasets and are not expected to match.
       </p>
+
+      <div className="flex justify-end">
+        <ExportMenu
+          label="Export Data"
+          options={[
+            { label: 'Excel (all 3 sheets)', onExport: () => exportXlsx(buildPerformanceTrackerSheets()) },
+            { label: 'Wastage by Division (CSV)', onExport: () => exportCsv(buildPerformanceTrackerSheets()[0]) },
+            { label: 'Cost Structure (CSV)', onExport: () => exportCsv(buildPerformanceTrackerSheets()[1]) },
+            { label: 'Food Cost Trend (CSV)', onExport: () => exportCsv(buildPerformanceTrackerSheets()[2]) },
+          ]}
+        />
+      </div>
 
       {/* Signal */}
       <PerformanceTrackerKpiStrip data={performanceTracker} />

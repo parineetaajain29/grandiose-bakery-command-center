@@ -1,11 +1,42 @@
 import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../data';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { Slider } from './Slider';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { ExportMenu } from '../shared/ExportMenu';
 import { BoxIcon } from './aiRisk/icons';
 
 const { pandemicPreparedness } = scenariosFile.scenarioResilience;
 const { customerRetention, supplyChain } = pandemicPreparedness;
+
+/** No numeric "result" formula exists for this module (see the component's
+ * own comment — threshold-based flags only), so the export is the current
+ * slider inputs plus whichever flags they currently trigger. */
+function buildPandemicSheet(
+  repeatRate: number,
+  deliveryShare: number,
+  basketSize: number,
+  safetyDays: number,
+  altSuppliers: number,
+  singleSourced: number,
+  retentionFlags: string[],
+  supplyFlags: string[],
+): TableSheet {
+  return {
+    name: 'Pandemic Preparedness',
+    columns: ['Metric', 'Value'],
+    rows: [
+      ['Repeat-Purchase Rate (%)', repeatRate],
+      ['Delivery/Online-Order Revenue Share (%)', deliveryShare],
+      ['Average Basket Size (AED)', basketSize],
+      ['Safety Stock (days)', safetyDays],
+      ['Alternate Suppliers / Ingredient', altSuppliers],
+      ['Ingredients Single-Sourced (%)', singleSourced],
+      ['Customer Retention Flags', retentionFlags.length > 0 ? retentionFlags.join('; ') : 'None — within healthy range'],
+      ['Supply Chain Flags', supplyFlags.length > 0 ? supplyFlags.join('; ') : 'None — within healthy range'],
+    ],
+  };
+}
 
 function StatusBadge({ flags }: { flags: string[] }) {
   const hasFlags = flags.length > 0;
@@ -53,7 +84,24 @@ export function PandemicPreparedness() {
             <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Pandemic Preparedness</p>
             <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Two linked panels</h3>
           </div>
-          <DataSourceBadge source="illustrative" />
+          <div className="flex items-center gap-3">
+            <DataSourceBadge source="illustrative" />
+            <ExportMenu
+              label="Export Result"
+              options={[
+                {
+                  label: 'Excel',
+                  onExport: () =>
+                    exportXlsx([buildPandemicSheet(repeatRate, deliveryShare, basketSize, safetyDays, altSuppliers, singleSourced, retentionFlags, supplyFlags)]),
+                },
+                {
+                  label: 'CSV',
+                  onExport: () =>
+                    exportCsv(buildPandemicSheet(repeatRate, deliveryShare, basketSize, safetyDays, altSuppliers, singleSourced, retentionFlags, supplyFlags)),
+                },
+              ]}
+            />
+          </div>
         </div>
         <p className="mt-1 max-w-2xl font-sans text-sm text-text-secondary">
           Customer retention/attraction (demand side) and supply chain optimization (supply side).

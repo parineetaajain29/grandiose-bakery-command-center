@@ -1,8 +1,21 @@
 import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../../data';
 import { computeHhi, computeInflationSensitivity, computeSupplyDisruption, type HhiResult, type InflationSensitivityResult, type SupplyDisruptionResult } from '../../../lib/scenarioCalc';
-import { ASSUMPTION_HAS_MODEL, saveAiResearchAssumptions, type AiAssumptionParam, type AiResearchRecord, type AiSuggestedAssumption } from '../../../data/api';
+import {
+  ASSUMPTION_HAS_MODEL,
+  exportCsv,
+  exportDocx,
+  exportPdf,
+  exportXlsx,
+  saveAiResearchAssumptions,
+  type AiAssumptionParam,
+  type AiResearchRecord,
+  type AiSuggestedAssumption,
+  type DocSpec,
+  type TableSheet,
+} from '../../../data/api';
 import { DataSourceBadge } from '../../shared/DataSourceBadge';
+import { ExportMenu } from '../../shared/ExportMenu';
 import { ExecutiveBrief } from './ExecutiveBrief';
 
 const { performanceTracker, scenarioResilience } = scenariosFile;
@@ -32,6 +45,82 @@ const CURRENT_VALUES: Record<AiAssumptionParam, number> = {
   stockout_probability: supplyDisruption.custom.stockoutProbability.default,
   safety_stock_days: pandemicPreparedness.supplyChain.safetyStockDays.default,
 };
+
+/** Maps ExecutiveBrief's exact content into the shared DocSpec shape — same
+ * fields, same order, just structured for Word/PDF instead of JSX. */
+function buildBriefDocSpec(
+  research: AiResearchRecord,
+  values: Record<AiAssumptionParam, number>,
+  runResult: { inflation: InflationSensitivityResult; disruption: SupplyDisruptionResult } | null,
+): DocSpec {
+  const { result } = research;
+  const sections: DocSpec['sections'] = [
+    { heading: 'Situation', paragraphs: [research.question] },
+    { heading: 'Why it matters', bullets: result.whyItMattersToGrandiose.length > 0 ? result.whyItMattersToGrandiose : ['—'] },
+    { heading: 'Materials', paragraphs: [result.affectedMaterials.length > 0 ? result.affectedMaterials.join(', ') : 'None specified'] },
+    { heading: 'Assumptions used', bullets: PARAM_ORDER.map((p) => `${PARAM_LABEL[p]}: ${values[p]}`) },
+  ];
+  if (runResult) {
+    sections.push({
+      heading: 'Result',
+      paragraphs: [
+        `Adjusted cost/unit: AED ${runResult.inflation.adjCostFood.toFixed(2)} · Expected stockout cost: AED ${runResult.disruption.expectedStockoutCost.toLocaleString('en-AE')}`,
+      ],
+    });
+  }
+  sections.push({
+    heading: 'Actions',
+    bullets: [
+      `Now: ${result.actionPlan.now.join('; ') || '—'}`,
+      `30d: ${result.actionPlan.in30Days.join('; ') || '—'}`,
+      `90d+: ${result.actionPlan.in90DaysPlus.join('; ') || '—'}`,
+    ],
+  });
+  sections.push({
+    heading: 'Decision required',
+    paragraphs: ['Whether to adopt the assumptions above into planning, or hold for the next research refresh.'],
+  });
+
+  const sourceBullets = [
+    ...research.citedSources.map((s) => `Cited: ${s.title || s.url} (${s.url})`),
+    ...research.allSources.map((url) => `Searched: ${url}`),
+  ];
+  sections.push({ heading: `Sources (${research.allSources.length})`, bullets: sourceBullets.length > 0 ? sourceBullets : ['No external sources retrieved.'] });
+
+  return { title: result.title, subtitle: 'Executive Brief — Grandiose Bakery AI Risk Intelligence', sections };
+}
+
+/** Sources/Assumptions/Action Plan as three tabular sheets — the "research
+ * data" export target, distinct from the Brief's narrative export above. */
+function buildResearchDataSheets(research: AiResearchRecord, values: Record<AiAssumptionParam, number>): TableSheet[] {
+  const { result } = research;
+  const sourcesSheet: TableSheet = {
+    name: 'Sources',
+    columns: ['Type', 'Title', 'URL'],
+    rows: [
+      ...research.citedSources.map((s) => ['Cited', s.title || '', s.url]),
+      ...research.allSources.map((url) => ['Searched', '', url]),
+    ],
+  };
+  const assumptionsSheet: TableSheet = {
+    name: 'Assumptions',
+    columns: ['Parameter', 'Current', 'AI Suggested', 'Your Value', 'Rationale'],
+    rows: PARAM_ORDER.map((p) => {
+      const suggestion = result.suggestedAssumptions.find((a) => a.parameter === p);
+      return [PARAM_LABEL[p], CURRENT_VALUES[p], suggestion ? suggestion.suggestedValue : '', values[p], suggestion?.rationale ?? ''];
+    }),
+  };
+  const actionPlanSheet: TableSheet = {
+    name: 'Action Plan',
+    columns: ['Timeframe', 'Action'],
+    rows: [
+      ...result.actionPlan.now.map((a) => ['Now (0-7d)', a]),
+      ...result.actionPlan.in30Days.map((a) => ['30 days', a]),
+      ...result.actionPlan.in90DaysPlus.map((a) => ['90 days+', a]),
+    ],
+  };
+  return [sourcesSheet, assumptionsSheet, actionPlanSheet];
+}
 
 interface PrepareStageProps {
   research: AiResearchRecord;
@@ -264,13 +353,31 @@ export function PrepareStage({ research }: PrepareStageProps) {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowBrief((v) => !v)}
-        className="mt-6 rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50"
-      >
-        {showBrief ? 'Hide' : 'Generate'} Executive Brief
-      </button>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setShowBrief((v) => !v)}
+          className="rounded-lg border border-border-subtle px-4 py-2.5 font-sans text-sm text-text-primary transition-colors hover:border-accent-blue/50"
+        >
+          {showBrief ? 'Hide' : 'Generate'} Executive Brief
+        </button>
+        <ExportMenu
+          label="Export Brief"
+          options={[
+            { label: 'Word (.docx)', onExport: () => exportDocx(buildBriefDocSpec(research, values, runResult)) },
+            { label: 'PDF', onExport: () => exportPdf(buildBriefDocSpec(research, values, runResult)) },
+          ]}
+        />
+        <ExportMenu
+          label="Export Research Data"
+          options={[
+            { label: 'Excel (all sheets)', onExport: () => exportXlsx(buildResearchDataSheets(research, values)) },
+            { label: 'Sources (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[0]) },
+            { label: 'Assumptions (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[1]) },
+            { label: 'Action Plan (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[2]) },
+          ]}
+        />
+      </div>
 
       {showBrief && <ExecutiveBrief research={research} values={values} runResult={runResult} />}
     </section>

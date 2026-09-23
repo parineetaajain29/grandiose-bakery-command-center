@@ -1,17 +1,48 @@
 import { useMemo, useState } from 'react';
 import { scenariosFile } from '../../data';
+import type { B2BClient, B2BReceivables } from '../../data';
 import { deltaTone, formatCurrencyPrecise, formatDelta, formatPercentPrecise } from '../../lib/format';
-import { deriveB2BSummary, deriveReceivables } from '../../lib/b2bCalc';
+import { deriveB2BSummary, deriveReceivables, filterClients } from '../../lib/b2bCalc';
 import { B2BSubNav, type B2BSubTab } from './B2BSubNav';
 import { RevenueVsCostChart } from './RevenueVsCostChart';
 import { CapacityEconomics } from './CapacityEconomics';
 import { ConcentrationRisk } from './ConcentrationRisk';
 import { AccountTable } from './AccountTable';
-import { ReceivablesPanel } from './ReceivablesPanel';
+import { ReceivablesPanel, BUCKET_LABELS } from './ReceivablesPanel';
 import { DeliveryFeed } from './DeliveryFeed';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
+import { ExportMenu } from '../shared/ExportMenu';
 
 const { b2b, performanceTracker } = scenariosFile;
+
+/** Accounts + Receivables Aging — matches this page's two named export
+ * targets. Accounts respects the current search filter (via the same real
+ * filterClients() AccountTable itself calls), but not any column sort the
+ * user has clicked into — that sort state is local to AccountTable and never
+ * escapes it; lifting it up just for export felt like more structural change
+ * than this feature calls for, so the export stays in filterClients()'s
+ * natural order (unsorted) rather than mirroring every live sort click. */
+function buildB2BSheets(clients: B2BClient[], receivables: B2BReceivables, search: string): TableSheet[] {
+  const filtered = filterClients(clients, search);
+  const accountsSheet: TableSheet = {
+    name: 'Accounts',
+    columns: ['Client', 'Location', 'Frequency', 'Revenue (AED)', 'Service Cost (AED)', 'Margin %', 'Marginal Margin %', 'OTIF %', 'Payment Terms (days)'],
+    rows: filtered.map((c) => [c.name, c.location, c.frequency, c.revenue, c.serviceCost, c.marginPct, c.marginalMarginPct, c.otifPct, c.paymentTermsDays]),
+  };
+
+  const receivablesSheet: TableSheet = {
+    name: 'Receivables Aging',
+    columns: ['Bucket', 'Amount (AED)'],
+    rows: [
+      ...receivables.buckets.map((v, i): (string | number)[] => [BUCKET_LABELS[i], v]),
+      ['Total Outstanding', receivables.total],
+      ['Past 60 Days', receivables.past60],
+    ],
+  };
+
+  return [accountsSheet, receivablesSheet];
+}
 
 const TONE_CLASS: Record<'green' | 'red' | 'neutral', string> = {
   green: 'text-accent-green',
@@ -63,7 +94,17 @@ export function B2BPage() {
           <p className="font-sans text-xs font-medium text-text-tertiary">B2B Performance</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Client account economics</h2>
         </div>
-        <DataSourceBadge source="illustrative" />
+        <div className="flex items-center gap-3">
+          <DataSourceBadge source="illustrative" />
+          <ExportMenu
+            label="Export Data"
+            options={[
+              { label: 'Excel (Accounts + Receivables)', onExport: () => exportXlsx(buildB2BSheets(b2b.clients, receivables, search)) },
+              { label: 'Accounts (CSV)', onExport: () => exportCsv(buildB2BSheets(b2b.clients, receivables, search)[0]) },
+              { label: 'Receivables Aging (CSV)', onExport: () => exportCsv(buildB2BSheets(b2b.clients, receivables, search)[1]) },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -121,7 +162,7 @@ export function B2BPage() {
           <AccountTable clients={b2b.clients} searchQuery={search} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <ReceivablesPanel receivables={receivables} clients={b2b.clients} />
+            <ReceivablesPanel receivables={receivables} />
             <DeliveryFeed deliveries={b2b.recentDeliveries} />
           </div>
         </>

@@ -23,8 +23,10 @@ import { DataProcessorPage } from './components/dataProcessor/DataProcessorPage'
 import { OptimizationLabPage } from './components/optimization/OptimizationLabPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { computeModelScenarioKpis, getSankeyForCell, scenariosFile } from './data';
-import type { AnalysisContext, PeriodGranularity, ScenarioKey } from './data';
+import type { AnalysisContext, Kpis, PeriodGranularity, SankeyData, ScenarioKey } from './data';
 import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSignals';
+import { exportCsv, exportXlsx, type TableSheet } from './data/api';
+import { ExportMenu } from './components/shared/ExportMenu';
 
 type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'companyProfile' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
 
@@ -96,6 +98,51 @@ function getDateLabel(scenario: ScenarioKey, granularity: PeriodGranularity, mon
   if (granularity === 'month') return `Close of ${MONTH_FULL[month] ?? month} ${MONTH_YEAR[month] ?? 2026}`;
   if (granularity === 'quarter') return `Close of ${quarter} FY2026`;
   return 'Close of FY2026 through July';
+}
+
+const KPI_EXPORT_LABEL: Record<keyof Kpis, string> = {
+  revenue: 'Monthly Bakery Revenue (AED)',
+  grossMargin: 'Gross Margin (%)',
+  wastageCost: 'Wastage Cost (AED)',
+  capacityUtilization: 'Capacity Utilization (%)',
+  workingCapital: 'Working Capital in Inventory (AED)',
+};
+
+/** Exports raw numeric values, not the compact display strings KpiStrip
+ * shows on screen (e.g. "AED 1.2M") — a spreadsheet is more useful with
+ * real numbers to build on than a pre-formatted, already-lossy string. */
+function buildCommandCenterSheets(kpis: Kpis, sankeyData: SankeyData): TableSheet[] {
+  const kpiSheet: TableSheet = {
+    name: 'KPIs',
+    columns: ['Metric', 'Value', 'Delta %'],
+    rows: (Object.keys(KPI_EXPORT_LABEL) as (keyof Kpis)[]).map((key) => [KPI_EXPORT_LABEL[key], kpis[key].value, kpis[key].delta ?? '']),
+  };
+
+  // Same three-line sum SankeyMoneyFlow.tsx's own buildGraph() computes
+  // inline for its footer stats — not a calculation this duplicates
+  // elsewhere, just the same arithmetic re-run here for the export.
+  const revenueTotal = sankeyData.revenue.reduce((a, b) => a + b.value, 0);
+  const copTotal = sankeyData.costOfProduction.reduce((a, b) => a + b.value, 0);
+  const grossProfit = revenueTotal - copTotal;
+  const opexTotal = sankeyData.opex.reduce((a, b) => a + b.value, 0);
+  const operatingResult = grossProfit - opexTotal;
+
+  const moneyFlowSheet: TableSheet = {
+    name: 'Money Flow',
+    columns: ['Category', 'Line Item', 'Value (AED)'],
+    rows: [
+      ...sankeyData.revenue.map((d): (string | number)[] => ['Revenue', d.name, d.value]),
+      ...sankeyData.costOfProduction.map((d): (string | number)[] => ['Cost of Production', d.name, d.value]),
+      ...sankeyData.opex.map((d): (string | number)[] => ['Opex', d.name, d.value]),
+      ['Summary', 'Total Revenue', revenueTotal],
+      ['Summary', 'Total Cost of Production', copTotal],
+      ['Summary', 'Gross Profit', grossProfit],
+      ['Summary', 'Total Operating Expense', opexTotal],
+      ['Summary', 'Operating Result', operatingResult],
+    ],
+  };
+
+  return [kpiSheet, moneyFlowSheet];
 }
 
 function App() {
@@ -334,6 +381,17 @@ function App() {
                     onSeeEffect={seeQuickWhatIfEffect}
                   />
                 )}
+
+                <div className="flex justify-end">
+                  <ExportMenu
+                    label="Export Data"
+                    options={[
+                      { label: 'Excel (KPIs + Money Flow)', onExport: () => exportXlsx(buildCommandCenterSheets(cell.kpis, sankey)) },
+                      { label: 'KPIs (CSV)', onExport: () => exportCsv(buildCommandCenterSheets(cell.kpis, sankey)[0]) },
+                      { label: 'Money Flow (CSV)', onExport: () => exportCsv(buildCommandCenterSheets(cell.kpis, sankey)[1]) },
+                    ]}
+                  />
+                </div>
 
                 <KpiStrip kpis={cell.kpis} granularity={granularity} attentionItems={attentionItems} onInvestigate={goToPerformanceTracker} />
 

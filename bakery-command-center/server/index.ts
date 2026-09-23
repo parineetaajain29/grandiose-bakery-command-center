@@ -14,6 +14,7 @@ import { settingsRouter } from './routes/settings.ts';
 import { dataProcessorRouter } from './routes/dataProcessor.ts';
 import { aiRiskRouter } from './routes/aiRisk.ts';
 import { optimizationRouter } from './routes/optimization.ts';
+import { exportRouter } from './routes/export.ts';
 import { resolveSession, parseCookies, SESSION_COOKIE } from './auth.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,6 +43,7 @@ app.use('/api', settingsRouter);
 app.use('/api', dataProcessorRouter);
 app.use('/api', aiRiskRouter);
 app.use('/api', optimizationRouter);
+app.use('/api', exportRouter);
 
 if (isProduction) {
   // Single-process shape for running unmodified on Grandiose's desktop:

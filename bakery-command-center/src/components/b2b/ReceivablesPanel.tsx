@@ -1,61 +1,29 @@
-import type { B2BClient, B2BReceivables } from '../../data';
+import type { B2BReceivables } from '../../data';
 import { computePastDuePct } from '../../lib/b2bCalc';
 import { formatCurrencyPrecise, formatPercentPrecise } from '../../lib/format';
 
 interface ReceivablesPanelProps {
   receivables: B2BReceivables;
-  clients: B2BClient[];
 }
 
-const BUCKET_LABELS = ['0–30 days', '31–60 days', '61–90 days', '90+ days'];
+// Exported so B2BPage.tsx's shared export can label the aging buckets with
+// the exact same text shown here — one source of truth for the labels.
+export const BUCKET_LABELS = ['0–30 days', '31–60 days', '61–90 days', '90+ days'];
 const BUCKET_COLORS = ['bg-accent-green', 'bg-accent-blue', 'bg-accent-orange', 'bg-accent-red'];
 
-function toCsv(clients: B2BClient[]): string {
-  const header = ['Client', 'Location', 'Frequency', 'Revenue', 'Service Cost', 'Margin %', 'Marginal Margin %', 'OTIF %', 'Payment Terms (days)'];
-  const rows = clients.map((c) => [
-    c.name,
-    c.location,
-    c.frequency,
-    c.revenue.toFixed(2),
-    c.serviceCost.toFixed(2),
-    c.marginPct.toFixed(1),
-    c.marginalMarginPct.toFixed(1),
-    c.otifPct.toFixed(1),
-    String(c.paymentTermsDays),
-  ]);
-  return [header, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-}
-
-function downloadCsv(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-export function ReceivablesPanel({ receivables, clients }: ReceivablesPanelProps) {
+// This panel's own bespoke "Export statement" button (hand-rolled CSV +
+// blob-download, predating the shared export utility) has been removed in
+// favour of B2BPage.tsx's ExportMenu — one export mechanism for the whole
+// page instead of a second, page-local one just for this panel.
+export function ReceivablesPanel({ receivables }: ReceivablesPanelProps) {
   const total = receivables.buckets.reduce((a, b) => a + b, 0);
   const pastDuePct = computePastDuePct(receivables.total, receivables.past60);
 
   return (
     <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-sans text-xs font-medium text-text-tertiary">Receivables</p>
-          <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">B2B receivables</h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => downloadCsv(toCsv(clients), 'b2b-account-statement.csv')}
-          className="rounded-full border border-border-subtle bg-bg-panel px-4 py-2 font-sans text-xs font-medium text-text-secondary transition-colors hover:border-accent-blue/60 hover:text-text-primary"
-        >
-          Export statement
-        </button>
+      <div>
+        <p className="font-sans text-xs font-medium text-text-tertiary">Receivables</p>
+        <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">B2B receivables</h2>
       </div>
 
       <div className="mt-5 grid gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle sm:grid-cols-2">

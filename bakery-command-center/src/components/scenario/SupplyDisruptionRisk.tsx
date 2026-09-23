@@ -1,12 +1,36 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { scenariosFile } from '../../data';
-import { computeSupplyDisruption } from '../../lib/scenarioCalc';
+import { computeSupplyDisruption, type SupplyDisruptionResult } from '../../lib/scenarioCalc';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { Slider } from './Slider';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { ExportMenu } from '../shared/ExportMenu';
 
 const { supplyDisruption } = scenariosFile.scenarioResilience;
 const SCENARIO_NAMES = [...supplyDisruption.scenarios.map((s) => s.name), 'Custom'];
+
+function buildSupplyDisruptionSheet(
+  choice: string,
+  delayDays: number,
+  costPremiumPct: number,
+  stockoutProbability: number,
+  result: SupplyDisruptionResult,
+): TableSheet {
+  return {
+    name: 'Supply Disruption',
+    columns: ['Metric', 'Value'],
+    rows: [
+      ['Scenario', choice],
+      ['Lead-Time Extension (days)', delayDays],
+      ['Cost Premium (%)', costPremiumPct],
+      ['Stockout Probability', stockoutProbability],
+      ['Buffer Stock Days', result.bufferStockDays],
+      ['Buffer Stock Cost (AED)', result.bufferStockCost],
+      ['Expected Stockout Cost (AED)', result.expectedStockoutCost],
+    ],
+  };
+}
 
 /** Streamlit Module 2 — Supply Disruption Risk (app.py lines 2254-2299). */
 export function SupplyDisruptionRisk() {
@@ -39,7 +63,16 @@ export function SupplyDisruptionRisk() {
           <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Natural Calamity &amp; Supply Disruption Risk</p>
           <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Disruption scenario</h3>
         </div>
-        <DataSourceBadge source="illustrative" />
+        <div className="flex items-center gap-3">
+          <DataSourceBadge source="illustrative" />
+          <ExportMenu
+            label="Export Result"
+            options={[
+              { label: 'Excel', onExport: () => exportXlsx([buildSupplyDisruptionSheet(choice, delayDays, costPremiumPct, stockoutProbability, result)]) },
+              { label: 'CSV', onExport: () => exportCsv(buildSupplyDisruptionSheet(choice, delayDays, costPremiumPct, stockoutProbability, result)) },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">

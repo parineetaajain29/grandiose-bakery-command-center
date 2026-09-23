@@ -1,13 +1,33 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { scenariosFile } from '../../data';
-import { computeInflationSensitivity } from '../../lib/scenarioCalc';
+import { computeInflationSensitivity, type InflationSensitivityResult } from '../../lib/scenarioCalc';
 import { deltaTone, formatPercent } from '../../lib/format';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { Slider } from './Slider';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { ExportMenu } from '../shared/ExportMenu';
 
 const { inflationSensitivity } = scenariosFile.scenarioResilience;
 const { baseCost, baseFoodCostPct } = { baseCost: scenariosFile.performanceTracker.baseline.costPerUnit, baseFoodCostPct: scenariosFile.performanceTracker.baseline.foodCostPct };
+
+/** This module's current sliders + computed result — exported exactly as
+ * currently shown, not the module's default values. */
+function buildInflationSheet(headlineInf: number, foodInf: number, subsidyOffset: number, result: InflationSensitivityResult): TableSheet {
+  return {
+    name: 'Inflation Sensitivity',
+    columns: ['Metric', 'Value'],
+    rows: [
+      ['Headline Inflation Forecast (%)', headlineInf],
+      ['Food-Input Inflation (%)', foodInf],
+      ['Subsidy / Price-Cap Offset (AED/unit)', subsidyOffset],
+      ['Cost/Unit — Headline Scenario (AED)', result.adjCostHeadline],
+      ['Cost/Unit — Food-Inflation Scenario (AED)', result.adjCostFood],
+      ['Food Cost % — Food-Inflation Scenario', result.foodCostPctAdj],
+      ['Net After Subsidy (AED/unit)', result.netAfterSubsidy],
+    ],
+  };
+}
 
 const TONE_CLASS: Record<'green' | 'red' | 'neutral', string> = {
   green: 'text-accent-green',
@@ -68,7 +88,16 @@ export function InflationSensitivity() {
             <p className="font-sans text-xs font-semibold uppercase tracking-wide text-accent-blue">Inflation-Adjusted Cost Sensitivity</p>
             <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Dual-track inflation input</h3>
           </div>
-          <DataSourceBadge source="illustrative" />
+          <div className="flex items-center gap-3">
+            <DataSourceBadge source="illustrative" />
+            <ExportMenu
+              label="Export Result"
+              options={[
+                { label: 'Excel', onExport: () => exportXlsx([buildInflationSheet(headlineInf, foodInf, subsidyOffset, result)]) },
+                { label: 'CSV', onExport: () => exportCsv(buildInflationSheet(headlineInf, foodInf, subsidyOffset, result)) },
+              ]}
+            />
+          </div>
         </div>
         <p className="mt-1 font-sans text-xs text-text-tertiary">Net of any subsidy/price-cap offset deducted.</p>
 

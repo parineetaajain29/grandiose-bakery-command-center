@@ -1,12 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AnalysisContext } from '../../data';
 import { DIVISIONS, SKU_DIVISION_COLORS } from '../../data/skuData';
-import { loadProducts, skuKpiCards } from '../../lib/skuCalc';
+import { loadProducts, skuKpiCards, type Sku } from '../../lib/skuCalc';
 import { SkuBubbleChart } from './SkuBubbleChart';
 import { SkuTable } from './SkuTable';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
+import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
+import { ExportMenu } from '../shared/ExportMenu';
 
 const ALL_PRODUCTS = loadProducts();
+
+/** Exports whatever the division filter/search currently narrow the table
+ * and bubble chart down to — not always the full 110-SKU catalogue — so the
+ * export matches what's actually on screen, same as every other page. */
+function buildSkuPerformanceSheet(products: Sku[]): TableSheet {
+  return {
+    name: 'SKU Performance',
+    columns: ['SKU', 'Product', 'Division', 'Units Sold', 'Sales (AED)', 'Contribution %', 'Rank', 'Availability'],
+    rows: products.map((p) => [p.sku, p.product, p.division, p.units, p.salesAed, p.contributionPct, p.rank, p.availability ?? '']),
+  };
+}
 
 const TONE_CLASS: Record<'up' | 'down' | 'none', string> = {
   up: 'text-accent-green',
@@ -77,7 +90,16 @@ export function SkuPerformancePage({ context, onContextConsumed }: SkuPerformanc
           <p className="font-sans text-xs font-medium text-text-tertiary">SKU Performance</p>
           <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">Bakery product performance</h2>
         </div>
-        <DataSourceBadge source="illustrative" />
+        <div className="flex items-center gap-3">
+          <DataSourceBadge source="illustrative" />
+          <ExportMenu
+            label="Export Data"
+            options={[
+              { label: 'Excel', onExport: () => exportXlsx([buildSkuPerformanceSheet(filtered)]) },
+              { label: 'CSV', onExport: () => exportCsv(buildSkuPerformanceSheet(filtered)) },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-5">

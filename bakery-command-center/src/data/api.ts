@@ -658,3 +658,58 @@ export function deleteAiWatchlistItem(id: number): Promise<void> {
 export function getAiUsageStats(): Promise<AiUsageStats> {
   return getJson('/api/ai-risk/usage');
 }
+
+// --- Export (server/services/export.ts) — Word/PDF for narrative content, ---
+// CSV/Excel for tabular data. Every export sends data the caller already has
+// (already rendered on screen) — the server only formats it, never recomputes.
+
+export interface DocSection {
+  heading?: string;
+  paragraphs?: string[];
+  bullets?: string[];
+}
+
+export interface DocSpec {
+  title: string;
+  subtitle?: string;
+  sections: DocSection[];
+}
+
+export interface TableSheet {
+  name: string;
+  columns: string[];
+  rows: (string | number)[][];
+}
+
+async function downloadBlob(path: string, body: unknown, filename: string): Promise<void> {
+  const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    throw new Error(payload?.error ?? `POST ${path} failed: ${res.status} ${res.statusText}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export function exportDocx(spec: DocSpec): Promise<void> {
+  return downloadBlob('/api/export/docx', spec, `${spec.title}.docx`);
+}
+
+export function exportPdf(spec: DocSpec): Promise<void> {
+  return downloadBlob('/api/export/pdf', spec, `${spec.title}.pdf`);
+}
+
+export function exportCsv(sheet: TableSheet): Promise<void> {
+  return downloadBlob('/api/export/csv', sheet, `${sheet.name}.csv`);
+}
+
+export function exportXlsx(sheets: TableSheet[]): Promise<void> {
+  return downloadBlob('/api/export/xlsx', { sheets }, `${sheets[0]?.name ?? 'export'}.xlsx`);
+}
