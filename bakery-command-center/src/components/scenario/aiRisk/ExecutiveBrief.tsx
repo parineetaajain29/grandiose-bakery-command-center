@@ -28,10 +28,16 @@ export function ExecutiveBrief({ research, values, runResult }: ExecutiveBriefPr
           <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">Situation — </strong>
           {research.question}
         </p>
-        <p>
-          <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">Why it matters — </strong>
-          {result.whyItMattersToGrandiose}
-        </p>
+        <div>
+          <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">Why it matters</strong>
+          <ul className="mt-1 flex flex-col gap-0.5 font-sans text-sm text-text-primary">
+            {result.whyItMattersToGrandiose.length > 0 ? (
+              result.whyItMattersToGrandiose.map((point, i) => <li key={i}>{point}</li>)
+            ) : (
+              <li className="text-text-secondary">—</li>
+            )}
+          </ul>
+        </div>
         <p>
           <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">Materials — </strong>
           {result.affectedMaterials.length > 0 ? result.affectedMaterials.join(', ') : 'None specified'}

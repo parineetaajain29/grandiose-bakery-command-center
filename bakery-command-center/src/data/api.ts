@@ -560,9 +560,9 @@ export interface AiActionPlan {
 export interface AiRiskResult {
   title: string;
   executiveSummary: string;
-  whatIsHappening: string;
-  whyItMattersToGrandiose: string;
-  whatToWatch: string;
+  whatIsHappening: string[];
+  whyItMattersToGrandiose: string[];
+  whatToWatch: string[];
   affectedMaterials: string[];
   horizon: string;
   confidence: 'low' | 'moderate' | 'high';

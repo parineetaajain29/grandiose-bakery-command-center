@@ -2,23 +2,15 @@ import { useState } from 'react';
 import type { AiResearchRecord } from '../../../data/api';
 import { DataSourceBadge } from '../../shared/DataSourceBadge';
 import { relativeTime } from './relativeTime';
-import { BookmarkIcon, BuildingIcon, CalendarIcon, CheckCircleIcon, GlobeIcon, LeafIcon, ShieldIcon, TrendUpIcon } from './icons';
+import { RiskConfidenceGauge } from './RiskConfidenceGauge';
+import { BookmarkIcon, BuildingIcon, CalendarIcon, CheckCircleIcon, GlobeIcon, LeafIcon, TrendUpIcon } from './icons';
 
-const RISK_TILE: Record<'low' | 'moderate' | 'high', string> = {
-  low: 'border-accent-green/30 bg-accent-green/10 text-accent-green',
-  moderate: 'border-accent-orange/30 bg-accent-orange/10 text-accent-orange',
-  high: 'border-accent-red/30 bg-accent-red/10 text-accent-red',
-};
+// Same semantic mapping RiskConfidenceGauge's colors use below — risk gets
+// worse high (green/orange/red), confidence gets worse low (red/orange/green).
+const RISK_GAUGE_COLORS: [string, string, string] = ['var(--accent-green)', 'var(--accent-orange)', 'var(--accent-red)'];
+const CONFIDENCE_GAUGE_COLORS: [string, string, string] = ['var(--accent-red)', 'var(--accent-orange)', 'var(--accent-green)'];
 
-// Confidence isn't in RISK_TILE's own domain, but the same red/orange/green
-// semantic rule applies consistently: low confidence is the concerning state.
-const CONFIDENCE_TILE: Record<'low' | 'moderate' | 'high', string> = {
-  low: 'border-accent-red/30 bg-accent-red/10 text-accent-red',
-  moderate: 'border-accent-orange/30 bg-accent-orange/10 text-accent-orange',
-  high: 'border-accent-green/30 bg-accent-green/10 text-accent-green',
-};
-
-function InsightCard({ icon, tint, eyebrow, body }: { icon: React.ReactNode; tint: 'blue' | 'orange' | 'green'; eyebrow: string; body: string }) {
+function InsightCard({ icon, tint, eyebrow, points }: { icon: React.ReactNode; tint: 'blue' | 'orange' | 'green'; eyebrow: string; points: string[] }) {
   const tintClass = { blue: 'bg-accent-blue/10 text-accent-blue', orange: 'bg-accent-orange/10 text-accent-orange', green: 'bg-accent-green/10 text-accent-green' }[tint];
   return (
     <div className="rounded-card border border-border-subtle bg-bg-panel p-4">
@@ -26,7 +18,18 @@ function InsightCard({ icon, tint, eyebrow, body }: { icon: React.ReactNode; tin
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${tintClass}`}>{icon}</span>
         <p className="font-sans text-sm font-semibold text-text-primary">{eyebrow}</p>
       </div>
-      <p className="mt-2.5 font-sans text-sm text-text-secondary">{body || '—'}</p>
+      {points.length > 0 ? (
+        <ul className="mt-2.5 flex flex-col gap-1.5">
+          {points.map((point, i) => (
+            <li key={i} className="flex gap-2 font-sans text-sm text-text-secondary">
+              <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-text-tertiary" />
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2.5 font-sans text-sm text-text-secondary">—</p>
+      )}
     </div>
   );
 }
@@ -119,9 +122,9 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
       <p className="mt-4 font-sans text-sm text-text-secondary">{result.executiveSummary}</p>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <InsightCard icon={<GlobeIcon />} tint="blue" eyebrow="What is happening?" body={result.whatIsHappening} />
-        <InsightCard icon={<BuildingIcon />} tint="orange" eyebrow="Why it matters to Grandiose" body={result.whyItMattersToGrandiose} />
-        <InsightCard icon={<TrendUpIcon />} tint="green" eyebrow="What to watch" body={result.whatToWatch} />
+        <InsightCard icon={<GlobeIcon />} tint="blue" eyebrow="What is happening?" points={result.whatIsHappening} />
+        <InsightCard icon={<BuildingIcon />} tint="orange" eyebrow="Why it matters to Grandiose" points={result.whyItMattersToGrandiose} />
+        <InsightCard icon={<TrendUpIcon />} tint="green" eyebrow="What to watch" points={result.whatToWatch} />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -142,10 +145,12 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
-          <StatTile icon={<ShieldIcon />} label="Overall Risk" value={result.overallRisk} toneClass={RISK_TILE[result.overallRisk]} />
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <RiskConfidenceGauge level={result.overallRisk} label="Overall Risk" colors={RISK_GAUGE_COLORS} />
+            <RiskConfidenceGauge level={result.confidence} label="Confidence" colors={CONFIDENCE_GAUGE_COLORS} />
+          </div>
           <StatTile icon={<CalendarIcon />} label="Time Horizon" value={result.horizon || research.params.horizon} />
-          <StatTile icon={<ShieldIcon />} label="Confidence" value={result.confidence} toneClass={CONFIDENCE_TILE[result.confidence]} />
         </div>
       </div>
 

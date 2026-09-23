@@ -68,9 +68,9 @@ export interface ActionPlan {
 export interface AiRiskResult {
   title: string;
   executiveSummary: string;
-  whatIsHappening: string;
-  whyItMattersToGrandiose: string;
-  whatToWatch: string;
+  whatIsHappening: string[];
+  whyItMattersToGrandiose: string[];
+  whatToWatch: string[];
   affectedMaterials: string[];
   horizon: string;
   confidence: 'low' | 'moderate' | 'high';
@@ -114,11 +114,19 @@ interface RawResearchRow {
 
 function toResearchRecord(row: RawResearchRow): ResearchRecord {
   const allSources: string[] = JSON.parse(row.all_sources_json);
+  const result: AiRiskResult = JSON.parse(row.result_json);
+  // Normalizes a record saved before these three fields were arrays — see
+  // toBulletArray's own comment. sanitizeResult() already guarantees this
+  // shape for anything saved from here on; this only protects reads of
+  // whatever was already persisted under the old (string) shape.
+  result.whatIsHappening = toBulletArray(result.whatIsHappening);
+  result.whyItMattersToGrandiose = toBulletArray(result.whyItMattersToGrandiose);
+  result.whatToWatch = toBulletArray(result.whatToWatch);
   return {
     id: row.id,
     question: row.question,
     params: JSON.parse(row.params_json),
-    result: JSON.parse(row.result_json),
+    result,
     citedSources: JSON.parse(row.cited_sources_json),
     allSources,
     sourcesRetrieved: allSources.length > 0,
@@ -212,9 +220,9 @@ After researching, respond with STRICT JSON only, no markdown fences, no comment
 {
   "title": "short descriptive title for this research",
   "executiveSummary": "2-3 sentence summary",
-  "whatIsHappening": "1-2 paragraphs",
-  "whyItMattersToGrandiose": "1-2 paragraphs, specific to a bakery business",
-  "whatToWatch": "1 paragraph on leading indicators to monitor",
+  "whatIsHappening": ["2-4 concise bullet points, each a distinct point — not full paragraphs"],
+  "whyItMattersToGrandiose": ["2-4 concise bullet points, specific to a bakery business"],
+  "whatToWatch": ["2-4 concise bullet points, each one leading indicator to monitor"],
   "affectedMaterials": ["short raw-material names, only ones genuinely implicated"],
   "horizon": "restate the time horizon you were given",
   "confidence": "low" | "moderate" | "high",
@@ -311,6 +319,19 @@ function sanitizeActionPlan(v: unknown): ActionPlan {
   };
 }
 
+/** Handles both a genuinely-array response (the normal case, per the current
+ * prompt) and a legacy single-string value — a research record saved before
+ * these three fields were arrays still has the old shape in result_json
+ * forever (toResearchRecord() never re-validates a stored row), so this same
+ * helper runs on both the write path (sanitizeResult, below) and the read
+ * path (toResearchRecord) to guarantee every consumer always sees string[],
+ * regardless of when the record was created. */
+function toBulletArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+  if (typeof value === 'string' && value.trim() !== '') return [value];
+  return [];
+}
+
 function sanitizeResult(raw: unknown): AiRiskResult {
   const r = raw as Partial<AiRiskResult> & Record<string, unknown>;
   const suggestedAssumptions = Array.isArray(r.suggestedAssumptions)
@@ -326,9 +347,9 @@ function sanitizeResult(raw: unknown): AiRiskResult {
   return {
     title: typeof r.title === 'string' ? r.title : 'Untitled research',
     executiveSummary: typeof r.executiveSummary === 'string' ? r.executiveSummary : '',
-    whatIsHappening: typeof r.whatIsHappening === 'string' ? r.whatIsHappening : '',
-    whyItMattersToGrandiose: typeof r.whyItMattersToGrandiose === 'string' ? r.whyItMattersToGrandiose : '',
-    whatToWatch: typeof r.whatToWatch === 'string' ? r.whatToWatch : '',
+    whatIsHappening: toBulletArray(r.whatIsHappening),
+    whyItMattersToGrandiose: toBulletArray(r.whyItMattersToGrandiose),
+    whatToWatch: toBulletArray(r.whatToWatch),
     affectedMaterials: Array.isArray(r.affectedMaterials) ? r.affectedMaterials.filter((m) => typeof m === 'string') : [],
     horizon: typeof r.horizon === 'string' ? r.horizon : '',
     confidence: r.confidence === 'low' || r.confidence === 'moderate' || r.confidence === 'high' ? r.confidence : 'low',
