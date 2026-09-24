@@ -1,9 +1,16 @@
 import { useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getEmployeeLegacyCheck, getEmployeeMetrics, getEmployees, useApiData } from '../../../data/api';
 import { categorizeLoss, perDayAverage, type LabourResult } from '../../../lib/labourCalc';
 import { formatHoursFromMinutes, formatMinutes, formatPercentPrecise } from '../../../lib/format';
 import { PeriodWindowSelector, dateRangeForWindow, type PeriodWindow } from '../shared/PeriodWindowSelector';
 import { TONE_TEXT_CLASS, efficiencyTone } from '../shared/metricTone';
+
+const TONE_FILL: Record<'green' | 'amber' | 'red', string> = {
+  green: 'var(--accent-green)',
+  amber: 'var(--accent-orange)',
+  red: 'var(--accent-red)',
+};
 
 interface EmployeeComparisonProps {
   departmentName: string;
@@ -89,6 +96,37 @@ export function EmployeeComparison({ departmentName, onSelectEmployee }: Employe
 
         {state.status === 'loading' && <p className="mt-4 font-sans text-sm text-text-secondary">Loading…</p>}
         {state.status === 'error' && <p className="mt-4 font-sans text-sm text-accent-red">{state.message}</p>}
+
+        {state.status === 'ready' &&
+          (() => {
+            // Excludes employees with no logged days in this window — daysLogged=0
+            // has no real efficiency figure to plot (the table shows '—' for the
+            // same reason), so a 0%-height bar would misleadingly read as "underperforming".
+            const chartRows = state.data
+              .filter((row) => row.current.daysLogged > 0)
+              .map((row) => ({ name: row.name, value: row.current.trueEfficiencyPct, tone: efficiencyTone(row.current.trueEfficiencyPct) }))
+              .sort((a, b) => b.value - a.value);
+            return chartRows.length > 0 ? (
+              <div className="mt-4 h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
+                    <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />
+                    <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                      formatter={(value) => [formatPercentPrecise(Number(value)), 'True Efficiency']}
+                    />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                      {chartRows.map((row) => (
+                        <Cell key={row.name} fill={TONE_FILL[row.tone]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : null;
+          })()}
 
         {state.status === 'ready' && (
           <div className="mt-4 overflow-x-auto">

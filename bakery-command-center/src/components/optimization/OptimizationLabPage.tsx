@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { AuthUser } from '../../data';
 import {
   exportCsv,
@@ -285,7 +286,32 @@ function ResultsSection({ result }: { result: OptimizationResult }) {
           <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
             <p className="font-sans text-xs font-medium text-text-tertiary">Production Plan</p>
             <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">Current vs. optimized, per SKU</h3>
-            <div className="mt-4">
+            <div className="mt-4 h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={result.sku_changes} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
+                  <XAxis dataKey="sku" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={{ stroke: 'var(--border-subtle)' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} width={44} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                    formatter={(value, name) => [Number(value).toLocaleString('en-AE'), name === 'current_production' ? 'Current' : 'Optimized']}
+                  />
+                  <Bar dataKey="current_production" fill="var(--text-tertiary)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="optimized_production" fill="var(--accent-blue)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-2 flex justify-center gap-5">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--text-tertiary)' }} />
+                <span className="font-sans text-[11px] text-text-secondary">Current</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-accent-blue" />
+                <span className="font-sans text-[11px] text-text-secondary">Optimized</span>
+              </div>
+            </div>
+            <div className="mt-5">
               <SkuChangesTable changes={result.sku_changes} />
             </div>
           </section>

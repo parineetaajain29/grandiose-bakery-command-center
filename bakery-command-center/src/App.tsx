@@ -8,6 +8,7 @@ import { PerformanceTracker } from './components/performanceTracker/PerformanceT
 import { ScenarioTabs } from './components/ScenarioTabs';
 import { PeriodSelector } from './components/PeriodSelector';
 import { KpiStrip } from './components/KpiStrip';
+import { RevenueMarginTrend } from './components/RevenueMarginTrend';
 import { NeedsAttention } from './components/NeedsAttention';
 import { ModelScenarioLevers } from './components/ModelScenarioLevers';
 import { SankeyMoneyFlow } from './components/SankeyMoneyFlow';
@@ -391,6 +392,8 @@ function App() {
                 </div>
 
                 <KpiStrip kpis={cell.kpis} granularity={granularity} attentionItems={attentionItems} onInvestigate={goToPerformanceTracker} />
+
+                <RevenueMarginTrend />
 
                 <NeedsAttention items={attentionItems} onInvestigate={goToPerformanceTracker} />
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { AnalysisContext } from '../../data';
 import { DIVISIONS, SKU_DIVISION_COLORS } from '../../data/skuData';
 import { loadProducts, skuKpiCards, type Sku } from '../../lib/skuCalc';
@@ -9,6 +10,7 @@ import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { ExportMenu } from '../shared/ExportMenu';
 
 const ALL_PRODUCTS = loadProducts();
+const TOP_CONTRIBUTION_COUNT = 10;
 
 /** Exports whatever the division filter/search currently narrow the table
  * and bubble chart down to — not always the full 110-SKU catalogue — so the
@@ -19,6 +21,20 @@ function buildSkuPerformanceSheet(products: Sku[]): TableSheet {
     columns: ['SKU', 'Product', 'Division', 'Units Sold', 'Sales (AED)', 'Contribution %', 'Rank', 'Availability'],
     rows: products.map((p) => [p.sku, p.product, p.division, p.units, p.salesAed, p.contributionPct, p.rank, p.availability ?? '']),
   };
+}
+
+/** Top N by contribution %, rest aggregated into "Other" — same filtered set
+ * the table/bubble chart show, sorted purely for display (contributionPct
+ * itself is already computed by skuCalc.ts, never recomputed here). */
+function buildTopContributionRows(products: Sku[]): { name: string; value: number }[] {
+  const sorted = [...products].sort((a, b) => b.contributionPct - a.contributionPct);
+  const top = sorted.slice(0, TOP_CONTRIBUTION_COUNT);
+  const rest = sorted.slice(TOP_CONTRIBUTION_COUNT);
+  const rows = top.map((p) => ({ name: p.product, value: p.contributionPct }));
+  if (rest.length > 0) {
+    rows.push({ name: `Other (${rest.length} SKUs)`, value: rest.reduce((sum, p) => sum + p.contributionPct, 0) });
+  }
+  return rows;
 }
 
 const TONE_CLASS: Record<'up' | 'down' | 'none', string> = {
@@ -161,6 +177,32 @@ export function SkuPerformancePage({ context, onContextConsumed }: SkuPerformanc
           ))}
         </div>
         <p className="mt-2 text-center font-sans text-[11px] text-text-tertiary">Bubble size = units sold. Hover for detail, click to select.</p>
+      </section>
+
+      <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
+        <p className="font-sans text-xs font-medium text-text-tertiary">Sales Mix</p>
+        <h3 className="mt-1.5 font-sans text-lg font-semibold text-text-primary">
+          Top {Math.min(TOP_CONTRIBUTION_COUNT, filtered.length)} SKUs by contribution
+        </h3>
+        {filtered.length === 0 ? (
+          <p className="mt-4 font-sans text-sm text-text-secondary">No SKUs match this filter.</p>
+        ) : (
+          <div className="mt-4 h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={buildTopContributionRows(filtered)} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
+                <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />
+                <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                  formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Contribution']}
+                />
+                <Bar dataKey="value" fill="var(--accent-blue)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        <p className="mt-2 font-sans text-[11px] text-text-tertiary">Contribution % is each SKU's share of total bakery sales across all divisions — same figure shown in the table below.</p>
       </section>
 
       <SkuTable divisions={chartDivisions} products={filtered} selectedSku={visibleSelectedSku} onSelect={setSelectedSku} />

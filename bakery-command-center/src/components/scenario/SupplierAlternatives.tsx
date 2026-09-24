@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { scenariosFile } from '../../data';
 import { computeHhi, type HhiResult } from '../../lib/scenarioCalc';
 import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
@@ -6,6 +7,13 @@ import { DataSourceBadge } from '../shared/DataSourceBadge';
 import { ExportMenu } from '../shared/ExportMenu';
 
 const { supplierAlternatives } = scenariosFile.scenarioResilience;
+
+// Sign-based semantic (cheaper = green, more expensive = red) for this new
+// chart specifically — independent of the existing table's fixed orange/
+// green column coloring below, which isn't sign-based and isn't touched here.
+const ALTERNATES_CHART_DATA = supplierAlternatives.alternateSuppliers
+  .map((row) => ({ supplier: row.supplier, costDeltaPct: row.costDeltaPct }))
+  .sort((a, b) => a.costDeltaPct - b.costDeltaPct);
 
 const RISK_CLASS: Record<string, string> = {
   'Low concentration risk': 'border-accent-green/40 text-accent-green',
@@ -116,6 +124,25 @@ export function SupplierAlternatives() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h3 className="font-sans text-lg font-semibold text-text-primary">Pre-identified alternate suppliers</h3>
           <DataSourceBadge source="illustrative" />
+        </div>
+        <p className="mt-1 font-sans text-xs text-text-tertiary">Cost delta vs. current supplier — which switch is cheapest.</p>
+        <div className="mt-4 h-56 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={ALTERNATES_CHART_DATA} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
+              <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />
+              <XAxis type="number" tickFormatter={(v) => `${v > 0 ? '+' : ''}${v}%`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="supplier" width={140} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                formatter={(value) => [`${Number(value) > 0 ? '+' : ''}${value}%`, 'Cost delta vs. current']}
+              />
+              <Bar dataKey="costDeltaPct" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                {ALTERNATES_CHART_DATA.map((row) => (
+                  <Cell key={row.supplier} fill={row.costDeltaPct < 0 ? 'var(--accent-green)' : 'var(--accent-red)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left">

@@ -1,8 +1,32 @@
 import { useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getCauseBreakdown, useApiData } from '../../../data/api';
 import type { CauseBreakdownEntry } from '../../../data';
 import { formatMinutes } from '../../../lib/format';
 import { PeriodWindowSelector, dateRangeForWindow, type PeriodWindow } from '../shared/PeriodWindowSelector';
+
+/** Ranked at-a-glance view above the detailed table below it — same entries,
+ * same total, just sorted by minutes descending so the biggest cause reads
+ * immediately instead of requiring a scan down the table. */
+function CauseChart({ entries }: { entries: CauseBreakdownEntry[] }) {
+  const sorted = [...entries].sort((a, b) => b.minutes - a.minutes);
+  return (
+    <div className="h-40 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={sorted} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+          <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />
+          <XAxis type="number" tickFormatter={(v) => `${v}m`} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="cause" width={100} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+            formatter={(value) => [formatMinutes(Number(value)), 'Minutes']}
+          />
+          <Bar dataKey="minutes" fill="var(--accent-orange)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 function CauseTable({ title, entries }: { title: string; entries: CauseBreakdownEntry[] }) {
   const total = entries.reduce((sum, e) => sum + e.minutes, 0);
@@ -12,26 +36,31 @@ function CauseTable({ title, entries }: { title: string; entries: CauseBreakdown
       {entries.length === 0 ? (
         <p className="mt-2 font-sans text-xs text-text-secondary">No logged minutes in this window.</p>
       ) : (
-        <table className="mt-2 w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-border-subtle font-sans text-[11px] font-medium text-text-secondary">
-              <th className="py-1.5 pr-3 font-medium">Cause</th>
-              <th className="py-1.5 pr-3 text-right font-medium">Minutes</th>
-              <th className="py-1.5 pr-3 text-right font-medium">Records</th>
-              <th className="py-1.5 font-medium">Share</th>
-            </tr>
-          </thead>
-          <tbody className="font-sans text-xs">
-            {entries.map((e) => (
-              <tr key={e.cause} className="border-b border-border-subtle/60 last:border-0">
-                <td className={`py-1.5 pr-3 ${e.cause.startsWith('Not recorded') ? 'text-text-secondary italic' : 'text-text-primary'}`}>{e.cause}</td>
-                <td className="py-1.5 pr-3 text-right font-mono font-tabular text-text-secondary">{formatMinutes(e.minutes)}</td>
-                <td className="py-1.5 pr-3 text-right font-mono font-tabular text-text-secondary">{e.count}</td>
-                <td className="py-1.5 font-mono font-tabular text-text-secondary">{total === 0 ? '—' : `${((e.minutes / total) * 100).toFixed(0)}%`}</td>
+        <>
+          <div className="mt-2">
+            <CauseChart entries={entries} />
+          </div>
+          <table className="mt-2 w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border-subtle font-sans text-[11px] font-medium text-text-secondary">
+                <th className="py-1.5 pr-3 font-medium">Cause</th>
+                <th className="py-1.5 pr-3 text-right font-medium">Minutes</th>
+                <th className="py-1.5 pr-3 text-right font-medium">Records</th>
+                <th className="py-1.5 font-medium">Share</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="font-sans text-xs">
+              {entries.map((e) => (
+                <tr key={e.cause} className="border-b border-border-subtle/60 last:border-0">
+                  <td className={`py-1.5 pr-3 ${e.cause.startsWith('Not recorded') ? 'text-text-secondary italic' : 'text-text-primary'}`}>{e.cause}</td>
+                  <td className="py-1.5 pr-3 text-right font-mono font-tabular text-text-secondary">{formatMinutes(e.minutes)}</td>
+                  <td className="py-1.5 pr-3 text-right font-mono font-tabular text-text-secondary">{e.count}</td>
+                  <td className="py-1.5 font-mono font-tabular text-text-secondary">{total === 0 ? '—' : `${((e.minutes / total) * 100).toFixed(0)}%`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </div>
   );

@@ -1,9 +1,16 @@
 import { useState } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getDepartmentAggregationComparison, getDepartmentsMetrics, useApiData } from '../../../data/api';
 import { perDayAverage } from '../../../lib/labourCalc';
 import { formatHoursFromMinutes, formatMinutes, formatPercentPrecise } from '../../../lib/format';
 import { PeriodWindowSelector, dateRangeForWindow, type PeriodWindow } from '../shared/PeriodWindowSelector';
 import { TONE_TEXT_CLASS, efficiencyTone } from '../shared/metricTone';
+
+const TONE_FILL: Record<'green' | 'amber' | 'red', string> = {
+  green: 'var(--accent-green)',
+  amber: 'var(--accent-orange)',
+  red: 'var(--accent-red)',
+};
 
 interface DepartmentAnalysisProps {
   onSelectDepartment: (name: string) => void;
@@ -27,6 +34,34 @@ export function DepartmentAnalysis({ onSelectDepartment }: DepartmentAnalysisPro
       <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
         <p className="font-sans text-xs font-medium text-text-tertiary">Department Analysis</p>
         <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary">Compare departments</h2>
+
+        {departmentsState.status === 'ready' && (() => {
+          // One sorted array, used for both the bars and their Cell colors,
+          // so a bar's position and its tone color can never drift apart.
+          const chartRows = [...departmentsState.data]
+            .map(({ name, result }) => ({ name, value: result.trueEfficiencyPct, tone: efficiencyTone(result.trueEfficiencyPct) }))
+            .sort((a, b) => b.value - a.value);
+          return (
+            <div className="mt-4 h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
+                  <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />
+                  <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontFamily: 'Inter, sans-serif', fontSize: 12 }}
+                    formatter={(value) => [formatPercentPrecise(Number(value)), 'True Efficiency']}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                    {chartRows.map((row) => (
+                      <Cell key={row.name} fill={TONE_FILL[row.tone]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })()}
 
         {departmentsState.status === 'ready' && (
           <div className="mt-4 overflow-x-auto">
