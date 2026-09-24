@@ -159,6 +159,7 @@ export function PerformanceTracker({ kpis, context, onClearContext, onAnalyzeSku
               costStructure={performanceTracker.costStructure}
               grossMarginPct={performanceTracker.baseline.grossMarginPct}
               targetFoodCostPct={performanceTracker.targetFoodCostPct}
+              title="Where revenue goes"
             />
           </div>
         </section>

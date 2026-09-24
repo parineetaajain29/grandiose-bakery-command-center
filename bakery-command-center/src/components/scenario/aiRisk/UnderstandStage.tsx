@@ -147,8 +147,20 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
         </div>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <RiskConfidenceGauge level={result.overallRisk} label="Overall Risk" colors={RISK_GAUGE_COLORS} />
-            <RiskConfidenceGauge level={result.confidence} label="Confidence" colors={CONFIDENCE_GAUGE_COLORS} />
+            <RiskConfidenceGauge
+              level={result.overallRisk}
+              label="Overall Risk"
+              colors={RISK_GAUGE_COLORS}
+              filterContext={result.title}
+              sourceLabel={research.sourcesRetrieved ? 'External Research — Live' : 'Uncited Model Commentary'}
+            />
+            <RiskConfidenceGauge
+              level={result.confidence}
+              label="Confidence"
+              colors={CONFIDENCE_GAUGE_COLORS}
+              filterContext={result.title}
+              sourceLabel={research.sourcesRetrieved ? 'External Research — Live' : 'Uncited Model Commentary'}
+            />
           </div>
           <StatTile icon={<CalendarIcon />} label="Time Horizon" value={result.horizon || research.params.horizon} />
         </div>

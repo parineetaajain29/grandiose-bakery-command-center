@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { B2BClient } from '../../data';
 import { formatPercentPrecise } from '../../lib/format';
+import { ChartExportButton } from '../shared/ChartExportButton';
 
 interface OtifRankedBarProps {
   clients: B2BClient[];
@@ -45,6 +47,7 @@ function OtifTooltip({ active, payload }: { active?: boolean; payload?: { payloa
  * invented percentage cutoff.
  */
 export function OtifRankedBar({ clients }: OtifRankedBarProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
   const chartRows: Row[] = [...clients]
     .map((c) => ({
       name: c.name,
@@ -56,13 +59,18 @@ export function OtifRankedBar({ clients }: OtifRankedBarProps) {
 
   return (
     <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
-      <p className="font-sans text-xs font-medium text-text-tertiary">Service Performance</p>
-      <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">OTIF by client</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-sans text-xs font-medium text-text-tertiary">Service Performance</p>
+          <h2 className="mt-1.5 font-sans text-xl font-semibold text-text-primary sm:text-2xl">OTIF by client</h2>
+        </div>
+        <ChartExportButton containerRef={chartRef} title="OTIF by Client" sourceLabel="Illustrative / Demo" />
+      </div>
       <p className="mt-1 max-w-2xl font-sans text-xs text-text-tertiary">
         On-time-in-full rate per client, ranked. Red = at least one late delivery this period.
       </p>
 
-      <div className="mt-4 h-64 w-full">
+      <div ref={chartRef} className="mt-4 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }}>
             <CartesianGrid horizontal={false} stroke="var(--border-subtle)" />

@@ -1,3 +1,6 @@
+import { useRef } from 'react';
+import { ChartExportButton } from '../../shared/ChartExportButton';
+
 type Level = 'low' | 'moderate' | 'high';
 
 interface RiskConfidenceGaugeProps {
@@ -8,6 +11,13 @@ interface RiskConfidenceGaugeProps {
    * matching UnderstandStage.tsx's existing RISK_TILE/CONFIDENCE_TILE), so
    * this is passed in rather than hardcoded. */
   colors: [string, string, string];
+  /** Which research result this gauge reflects — the closest thing this
+   * compact gauge has to an "active filter" worth recording on export. */
+  filterContext?: string;
+  /** Passed in, not hardcoded — this is only genuinely "External Research —
+   * Live" when the underlying research actually retrieved live sources;
+   * the parent (which knows research.sourcesRetrieved) decides the label. */
+  sourceLabel?: string;
 }
 
 // Same semicircular-arc/needle technique as WastageGauge.tsx (that file's own
@@ -37,13 +47,17 @@ function bandArcPath(fromFraction: number, toFraction: number): string {
   return `M ${start.x} ${start.y} A ${R} ${R} 0 0 1 ${end.x} ${end.y}`;
 }
 
-export function RiskConfidenceGauge({ level, label, colors }: RiskConfidenceGaugeProps) {
+export function RiskConfidenceGauge({ level, label, colors, filterContext, sourceLabel }: RiskConfidenceGaugeProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const index = LEVEL_INDEX[level];
   const needle = polarToCartesian(CX, CY, R - BAND_WIDTH / 2 - 6, angleForFraction((index + 0.5) / 3));
 
   return (
-    <div className="flex flex-col items-center rounded-card border border-border-subtle bg-bg-panel p-4">
-      <p className="font-sans text-xs font-medium text-text-tertiary">{label}</p>
+    <div ref={containerRef} className="flex flex-col items-center rounded-card border border-border-subtle bg-bg-panel p-4">
+      <div className="flex w-full items-center justify-between gap-2">
+        <p className="font-sans text-xs font-medium text-text-tertiary">{label}</p>
+        <ChartExportButton containerRef={containerRef} title={label} filterContext={filterContext} sourceLabel={sourceLabel} />
+      </div>
       <svg viewBox="0 0 200 110" className="mt-1 w-full max-w-[180px]">
         <path d={bandArcPath(0, 1 / 3)} stroke={colors[0]} strokeOpacity={0.35} strokeWidth={BAND_WIDTH} fill="none" strokeLinecap="butt" />
         <path d={bandArcPath(1 / 3, 2 / 3)} stroke={colors[1]} strokeOpacity={0.35} strokeWidth={BAND_WIDTH} fill="none" strokeLinecap="butt" />

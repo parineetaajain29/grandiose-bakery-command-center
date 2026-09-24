@@ -1,12 +1,17 @@
+import { useRef } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { costStructureRemainder } from '../../lib/performanceCalc';
 import type { CostStructureBaseline } from '../../data/types';
 import { formatPercent } from '../../lib/format';
+import { ChartExportButton } from '../shared/ChartExportButton';
 
 interface CostStructureDonutProps {
   costStructure: CostStructureBaseline;
   grossMarginPct: number;
   targetFoodCostPct: number;
+  /** The parent's own section title ("Where revenue goes") — this component
+   * has no header of its own, so the export button needs it passed in. */
+  title: string;
 }
 
 const COLORS = ['var(--accent-blue)', 'var(--accent-orange)', 'var(--text-secondary)', 'var(--accent-red)', 'var(--accent-green)'];
@@ -19,7 +24,8 @@ const COLORS = ['var(--accent-blue)', 'var(--accent-orange)', 'var(--text-second
  * different-basis calculation (target labour% vs. actual costs throughout),
  * not a bug — the gap is now labeled on-page instead of left unexplained.
  */
-export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCostPct }: CostStructureDonutProps) {
+export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCostPct, title }: CostStructureDonutProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const marginAndOther = costStructureRemainder(costStructure);
   const rows = [
     { name: 'Food cost', value: costStructure.foodCostPct },
@@ -39,7 +45,15 @@ export function CostStructureDonut({ costStructure, grossMarginPct, targetFoodCo
   const foodCostGap = costStructure.foodCostPct - targetFoodCostPct;
 
   return (
-    <div className="flex flex-col items-center">
+    <div ref={containerRef} className="flex flex-col items-center">
+      <div className="flex w-full justify-end">
+        <ChartExportButton
+          containerRef={containerRef}
+          title={title}
+          legend={rows.map((row, i) => ({ label: `${row.name} · ${formatPercent(row.value)}`, color: COLORS[i % COLORS.length] }))}
+          sourceLabel="Illustrative / Demo"
+        />
+      </div>
       <div className="relative h-64 w-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
