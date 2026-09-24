@@ -1,6 +1,14 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { AiGeography, AiRawMaterialFilter, AiResearchDepth, AiResearchParams, AiRiskType, AiTimeHorizon } from '../../../data/api';
 import { BarChartIcon, BoxIcon, CalendarIcon, ChevronDownIcon, FileIcon, PinIcon, SearchIcon, SparkleIcon } from './icons';
+
+// Rotates while a request is in flight — purely cosmetic phrasing, not tied
+// to any real backend stage signal (the frontend has no visibility into
+// what the OpenAI call is actually doing at a given moment), so this never
+// claims measurable progress the way a percentage or progress bar would —
+// same "no fake progress" rule as the dots indicator it sits next to.
+const BAKING_MESSAGES = ['Baking your risk intelligence…', 'Checking sources…', 'Connecting risks to bakery operations…', 'Preparing your risk brief…'];
+const BAKING_MESSAGE_INTERVAL_MS = 5000;
 
 const SUGGESTED_PROMPTS = [
   'Wheat supply risk',
@@ -78,6 +86,24 @@ export function ResearchStage({ configured, submitting, errorMessage, onSubmit }
   const [depth, setDepth] = useState<AiResearchDepth>(DEFAULTS.depth);
   const [geography, setGeography] = useState<AiGeography>(DEFAULTS.geography);
   const [showDetailedConfirm, setShowDetailedConfirm] = useState(false);
+  const [bakingMessageIndex, setBakingMessageIndex] = useState(0);
+
+  // The reset-to-0 happens in handleSubmit (the event that actually causes
+  // submitting to become true — confirmed it's the only path in via
+  // AiRiskIntelligence.tsx's submit()), not here: oxlint's set-state-in-effect
+  // rule flags any synchronous setState in an effect body regardless of
+  // guard clauses, and its own suggested fix is exactly this — update from
+  // the event that caused the change. This effect is left purely to manage
+  // the interval's lifecycle (an external timer, genuinely effect-shaped);
+  // its only setState call is inside the timer callback, which fires later,
+  // not synchronously during the effect's own execution.
+  useEffect(() => {
+    if (!submitting) return;
+    const interval = setInterval(() => {
+      setBakingMessageIndex((i) => (i + 1) % BAKING_MESSAGES.length);
+    }, BAKING_MESSAGE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [submitting]);
 
   function handleSubmit() {
     if (!question.trim()) return;
@@ -86,6 +112,7 @@ export function ResearchStage({ configured, submitting, errorMessage, onSubmit }
       return;
     }
     setShowDetailedConfirm(false);
+    setBakingMessageIndex(0);
     onSubmit({ question: question.trim(), horizon, riskType, rawMaterial, depth, geography }, false);
   }
 
@@ -128,7 +155,7 @@ export function ResearchStage({ configured, submitting, errorMessage, onSubmit }
             className="absolute right-1.5 top-1.5 flex items-center gap-1.5 rounded-md bg-accent-blue px-3.5 py-1.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <SparkleIcon width={14} height={14} />
-            {submitting ? 'Researching…' : 'Research'}
+            {submitting ? 'Baking…' : 'Research'}
           </button>
         </div>
 
@@ -139,7 +166,9 @@ export function ResearchStage({ configured, submitting, errorMessage, onSubmit }
               <span className="h-2 w-2 animate-bounce rounded-full bg-accent-blue [animation-delay:-0.15s]" />
               <span className="h-2 w-2 animate-bounce rounded-full bg-accent-blue" />
             </div>
-            <p className="font-sans text-sm text-text-primary">Researching — this can take up to a minute, longer for Detailed Analysis…</p>
+            <p className="font-sans text-sm text-text-primary">
+              {BAKING_MESSAGES[bakingMessageIndex]} This can take up to a minute, longer for Detailed Analysis…
+            </p>
           </div>
         )}
 
