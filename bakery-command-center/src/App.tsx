@@ -33,11 +33,11 @@ type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'sku' | 'b2b' 
 const APP_PAGES: { key: AppPage; label: string }[] = [
   { key: 'commandCenter', label: 'Command Center' },
   { key: 'scenarios', label: 'Scenarios' },
-  { key: 'employeePortal', label: 'Employee Portal' },
   { key: 'sku', label: 'SKU Performance' },
-  { key: 'b2b', label: 'B2B Performance' },
-  { key: 'dataProcessor', label: 'Data Processor' },
   { key: 'optimizationLab', label: 'Optimization Lab' },
+  { key: 'b2b', label: 'B2B Performance' },
+  { key: 'employeePortal', label: 'Employee Portal' },
+  { key: 'dataProcessor', label: 'Data Processor' },
 ];
 
 // Management utility, not a content page — kept visually apart from
