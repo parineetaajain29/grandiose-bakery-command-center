@@ -10,6 +10,11 @@ import { ConcentrationRisk } from './ConcentrationRisk';
 import { AccountTable } from './AccountTable';
 import { ReceivablesPanel, BUCKET_LABELS } from './ReceivablesPanel';
 import { DeliveryFeed } from './DeliveryFeed';
+import { DeliveryVolumeShare } from './DeliveryVolumeShare';
+import { RevenueMarginBubble } from './RevenueMarginBubble';
+import { OtifRankedBar } from './OtifRankedBar';
+import { ReceivablesByClient } from './ReceivablesByClient';
+import { CashConversionInsight } from './CashConversionInsight';
 import { DataSourceBadge } from '../shared/DataSourceBadge';
 import { exportCsv, exportXlsx, type TableSheet } from '../../data/api';
 import { ExportMenu } from '../shared/ExportMenu';
@@ -144,13 +149,11 @@ export function B2BPage() {
             />
           </div>
 
-          {collectionsVsTerms !== null && (
-            <p className="font-sans text-xs text-text-tertiary">
-              Customer collections average {summary.collectionDays!.toFixed(0)} days against {b2b.summary.supplierTermsDaysContext}-day
-              supplier payment terms — Grandiose collects from B2B customers slower than it pays its own suppliers, a working-capital
-              gap worth watching as B2B volume grows. Pending GM confirmation on real collection-days data.
-            </p>
+          {summary.collectionDays !== null && (
+            <CashConversionInsight collectionDays={summary.collectionDays} supplierTermsDays={b2b.summary.supplierTermsDaysContext} />
           )}
+
+          <DeliveryVolumeShare clients={b2b.clients} />
 
           <RevenueVsCostChart weeklyTrend={b2b.weeklyTrend} />
 
@@ -159,7 +162,14 @@ export function B2BPage() {
             <ConcentrationRisk clients={b2b.clients} />
           </div>
 
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <RevenueMarginBubble clients={b2b.clients} retailMarginPct={retailMarginPct} />
+            <OtifRankedBar clients={b2b.clients} />
+          </div>
+
           <AccountTable clients={b2b.clients} searchQuery={search} />
+
+          <ReceivablesByClient clients={b2b.clients} />
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <ReceivablesPanel receivables={receivables} />
