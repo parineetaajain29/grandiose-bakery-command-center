@@ -17,7 +17,6 @@ import { VarianceWaterfall } from './components/VarianceWaterfall';
 import { EmployeePortalGate } from './components/employee/EmployeePortalGate';
 import { B2BPage } from './components/b2b/B2BPage';
 import { ScenarioResiliencePage } from './components/scenario/ScenarioResiliencePage';
-import { CompanyProfile } from './components/CompanyProfile';
 import { SkuPerformancePage } from './components/sku/SkuPerformancePage';
 import { DataProcessorPage } from './components/dataProcessor/DataProcessorPage';
 import { OptimizationLabPage } from './components/optimization/OptimizationLabPage';
@@ -28,13 +27,12 @@ import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSi
 import { exportCsv, exportXlsx, type TableSheet } from './data/api';
 import { ExportMenu } from './components/shared/ExportMenu';
 
-type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'companyProfile' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
+type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
 
 const APP_PAGES: { key: AppPage; label: string }[] = [
   { key: 'commandCenter', label: 'Command Center' },
   { key: 'scenarios', label: 'Scenarios' },
   { key: 'employeePortal', label: 'Employee Portal' },
-  { key: 'companyProfile', label: 'Company Profile' },
   { key: 'sku', label: 'SKU Performance' },
   { key: 'b2b', label: 'B2B Performance' },
   { key: 'dataProcessor', label: 'Data Processor' },
@@ -53,7 +51,7 @@ const SETTINGS_PAGE: { key: AppPage; label: string } = { key: 'settings', label:
  */
 function getAllowedPages(role: AuthUser['role']): AppPage[] {
   if (role === 'employee') return ['employeePortal'];
-  const base: AppPage[] = ['commandCenter', 'scenarios', 'employeePortal', 'companyProfile', 'sku', 'b2b'];
+  const base: AppPage[] = ['commandCenter', 'scenarios', 'employeePortal', 'sku', 'b2b'];
   if (role === 'supervisor') return base;
   return [...base, 'dataProcessor', 'optimizationLab']; // manager, hr_admin
 }
@@ -341,7 +339,6 @@ function App() {
             <ScenarioResiliencePage role={user.role} />
           </>
         )}
-        {displayPage === 'companyProfile' && <CompanyProfile />}
         {displayPage === 'sku' && (
           <SkuPerformancePage context={skuHandoff} onContextConsumed={() => setSkuHandoff(null)} />
         )}
