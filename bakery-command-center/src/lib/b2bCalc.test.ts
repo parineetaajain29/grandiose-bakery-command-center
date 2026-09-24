@@ -7,7 +7,9 @@ import {
   computePastDuePct,
   computeWeeklyMargins,
   filterClients,
+  filterDeliveries,
   sortClients,
+  sortDeliveries,
 } from './b2bCalc';
 
 describe('computeWeeklyMargins', () => {
@@ -87,8 +89,34 @@ describe('computePastDuePct', () => {
 
 describe('sortClients and filterClients', () => {
   const rows = [
-    { name: 'Al Manzil Hotels', location: 'Deira', revenue: 132000, marginPct: 53.3, marginalMarginPct: 80.4, otifPct: 99.1 },
-    { name: 'Sunrise Corporate Dining', location: 'DIFC', revenue: 30000, marginPct: -13.3, marginalMarginPct: 52.4, otifPct: 85.6 },
+    {
+      name: 'Al Manzil Hotels',
+      location: 'Deira',
+      revenue: 132000,
+      marginPct: 53.3,
+      marginalMarginPct: 80.4,
+      otifPct: 99.1,
+      serviceCost: 61600,
+      onTimeCount: 4,
+      totalDeliveries: 4,
+      paymentTermsDays: 30,
+      receivableAmount: 42000,
+      daysOutstanding: 22,
+    },
+    {
+      name: 'Sunrise Corporate Dining',
+      location: 'DIFC',
+      revenue: 30000,
+      marginPct: -13.3,
+      marginalMarginPct: 52.4,
+      otifPct: 85.6,
+      serviceCost: 34000,
+      onTimeCount: 19,
+      totalDeliveries: 20,
+      paymentTermsDays: 60,
+      receivableAmount: 18000,
+      daysOutstanding: 95,
+    },
   ];
 
   it('sorts descending by revenue by default', () => {
@@ -101,9 +129,39 @@ describe('sortClients and filterClients', () => {
     expect(sorted[0].name).toBe('Sunrise Corporate Dining');
   });
 
+  it('sorts by one of the newly-added Client list keys (receivableAmount)', () => {
+    const sorted = sortClients(rows, 'receivableAmount');
+    expect(sorted.map((r) => r.name)).toEqual(['Al Manzil Hotels', 'Sunrise Corporate Dining']);
+    expect(sortClients(rows, 'receivableAmount', 'asc').map((r) => r.name)).toEqual(['Sunrise Corporate Dining', 'Al Manzil Hotels']);
+  });
+
   it('filters by name or location, case-insensitively, without mutating input order', () => {
     expect(filterClients(rows, 'difc').map((r) => r.name)).toEqual(['Sunrise Corporate Dining']);
     expect(filterClients(rows, 'manzil').map((r) => r.name)).toEqual(['Al Manzil Hotels']);
     expect(filterClients(rows, '')).toEqual(rows);
+  });
+});
+
+describe('sortDeliveries and filterDeliveries — Orders tab', () => {
+  const deliveries = [
+    { client: 'Al Manzil Hotels', location: 'Deira', time: '06:15', value: 4820 },
+    { client: 'Al Waha Restaurants', location: 'Al Barsha', time: '17:05', value: 1640 },
+    { client: 'Nour Cafe Chain', location: 'Jumeirah', time: '05:50', value: 1120 },
+  ];
+
+  it('sorts by time as a zero-padded HH:MM string, chronologically', () => {
+    const sorted = sortDeliveries(deliveries, 'time', 'asc');
+    expect(sorted.map((d) => d.time)).toEqual(['05:50', '06:15', '17:05']);
+  });
+
+  it('sorts descending by value by default', () => {
+    const sorted = sortDeliveries(deliveries, 'value');
+    expect(sorted[0].client).toBe('Al Manzil Hotels');
+  });
+
+  it('filters by client or location, case-insensitively', () => {
+    expect(filterDeliveries(deliveries, 'jumeirah').map((d) => d.client)).toEqual(['Nour Cafe Chain']);
+    expect(filterDeliveries(deliveries, 'waha').map((d) => d.client)).toEqual(['Al Waha Restaurants']);
+    expect(filterDeliveries(deliveries, '')).toEqual(deliveries);
   });
 });

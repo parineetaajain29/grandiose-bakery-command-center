@@ -1,4 +1,8 @@
-const TABS = ['Overview', 'Client list', 'Orders', 'Production load', 'Receivables'] as const;
+// 'Production load' was removed (Phase D follow-up): b2b.capacity has no
+// field beyond what Overview's CapacityEconomics panel already shows in
+// full — a dedicated tab would only have repeated it, so it was dropped
+// rather than padded, same honesty standard as removing Company Profile.
+const TABS = ['Overview', 'Client list', 'Orders', 'Receivables'] as const;
 
 export type B2BSubTab = (typeof TABS)[number];
 

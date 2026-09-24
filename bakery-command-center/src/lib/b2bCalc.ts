@@ -99,14 +99,40 @@ export function computePastDuePct(total: number, past60: number): number | null 
   return (past60 / total) * 100;
 }
 
-export type ClientSortKey = 'name' | 'revenue' | 'marginPct' | 'marginalMarginPct' | 'otifPct';
+// Widened for the Client list tab's fuller column set (Phase D follow-up) —
+// every added key is a real B2BClient field already in use elsewhere on the
+// page (ReceivablesByClient, OtifRankedBar, the Excel export), just not
+// previously exposed as a sortable table column. The comparison itself
+// (a[key] - b[key]) is unchanged for every pre-existing key.
+export type ClientSortKey =
+  | 'name'
+  | 'revenue'
+  | 'marginPct'
+  | 'marginalMarginPct'
+  | 'otifPct'
+  | 'serviceCost'
+  | 'onTimeCount'
+  | 'totalDeliveries'
+  | 'paymentTermsDays'
+  | 'receivableAmount'
+  | 'daysOutstanding';
 export type SortDirection = 'asc' | 'desc';
 
-export function sortClients<T extends { name: string; revenue: number; marginPct: number; marginalMarginPct: number; otifPct: number }>(
-  clients: T[],
-  key: ClientSortKey,
-  direction: SortDirection = 'desc',
-): T[] {
+export function sortClients<
+  T extends {
+    name: string;
+    revenue: number;
+    marginPct: number;
+    marginalMarginPct: number;
+    otifPct: number;
+    serviceCost: number;
+    onTimeCount: number;
+    totalDeliveries: number;
+    paymentTermsDays: number;
+    receivableAmount: number;
+    daysOutstanding: number;
+  },
+>(clients: T[], key: ClientSortKey, direction: SortDirection = 'desc'): T[] {
   const sign = direction === 'asc' ? 1 : -1;
   return [...clients].sort((a, b) => {
     if (key === 'name') return sign * a.name.localeCompare(b.name);
@@ -119,6 +145,34 @@ export function filterClients<T extends { name: string; location: string }>(clie
   const q = query.trim().toLowerCase();
   if (q === '') return clients;
   return clients.filter((c) => c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q));
+}
+
+// --- Orders tab (Phase D follow-up) — b2b.recentDeliveries is the entire
+// real delivery dataset (8 records, no date field, no larger history behind
+// it), so these are deliberately small, matching filterClients/sortClients'
+// own shape rather than inventing a heavier order model.
+
+export type DeliverySortKey = 'time' | 'value';
+
+/** `time` is a zero-padded "HH:MM" string (confirmed against all 8 real
+ * records), so a plain lexicographic compare sorts it correctly by clock time. */
+export function sortDeliveries<T extends { time: string; value: number }>(
+  deliveries: T[],
+  key: DeliverySortKey,
+  direction: SortDirection = 'desc',
+): T[] {
+  const sign = direction === 'asc' ? 1 : -1;
+  return [...deliveries].sort((a, b) => {
+    if (key === 'time') return sign * a.time.localeCompare(b.time);
+    return sign * (a.value - b.value);
+  });
+}
+
+/** Case-insensitive substring match on delivery client or location. */
+export function filterDeliveries<T extends { client: string; location: string }>(deliveries: T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (q === '') return deliveries;
+  return deliveries.filter((d) => d.client.toLowerCase().includes(q) || d.location.toLowerCase().includes(q));
 }
 
 // --- Company-wide aggregates, all derived live from the client list ---------

@@ -52,7 +52,7 @@ export function ReceivablesPanel({ receivables }: ReceivablesPanelProps) {
           />
         ))}
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+      <div className="mt-2 flex flex-col gap-1.5">
         {receivables.buckets.map((v, i) => (
           <div key={BUCKET_LABELS[i]} className="flex items-center gap-1.5 font-sans text-xs text-text-secondary">
             <span className={`h-2 w-2 rounded-full ${BUCKET_COLORS[i]}`} />

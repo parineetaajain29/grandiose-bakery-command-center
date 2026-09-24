@@ -7,7 +7,8 @@ import { B2BSubNav, type B2BSubTab } from './B2BSubNav';
 import { RevenueVsCostChart } from './RevenueVsCostChart';
 import { CapacityEconomics } from './CapacityEconomics';
 import { ConcentrationRisk } from './ConcentrationRisk';
-import { AccountTable } from './AccountTable';
+import { AccountTable, DEFAULT_COLUMNS, DETAIL_COLUMNS } from './AccountTable';
+import { OrdersTable } from './OrdersTable';
 import { ReceivablesPanel, BUCKET_LABELS } from './ReceivablesPanel';
 import { DeliveryFeed } from './DeliveryFeed';
 import { DeliveryVolumeShare } from './DeliveryVolumeShare';
@@ -65,14 +66,6 @@ function KpiCard({ eyebrow, value, caption, tone = 'neutral' }: { eyebrow: strin
   );
 }
 
-function Placeholder({ label }: { label: string }) {
-  return (
-    <section className="rounded-card border border-border-subtle bg-bg-panel p-8 text-center">
-      <p className="font-sans text-sm text-text-secondary">{label} — coming in a later phase.</p>
-    </section>
-  );
-}
-
 export function B2BPage() {
   const [tab, setTab] = useState<B2BSubTab>('Overview');
   const [search, setSearch] = useState('');
@@ -123,8 +116,6 @@ export function B2BPage() {
         />
       </div>
 
-      {tab !== 'Overview' && <Placeholder label={tab} />}
-
       {tab === 'Overview' && (
         <>
           <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-4">
@@ -167,15 +158,29 @@ export function B2BPage() {
             <OtifRankedBar clients={b2b.clients} />
           </div>
 
-          <AccountTable clients={b2b.clients} searchQuery={search} />
+          <AccountTable clients={b2b.clients} searchQuery={search} columns={DEFAULT_COLUMNS} />
 
-          <ReceivablesByClient clients={b2b.clients} />
-
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <ReceivablesPanel receivables={receivables} />
-            <DeliveryFeed deliveries={b2b.recentDeliveries} />
-          </div>
+          <DeliveryFeed deliveries={b2b.recentDeliveries} />
         </>
+      )}
+
+      {tab === 'Client list' && (
+        <AccountTable
+          clients={b2b.clients}
+          searchQuery={search}
+          columns={[...DEFAULT_COLUMNS, ...DETAIL_COLUMNS]}
+          eyebrow="Client Directory"
+          title="Full client directory"
+        />
+      )}
+
+      {tab === 'Orders' && <OrdersTable deliveries={b2b.recentDeliveries} searchQuery={search} />}
+
+      {tab === 'Receivables' && (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <ReceivablesPanel receivables={receivables} />
+          <ReceivablesByClient clients={b2b.clients} />
+        </div>
       )}
     </div>
   );
