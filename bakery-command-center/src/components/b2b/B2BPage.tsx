@@ -118,6 +118,15 @@ export function B2BPage() {
 
       {tab === 'Overview' && (
         <>
+          {/* The search box's only effect on this tab is filtering the Account
+              profitability table far below — with 7+ sections in between, a
+              search read as "does nothing". Once there's an active query, pull
+              that same table (same instance, not a duplicate) straight under
+              the search box so the result is the first thing the user sees. */}
+          {search.trim() !== '' && (
+            <AccountTable clients={b2b.clients} searchQuery={search} columns={DEFAULT_COLUMNS} eyebrow="Search Results" />
+          )}
+
           <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-border-subtle bg-border-subtle shadow-card sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard eyebrow="B2B Revenue" value={formatCurrencyPrecise(summary.revenue)} caption={`${formatDelta(b2b.summary.revenueDeltaPct)} MoM`} tone={deltaTone(b2b.summary.revenueDeltaPct)} />
             <KpiCard
@@ -158,7 +167,11 @@ export function B2BPage() {
             <OtifRankedBar clients={b2b.clients} />
           </div>
 
-          <AccountTable clients={b2b.clients} searchQuery={search} columns={DEFAULT_COLUMNS} />
+          {/* Hidden while a search is active — it's already pinned to the top
+              above, and showing it twice on the same tab would be confusing. */}
+          {search.trim() === '' && (
+            <AccountTable clients={b2b.clients} searchQuery={search} columns={DEFAULT_COLUMNS} />
+          )}
 
           <DeliveryFeed deliveries={b2b.recentDeliveries} />
         </>
