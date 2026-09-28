@@ -1,4 +1,4 @@
-type DataSource = 'illustrative' | 'local' | 'gm-confirmed' | 'live-research' | 'user-entered';
+type DataSource = 'illustrative' | 'local' | 'gm-confirmed' | 'live-research' | 'user-entered' | 'uncited-commentary';
 
 const LABEL: Record<DataSource, string> = {
   illustrative: 'Illustrative / Demo',
@@ -6,6 +6,10 @@ const LABEL: Record<DataSource, string> = {
   'gm-confirmed': 'GM Confirmed',
   'live-research': 'External Research — Live',
   'user-entered': 'Your Custom Data',
+  // Exact same wording RiskConfidenceGauge already uses for this same case
+  // (research.sourcesRetrieved === false) so the badge and the gauges below
+  // it on AI Risk Intelligence's Understand stage never contradict each other.
+  'uncited-commentary': 'Uncited Model Commentary',
 };
 
 const CLASS: Record<DataSource, string> = {
@@ -23,6 +27,10 @@ const CLASS: Record<DataSource, string> = {
   // only (Optimization Lab's custom-data mode) — neither a known-demo figure
   // nor a GM-confirmed one, so neither existing tone would be honest here.
   'user-entered': 'border-border-subtle text-text-secondary',
+  // Same orange tone as 'illustrative' — a research run where the web search
+  // found no sources is not verified external data either, so it gets the
+  // same "treat this cautiously" color as demo figures.
+  'uncited-commentary': 'border-accent-orange/40 text-accent-orange',
 };
 
 /**

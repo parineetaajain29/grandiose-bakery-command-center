@@ -101,7 +101,11 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <DataSourceBadge source="live-research" />
+          {/* Was hardcoded to "live-research" regardless of whether the web
+              search actually found anything — contradicted the orange banner
+              below and the two RiskConfidenceGauges further down whenever
+              sourcesRetrieved was false. Now matches their same condition. */}
+          <DataSourceBadge source={research.sourcesRetrieved ? 'live-research' : 'uncited-commentary'} />
           <button
             type="button"
             onClick={() => setShowSources((v) => !v)}
