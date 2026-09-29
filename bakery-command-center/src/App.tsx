@@ -27,6 +27,7 @@ import type { AnalysisContext, Kpis, PeriodGranularity, SankeyData, ScenarioKey 
 import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSignals';
 import { exportCsv, exportXlsx, type TableSheet } from './data/api';
 import { ExportMenu } from './components/shared/ExportMenu';
+import { CopilotViewContextProvider } from './contexts/CopilotContext';
 
 type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
 
@@ -274,9 +275,21 @@ function App() {
   const displayPage = validPages.includes(page) ? page : allowedPages[0];
   const visiblePages = APP_PAGES.filter((p) => allowedPages.includes(p.key));
 
+  // Snapshot of "what is the user currently looking at", handed to Grandiose
+  // Copilot as view context. App.tsx already owns every piece of this state
+  // (page/tab/scenario/period), so this is read-only derivation, not new
+  // state — division is intentionally omitted here since it isn't tracked
+  // at this level (SKU Performance owns its own division filter locally).
+  const copilotViewContext = {
+    page: displayPage,
+    tab: displayPage === 'commandCenter' ? ccTab : undefined,
+    period: dateLabel,
+  };
+
   return (
-    <div className="min-h-screen bg-bg-primary text-text-primary">
-      <Header subtitle={cell.subtitle} dateLabel={dateLabel} user={user} onLogout={doLogout} />
+    <CopilotViewContextProvider value={copilotViewContext}>
+      <div className="min-h-screen bg-bg-primary text-text-primary">
+        <Header subtitle={cell.subtitle} dateLabel={dateLabel} user={user} onLogout={doLogout} />
 
       <main className="mx-auto flex max-w-[1400px] flex-col gap-8 px-6 py-8 sm:px-10">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -440,7 +453,8 @@ function App() {
           </p>
         </footer>
       </main>
-    </div>
+      </div>
+    </CopilotViewContextProvider>
   );
 }
 
