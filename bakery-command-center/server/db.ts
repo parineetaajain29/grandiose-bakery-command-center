@@ -268,4 +268,34 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_copilot_messages_employee ON copilot_messages(employee_id, created_at);
 `);
 
+// Supplier Intelligence — the 4th AI Risk Intelligence stage ("Research ->
+// Understand -> Suppliers -> Prepare"). Same caching-by-params-hash pattern
+// as ai_research (params_hash covers material + procurement spec,
+// canonicalized), and the same "sources come only from the API's own
+// citation/action.sources fields" rule — but stricter: supplierIntelligence.ts
+// additionally drops any individual supplier row that isn't backed by at
+// least one citation before result_json is ever written here, so everything
+// already in this table has passed that per-row check, not just a
+// whole-response one. research_id links back to the ai_research row whose
+// affected-material list this search was launched from (nullable — loose
+// FK, matching every other table's style; sqlite doesn't enforce it without
+// PRAGMA foreign_keys, and this app doesn't turn that on).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS supplier_research (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    research_id INTEGER REFERENCES ai_research(id),
+    material TEXT NOT NULL,
+    spec_json TEXT NOT NULL,
+    params_hash TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    cited_sources_json TEXT NOT NULL,
+    all_sources_json TEXT NOT NULL,
+    created_by_employee_id TEXT NOT NULL REFERENCES employees(id),
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_supplier_research_params_hash ON supplier_research(params_hash);
+  CREATE INDEX IF NOT EXISTS idx_supplier_research_research_id ON supplier_research(research_id);
+`);
+
 export { DB_PATH };
