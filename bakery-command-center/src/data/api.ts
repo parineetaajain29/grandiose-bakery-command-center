@@ -852,3 +852,96 @@ export interface CopilotAnswer {
 export function askCopilot(question: string, viewContext: CopilotViewContext, conversationId?: string): Promise<CopilotAnswer> {
   return sendJson('POST', '/api/copilot/ask', { question, viewContext, conversationId });
 }
+
+// --- AI Presentation Builder (server/services/presentationBuilder.ts) ---
+// Lives inside Data Processor as a second tab, not a standalone page — see
+// DataProcessorPage.tsx's "Process Data | Build Presentation" split. Backed
+// by the same manager/hr_admin server-side gate as the rest of Data
+// Processor (server/routes/presentationBuilder.ts).
+
+export type PresentationStyle = 'executive_summary' | 'management_analysis' | 'detailed_review';
+
+// Mirrors presentationPlanner.ts's own MIN_SLIDES/MAX_SLIDES constants —
+// duplicated here (not imported) because this is a browser bundle and that
+// file pulls in the server-only @anthropic-ai/sdk; kept in sync manually,
+// same trade-off this app already accepts for RESOURCE_LABEL-style constant
+// pairs between client and server.
+export const PRESENTATION_MIN_SLIDES = 4;
+export const PRESENTATION_MAX_SLIDES = 16;
+
+export interface GeneratePresentationRequest {
+  objective: string;
+  slideCount: number;
+  style: PresentationStyle;
+  audience?: string;
+}
+
+export interface PresentationHistoryEntry {
+  id: number;
+  objective: string;
+  slideCount: number;
+  audience: string | null;
+  style: string;
+  dataSource: 'upload' | 'dashboard';
+  modulesUsed: string[];
+  slideTitles: { order: number; layout: string; title: string }[];
+  warnings: string[];
+  anyDemoData: boolean;
+  createdByEmployeeId: string;
+  createdAt: string;
+}
+
+export function getPresentationBuilderStatus(): Promise<{ anthropicConfigured: boolean }> {
+  return getJson('/api/presentation-builder/status');
+}
+
+export function listPresentationHistory(): Promise<PresentationHistoryEntry[]> {
+  return getJson('/api/presentation-builder/history');
+}
+
+export interface GeneratedPresentation {
+  blob: Blob;
+  filename: string;
+  warningCount: number;
+  historyId: number | null;
+}
+
+/** Parses `attachment; filename="foo.pptx"` — the browser's own Content-Disposition parsing (via <a download>) only works for same-origin GET navigations, not a fetch()'d POST response, so this is done by hand. Falls back to a generic name if the header is ever missing or unparseable, never throws over a cosmetic filename issue. */
+function filenameFromContentDisposition(header: string | null): string {
+  const match = header?.match(/filename="([^"]+)"/);
+  return match?.[1] ?? 'presentation.pptx';
+}
+
+/** Throws with `.reason` unset (the route never sets one — see presentationBuilder.ts route comments) but a real `.message` for every failure case: bad request, not configured (409), or an upstream Anthropic failure (502). The caller shows `.message` directly, same convention as uploadFilesForInterpretation. */
+export async function generatePresentation(request: GeneratePresentationRequest): Promise<GeneratedPresentation> {
+  const res = await fetch('/api/presentation-builder/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    throw new Error(payload?.error ?? `Presentation generation failed: ${res.status} ${res.statusText}`);
+  }
+  const warningCount = Number(res.headers.get('X-Presentation-Warnings') ?? '0');
+  const historyIdHeader = res.headers.get('X-Presentation-History-Id');
+  const blob = await res.blob();
+  return {
+    blob,
+    filename: filenameFromContentDisposition(res.headers.get('Content-Disposition')),
+    warningCount: Number.isFinite(warningCount) ? warningCount : 0,
+    historyId: historyIdHeader ? Number(historyIdHeader) : null,
+  };
+}
+
+/** Quick-preset objectives (spec's suggested starting points) — always paired with a free-text field in the UI so a manager can override or write a fully custom objective instead. */
+export const PRESENTATION_PRESETS: { label: string; objective: string }[] = [
+  { label: 'Executive Performance Review', objective: 'A concise executive performance review covering overall bakery performance, key attention items, and recommended actions.' },
+  { label: 'Cost & Wastage Analysis', objective: 'An analysis of production wastage performance against target, broken down by division, with recommended actions.' },
+  { label: 'SKU Performance Review', objective: 'A review of SKU performance, highlighting the top-contributing products and division totals.' },
+  { label: 'B2B Portfolio Review', objective: 'A review of the B2B client portfolio, covering delivery commitment, revenue, and receivables exposure.' },
+  { label: 'Workforce Performance', objective: 'A workforce performance review highlighting employees whose efficiency is furthest below their department benchmark, and what may be driving it.' },
+  { label: 'Risk & Supply Chain Brief', objective: 'A brief on the latest AI Risk Intelligence research and any related supplier alternatives.' },
+  { label: 'Optimization Results', objective: 'A summary of the production-mix optimization results, comparing current and optimized production.' },
+  { label: 'Custom Presentation', objective: '' },
+];

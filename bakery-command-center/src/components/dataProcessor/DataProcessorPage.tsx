@@ -9,6 +9,8 @@ import {
   type DataProcessorUpload,
   type SettingsStatus,
 } from '../../data/api';
+import { DataProcessorSubNav, type DataProcessorSubTab } from './DataProcessorSubNav';
+import { PresentationBuilder } from './PresentationBuilder';
 
 const ACCEPTED = '.pdf,.docx,.xlsx,.xls,.csv';
 
@@ -256,6 +258,8 @@ interface DataProcessorPageProps {
  * matching the same pattern as SettingsPage, not the primary gate.
  */
 export function DataProcessorPage({ user }: DataProcessorPageProps) {
+  const [tab, setTab] = useState<DataProcessorSubTab>('Process Data');
+
   if (user.role !== 'manager' && user.role !== 'hr_admin') {
     return (
       <section className="rounded-card border border-border-subtle bg-bg-panel p-8 text-center">
@@ -264,5 +268,10 @@ export function DataProcessorPage({ user }: DataProcessorPageProps) {
     );
   }
 
-  return <Workspace />;
+  return (
+    <div className="flex flex-col gap-5">
+      <DataProcessorSubNav active={tab} onChange={setTab} />
+      {tab === 'Process Data' ? <Workspace /> : <PresentationBuilder />}
+    </div>
+  );
 }
