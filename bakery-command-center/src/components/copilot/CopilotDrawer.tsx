@@ -1,7 +1,67 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { askCopilot, type CopilotAction } from '../../data/api';
 import { useCopilotViewContext } from '../../contexts/CopilotContext';
 import { CroissantIcon, CloseIcon, SendIcon } from './icons';
+
+/** Renders `**bold**` spans within a single line of Copilot's answer text —
+ * explainResult (copilot.ts) is told to wrap every number it states in
+ * **double asterisks**, so the important figures actually stand out instead
+ * of blending into a paragraph. No markdown library — this is the only
+ * markdown-like syntax Copilot ever emits, so a full parser is unneeded. */
+function renderInlineBold(line: string): ReactNode[] {
+  return line
+    .split(/(\*\*[^*]+\*\*)/g)
+    .filter((part) => part !== '')
+    .map((part, i) =>
+      part.startsWith('**') && part.endsWith('**') ? (
+        <strong key={i} className="font-semibold text-text-primary">
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        <span key={i}>{part}</span>
+      ),
+    );
+}
+
+/** Renders Copilot's answer text as a lead sentence plus bullet points —
+ * explainResult is told to answer as "- " lines, one fact per bullet, so
+ * numbers stay scannable instead of buried in a dense paragraph. Plain
+ * (non-bulleted) lines render as short paragraphs, same styling either way. */
+function renderMessageText(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  let bulletBuffer: string[] = [];
+
+  function flushBullets() {
+    if (bulletBuffer.length === 0) return;
+    const items = bulletBuffer;
+    nodes.push(
+      <ul key={`ul-${nodes.length}`} className="mt-1.5 list-disc space-y-1 pl-4 font-sans text-sm">
+        {items.map((item, i) => (
+          <li key={i}>{renderInlineBold(item)}</li>
+        ))}
+      </ul>,
+    );
+    bulletBuffer = [];
+  }
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (line.startsWith('- ')) {
+      bulletBuffer.push(line.slice(2));
+      continue;
+    }
+    flushBullets();
+    if (line !== '') {
+      nodes.push(
+        <p key={`p-${nodes.length}`} className="font-sans text-sm">
+          {renderInlineBold(line)}
+        </p>,
+      );
+    }
+  }
+  flushBullets();
+  return nodes;
+}
 
 interface CopilotDrawerProps {
   open: boolean;
@@ -139,7 +199,7 @@ export function CopilotDrawer({ open, onClose, onNavigate }: CopilotDrawerProps)
                       : 'border border-border-subtle bg-bg-panel-raised text-text-primary'
                 }`}
               >
-                <p className="whitespace-pre-wrap font-sans text-sm">{m.text}</p>
+                <div className="space-y-1">{m.role === 'assistant' && !m.isError ? renderMessageText(m.text) : <p className="whitespace-pre-wrap font-sans text-sm">{m.text}</p>}</div>
 
                 {m.source && <p className="mt-2 font-mono text-[10px] tracking-[0.08em] text-text-tertiary">SOURCE: {m.source.toUpperCase()}</p>}
 

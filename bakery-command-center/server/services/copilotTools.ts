@@ -54,8 +54,36 @@ export interface ToolSuccess<T> {
 
 export type ToolResult<T> = ToolSuccess<T> | ToolError;
 
+/**
+ * Recursively rounds every finite number in a value to at most `decimals`
+ * places (default 2). Computed figures like True Efficiency come out of
+ * labourCalc.ts as raw division results (74.81767279913424, not 74.82) — the
+ * app's own React components format those at display time with toFixed(1),
+ * but Copilot hands this data straight to explainResult, which is
+ * deliberately forbidden from rounding numbers itself (that would count as
+ * "recalculating"). So the rounding has to happen here, once, at the
+ * source — every tool result is clean before it ever reaches the LLM, the
+ * UI's evidence panel, or conversation history.
+ */
+function roundNumbers<T>(value: T, decimals = 2): T {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return value;
+    const factor = 10 ** decimals;
+    return (Math.round(value * factor) / factor) as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => roundNumbers(v, decimals)) as unknown as T;
+  if (value !== null && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      result[k] = roundNumbers(v, decimals);
+    }
+    return result as T;
+  }
+  return value;
+}
+
 function ok<T>(data: T, source: string): ToolSuccess<T> {
-  return { ok: true, source, data };
+  return { ok: true, source, data: roundNumbers(data) };
 }
 
 function err(code: ToolError['code'], message: string, candidates?: ToolError['candidates']): ToolError {
