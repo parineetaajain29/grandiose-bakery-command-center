@@ -65,7 +65,12 @@ export type ToolResult<T> = ToolSuccess<T> | ToolError;
  * source — every tool result is clean before it ever reaches the LLM, the
  * UI's evidence panel, or conversation history.
  */
-function roundNumbers<T>(value: T, decimals = 2): T {
+// roundNumbers/ok/err are also exported (beyond this file's own use) so
+// presentationData.ts can build the exact same ToolResult<T> shape —
+// rounded once at the source, same { ok, source, data } / { ok:false,
+// code, message } envelope — rather than a second, slightly-different
+// convention for presentation data. No behavior change to Copilot itself.
+export function roundNumbers<T>(value: T, decimals = 2): T {
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) return value;
     const factor = 10 ** decimals;
@@ -82,11 +87,11 @@ function roundNumbers<T>(value: T, decimals = 2): T {
   return value;
 }
 
-function ok<T>(data: T, source: string): ToolSuccess<T> {
+export function ok<T>(data: T, source: string): ToolSuccess<T> {
   return { ok: true, source, data: roundNumbers(data) };
 }
 
-function err(code: ToolError['code'], message: string, candidates?: ToolError['candidates']): ToolError {
+export function err(code: ToolError['code'], message: string, candidates?: ToolError['candidates']): ToolError {
   return { ok: false, code, message, candidates };
 }
 
@@ -278,7 +283,12 @@ export interface AttentionQuery {
   quarter?: string;
 }
 
-function resolveCell(query: AttentionQuery): { cell: PeriodCell; granularity: 'month' | 'quarter' | 'ytd'; month: string; quarter: string } | null {
+// Exported (beyond this file's own use) so presentationData.ts can resolve
+// the same scenario/period cell Command Center itself uses — e.g. for a
+// wastage slide's bakery-wide figure — rather than re-deriving period
+// resolution a second way. No behavior change: this was module-private
+// before, now also usable from one other file.
+export function resolveCell(query: AttentionQuery): { cell: PeriodCell; granularity: 'month' | 'quarter' | 'ytd'; month: string; quarter: string } | null {
   const scenarioKey = query.scenario ?? 'actuals';
   const granularity = query.granularity ?? 'month';
   const month = query.month ?? 'Jul';
