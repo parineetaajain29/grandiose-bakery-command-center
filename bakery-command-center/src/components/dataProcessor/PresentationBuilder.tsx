@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react';
 import {
   generatePresentation,
   getPresentationBuilderStatus,
+  listDataProcessorUploads,
   listPresentationHistory,
   PRESENTATION_MAX_SLIDES,
   PRESENTATION_MIN_SLIDES,
   PRESENTATION_PRESETS,
+  type DataProcessorUpload,
   type GeneratedPresentation,
   type PresentationHistoryEntry,
   type PresentationStyle,
 } from '../../data/api';
+
+type DataSource = 'dashboard' | 'upload';
 
 const STYLE_OPTIONS: { value: PresentationStyle; label: string; blurb: string }[] = [
   { value: 'executive_summary', label: 'Executive Summary', blurb: 'Fewer, higher-level slides' },
@@ -40,6 +44,9 @@ export function PresentationBuilder() {
   const [slideCount, setSlideCount] = useState(8);
   const [style, setStyle] = useState<PresentationStyle>('management_analysis');
   const [audience, setAudience] = useState('');
+  const [dataSource, setDataSource] = useState<DataSource>('dashboard');
+  const [uploads, setUploads] = useState<DataProcessorUpload[] | null>(null);
+  const [uploadId, setUploadId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeneratedPresentation | null>(null);
@@ -57,7 +64,24 @@ export function PresentationBuilder() {
     listPresentationHistory()
       .then(setHistory)
       .catch(() => setHistory([]));
+    listDataProcessorUploads()
+      .then(setUploads)
+      .catch(() => setUploads([]));
   }, []);
+
+  const confirmedUploads = (uploads ?? []).filter((u) => u.status === 'confirmed');
+
+  // Once uploads load (or change), keep the selection valid rather than
+  // pointing at nothing or at an upload that's no longer confirmed — picks
+  // the most recent confirmed upload as a reasonable default, never forces
+  // one silently if the person had already chosen a different one that's
+  // still valid.
+  useEffect(() => {
+    if (dataSource !== 'upload') return;
+    if (uploadId !== null && confirmedUploads.some((u) => u.id === uploadId)) return;
+    setUploadId(confirmedUploads[0]?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- confirmedUploads is derived fresh every render from `uploads`; depending on `uploads` alone avoids re-running this on every render from a new array identity.
+  }, [dataSource, uploads]);
 
   // Revokes the PREVIOUS blob URL whenever downloadUrl changes to a new one, and the current one on unmount — a blob URL that's no longer referenced anywhere is otherwise a memory leak for the lifetime of the tab.
   useEffect(() => {
@@ -73,13 +97,21 @@ export function PresentationBuilder() {
 
   async function handleGenerate() {
     if (!objective.trim()) return;
+    if (dataSource === 'upload' && uploadId === null) return;
     setBusy(true);
     setProgressIndex(0);
     setError(null);
     setResult(null);
     setPreviewEntry(null);
     try {
-      const generated = await generatePresentation({ objective: objective.trim(), slideCount, style, audience: audience.trim() || undefined });
+      const generated = await generatePresentation({
+        objective: objective.trim(),
+        slideCount,
+        style,
+        audience: audience.trim() || undefined,
+        dataSource,
+        uploadId: dataSource === 'upload' ? (uploadId ?? undefined) : undefined,
+      });
       setDownloadUrl(URL.createObjectURL(generated.blob));
       setResult(generated);
 
@@ -111,6 +143,64 @@ export function PresentationBuilder() {
         )}
 
         <div className="mt-5 flex flex-col gap-4">
+          <div>
+            <p className="font-sans text-xs font-medium text-text-tertiary">Data source</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setDataSource('dashboard')}
+                className={`rounded-full border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors ${
+                  dataSource === 'dashboard'
+                    ? 'border-accent-blue bg-accent-blue text-[#04070d]'
+                    : 'border-border-subtle bg-bg-primary text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
+                }`}
+              >
+                Dashboard data
+              </button>
+              <button
+                type="button"
+                onClick={() => setDataSource('upload')}
+                className={`rounded-full border px-3.5 py-1.5 font-sans text-xs font-medium transition-colors ${
+                  dataSource === 'upload'
+                    ? 'border-accent-blue bg-accent-blue text-[#04070d]'
+                    : 'border-border-subtle bg-bg-primary text-text-secondary hover:border-accent-blue/50 hover:text-text-primary'
+                }`}
+              >
+                Uploaded file
+              </button>
+            </div>
+            {dataSource === 'dashboard' && (
+              <p className="mt-1.5 font-sans text-xs text-text-tertiary">Built from the live dashboard figures — Command Center, SKU, B2B, Optimization Lab, and the rest.</p>
+            )}
+            {dataSource === 'upload' && uploads !== null && confirmedUploads.length === 0 && (
+              <p className="mt-1.5 font-sans text-xs text-accent-orange">
+                No confirmed uploads yet — process and confirm a file on the Process Data tab first.
+              </p>
+            )}
+            {dataSource === 'upload' && confirmedUploads.length > 0 && (
+              <div className="mt-2">
+                <label htmlFor="pb-upload" className="font-sans text-xs font-medium text-text-tertiary">
+                  Which upload?
+                </label>
+                <select
+                  id="pb-upload"
+                  value={uploadId ?? ''}
+                  onChange={(e) => setUploadId(Number(e.target.value))}
+                  className="mt-1.5 w-full max-w-sm rounded-lg border border-border-subtle bg-bg-primary px-3.5 py-2.5 font-sans text-sm text-text-primary focus:border-accent-blue/60 focus:outline-none"
+                >
+                  {confirmedUploads.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.filename} — {new Date(u.confirmedAt ?? u.uploadedAt).toLocaleDateString('en-AE')}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 font-sans text-xs text-text-tertiary">
+                  Built from this file's own interpreted data only — figures come from what you confirmed on the Process Data tab, not the live dashboard.
+                </p>
+              </div>
+            )}
+          </div>
+
           <div>
             <p className="font-sans text-xs font-medium text-text-tertiary">Quick presets</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -194,7 +284,7 @@ export function PresentationBuilder() {
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={busy || !objective.trim() || (status ? !status.anthropicConfigured : false)}
+              disabled={busy || !objective.trim() || (status ? !status.anthropicConfigured : false) || (dataSource === 'upload' && uploadId === null)}
               className="whitespace-nowrap rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {busy ? 'Generating…' : result ? 'Regenerate' : 'Generate presentation'}

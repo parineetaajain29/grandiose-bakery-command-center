@@ -874,6 +874,10 @@ export interface GeneratePresentationRequest {
   slideCount: number;
   style: PresentationStyle;
   audience?: string;
+  /** Defaults to 'dashboard' server-side when omitted — matches presentationBuilder.ts's own request shape (Step 9). */
+  dataSource?: 'dashboard' | 'upload';
+  /** Required when dataSource is 'upload' — must be a CONFIRMED entry from listDataProcessorUploads(). */
+  uploadId?: number;
 }
 
 export interface PresentationHistoryEntry {
