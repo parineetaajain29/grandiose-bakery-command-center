@@ -89,11 +89,11 @@ function buildWastageBreakdownChart(data: WastageBreakdown): ChartSpec {
   };
 }
 
-function buildTrendChart(data: TrendSeries): ChartSpec {
+function buildTrendChart(data: TrendSeries, accent: string): ChartSpec {
   const spec: ChartSpec = {
     kind: 'line',
     categories: data.points.map((p) => p.month),
-    series: [{ name: seriesLabelForTrend(data.metric), values: data.points.map((p) => p.value), color: DECK_COLORS.accentBlue }],
+    series: [{ name: seriesLabelForTrend(data.metric), values: data.points.map((p) => p.value), color: accent }],
     valueFormat: '%',
   };
   if (data.metric === 'foodCost' && typeof data.targetFoodCostPct === 'number') {
@@ -116,12 +116,12 @@ function seriesLabelForTrend(metric: TrendSeries['metric']): string {
   }
 }
 
-function buildSkuRankingChart(data: Sku[], metric: SkuMetric): ChartSpec {
+function buildSkuRankingChart(data: Sku[], metric: SkuMetric, accent: string): ChartSpec {
   const valueKey = metric === 'contribution' ? 'contributionPct' : metric === 'revenue' ? 'salesAed' : 'units';
   return {
     kind: 'bar',
     categories: data.map((s) => s.product),
-    series: [{ name: seriesLabelForSkuMetric(metric), values: data.map((s) => s[valueKey] as number), color: DECK_COLORS.accentBlue }],
+    series: [{ name: seriesLabelForSkuMetric(metric), values: data.map((s) => s[valueKey] as number), color: accent }],
     valueFormat: metric === 'contribution' ? '%' : metric === 'revenue' ? 'AED' : 'number',
   };
 }
@@ -137,28 +137,28 @@ function seriesLabelForSkuMetric(metric: SkuMetric): string {
   }
 }
 
-function buildDivisionSummaryChart(data: DivisionSummaryRow[]): ChartSpec {
+function buildDivisionSummaryChart(data: DivisionSummaryRow[], accent: string): ChartSpec {
   return {
     kind: 'bar',
     categories: data.map((d) => d.division),
-    series: [{ name: 'Revenue', values: data.map((d) => d.salesAed), color: DECK_COLORS.accentBlue }],
+    series: [{ name: 'Revenue', values: data.map((d) => d.salesAed), color: accent }],
     valueFormat: 'AED',
   };
 }
 
-function buildB2BRankingChart(data: { name: string; value: number; unit: string }[]): ChartSpec {
+function buildB2BRankingChart(data: { name: string; value: number; unit: string }[], accent: string): ChartSpec {
   const unit = data[0]?.unit ?? '';
   const isAed = unit.toLowerCase().includes('aed');
   const isPct = unit.includes('%');
   return {
     kind: 'bar',
     categories: data.map((d) => d.name),
-    series: [{ name: unit || 'Value', values: data.map((d) => d.value), color: DECK_COLORS.accentBlue }],
+    series: [{ name: unit || 'Value', values: data.map((d) => d.value), color: accent }],
     valueFormat: isAed ? 'AED' : isPct ? '%' : 'number',
   };
 }
 
-function buildB2BSummaryChart(data: DerivedB2BSummary & { receivables: { total: number; past60: number; buckets: [number, number, number, number] } }): ChartSpec {
+function buildB2BSummaryChart(data: DerivedB2BSummary & { receivables: { total: number; past60: number; buckets: [number, number, number, number] } }, accent: string): ChartSpec {
   const buckets = data.receivables.buckets;
   return {
     kind: 'bar',
@@ -169,8 +169,10 @@ function buildB2BSummaryChart(data: DerivedB2BSummary & { receivables: { total: 
         values: buckets,
         // Escalating severity by age — the only place this file uses a 4-step
         // gradient, deliberately restrained to this one aging-bucket case
-        // rather than a general-purpose rainbow scale.
-        color: [DECK_COLORS.accentBlue, DECK_COLORS.accentBlue, DECK_COLORS.accentAmber, DECK_COLORS.accentRed],
+        // rather than a general-purpose rainbow scale. The "not yet worrying"
+        // buckets use the deck's rotating accent (no special meaning of their
+        // own); amber/red stay fixed since they mean something specific.
+        color: [accent, accent, DECK_COLORS.accentAmber, DECK_COLORS.accentRed],
       },
     ],
     valueFormat: 'AED',
@@ -196,14 +198,14 @@ function buildEmployeeAttentionChart(data: AttentionCandidate[]): ChartSpec {
 }
 
 /** Only 'optimal' results are chartable — an 'infeasible' result has no current/optimized pair to compare, so it renders as a text/table notice on the slide instead (pptxBuilder.ts's job, not this file's). */
-function buildOptimizationChart(result: OptimizationOptimalResult): ChartSpec {
+function buildOptimizationChart(result: OptimizationOptimalResult, accent: string): ChartSpec {
   const topChanges = [...result.sku_changes].sort((a, b) => Math.abs(b.absolute_change) - Math.abs(a.absolute_change)).slice(0, 8);
   return {
     kind: 'grouped_bar',
     categories: topChanges.map((c) => c.sku),
     series: [
       { name: 'Current production', values: topChanges.map((c) => c.current_production), color: DECK_COLORS.neutral },
-      { name: 'Optimized production', values: topChanges.map((c) => c.optimized_production), color: DECK_COLORS.accentBlue },
+      { name: 'Optimized production', values: topChanges.map((c) => c.optimized_production), color: accent },
     ],
     valueFormat: 'number',
   };
@@ -220,12 +222,12 @@ function buildOptimizationChart(result: OptimizationOptimalResult): ChartSpec {
  * no numeric columns renders NO_CHART and falls back to the categorical
  * table pptxBuilder.ts builds from the same UploadSheetMetrics instead.
  */
-function buildUploadSheetChart(data: UploadSheetMetrics): ChartSpec {
+function buildUploadSheetChart(data: UploadSheetMetrics, accent: string): ChartSpec {
   if (data.numericColumns.length === 0) return NO_CHART;
   return {
     kind: 'bar',
     categories: data.numericColumns.map((c) => c.column),
-    series: [{ name: 'Average value', values: data.numericColumns.map((c) => c.average), color: DECK_COLORS.accentBlue }],
+    series: [{ name: 'Average value', values: data.numericColumns.map((c) => c.average), color: accent }],
     valueFormat: 'number',
   };
 }
@@ -238,8 +240,8 @@ function buildUploadSheetChart(data: UploadSheetMetrics): ChartSpec {
 // the fixed union for the switch below, keeping it exhaustive with no
 // `default` needed — same pattern presentationNarrative.ts uses.
 // ---------------------------------------------------------------------------
-export function buildChartSpec(categoryId: DataCategoryId, data: unknown, params?: Record<string, unknown>): ChartSpec {
-  if (isUploadCategoryId(categoryId)) return buildUploadSheetChart(data as UploadSheetMetrics);
+export function buildChartSpec(categoryId: DataCategoryId, data: unknown, accent: string, params?: Record<string, unknown>): ChartSpec {
+  if (isUploadCategoryId(categoryId)) return buildUploadSheetChart(data as UploadSheetMetrics, accent);
 
   switch (categoryId) {
     case 'wastage_breakdown':
@@ -248,23 +250,23 @@ export function buildChartSpec(categoryId: DataCategoryId, data: unknown, params
     case 'trend_wastage':
     case 'trend_margin':
     case 'trend_cost_unit':
-      return buildTrendChart(data as TrendSeries);
+      return buildTrendChart(data as TrendSeries, accent);
     case 'sku_ranking': {
       const metric: SkuMetric = params?.metric === 'revenue' || params?.metric === 'units' ? params.metric : 'contribution';
-      return buildSkuRankingChart(data as Sku[], metric);
+      return buildSkuRankingChart(data as Sku[], metric, accent);
     }
     case 'sku_division_summary':
-      return buildDivisionSummaryChart(data as DivisionSummaryRow[]);
+      return buildDivisionSummaryChart(data as DivisionSummaryRow[], accent);
     case 'b2b_ranking':
-      return buildB2BRankingChart(data as { name: string; value: number; unit: string }[]);
+      return buildB2BRankingChart(data as { name: string; value: number; unit: string }[], accent);
     case 'b2b_summary':
-      return buildB2BSummaryChart(data as DerivedB2BSummary & { receivables: { total: number; past60: number; buckets: [number, number, number, number] } });
+      return buildB2BSummaryChart(data as DerivedB2BSummary & { receivables: { total: number; past60: number; buckets: [number, number, number, number] } }, accent);
     case 'employee_attention':
       return buildEmployeeAttentionChart(data as AttentionCandidate[]);
     case 'optimization_snapshot': {
       const snapshot = data as { result: OptimizationResult; isDemoData: boolean };
       if (snapshot.result.status !== 'optimal') return NO_CHART;
-      return buildOptimizationChart(snapshot.result);
+      return buildOptimizationChart(snapshot.result, accent);
     }
     case 'command_center_attention': // list of qualitative flags — rendered as a table/list on the slide, not a chart
     case 'ai_risk_research': // narrative + supplier table content — not chart-shaped

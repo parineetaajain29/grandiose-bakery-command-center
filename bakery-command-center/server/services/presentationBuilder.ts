@@ -11,6 +11,7 @@ import type { EmployeeSession } from '../auth.ts';
 import { planPresentation, MIN_SLIDES, MAX_SLIDES, type PresentationStyle, type DataCategoryId, type DataCategoryInfo, DATA_CATEGORY_CATALOG } from './presentationPlanner.ts';
 import { buildPresentationNarrative } from './presentationNarrative.ts';
 import { buildPresentationPptx } from './pptxBuilder.ts';
+import { pickRandomTheme } from './presentationTheme.ts';
 import type { AttentionQuery, ToolResult } from './copilotTools.ts';
 import { getUpload } from './dataProcessor.ts';
 import { aggregateUploadForPresentation } from './presentationUploadData.ts';
@@ -102,7 +103,12 @@ export async function generatePresentation(request: GeneratePresentationRequest,
     categoryCatalog,
     uploadData: uploadDataMap,
   });
-  const { buffer, warnings: buildWarnings } = await buildPresentationPptx({ plan: planOutcome.plan, narrative });
+  // One theme per generation (presentationTheme.ts) — every slide in this
+  // deck renders with it, but the next deck generated (even for the same
+  // objective) can land on a different one, per the user's "generate
+  // different colours every time" request.
+  const theme = pickRandomTheme();
+  const { buffer, warnings: buildWarnings } = await buildPresentationPptx({ plan: planOutcome.plan, narrative, theme });
   const warnings = [...uploadWarnings, ...buildWarnings];
 
   const modulesUsed = [...new Set(planOutcome.plan.slides.flatMap((s) => s.categories.map((c) => categoryCatalog[c.id]?.label ?? c.id)))];
@@ -111,6 +117,7 @@ export async function generatePresentation(request: GeneratePresentationRequest,
     warnings,
     generatedAt: narrative.generatedAt,
     anyDemoData: narrative.slides.some((s) => s.isDemoData),
+    themeName: theme.name,
   };
 
   const now = new Date().toISOString();
@@ -146,6 +153,8 @@ export interface PresentationHistoryEntry {
   slideTitles: { order: number; layout: string; title: string }[];
   warnings: string[];
   anyDemoData: boolean;
+  /** Undefined for history rows generated before theming shipped — result_meta_json won't have it. */
+  themeName?: string;
   createdByEmployeeId: string;
   createdAt: string;
 }
@@ -164,7 +173,7 @@ interface PresentationHistoryRow {
 }
 
 function toHistoryEntry(row: PresentationHistoryRow): PresentationHistoryEntry {
-  const meta = JSON.parse(row.result_meta_json) as { slides: { order: number; layout: string; title: string }[]; warnings: string[]; anyDemoData: boolean };
+  const meta = JSON.parse(row.result_meta_json) as { slides: { order: number; layout: string; title: string }[]; warnings: string[]; anyDemoData: boolean; themeName?: string };
   return {
     id: row.id,
     objective: row.objective,
@@ -176,6 +185,7 @@ function toHistoryEntry(row: PresentationHistoryRow): PresentationHistoryEntry {
     slideTitles: meta.slides,
     warnings: meta.warnings,
     anyDemoData: meta.anyDemoData,
+    themeName: meta.themeName,
     createdByEmployeeId: row.created_by_employee_id,
     createdAt: row.created_at,
   };

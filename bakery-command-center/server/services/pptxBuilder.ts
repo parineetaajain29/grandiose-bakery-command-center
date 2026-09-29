@@ -5,22 +5,28 @@
 // verified) and presentationCharts.ts's deterministic chart specs — nothing
 // is computed or invented here, this file only lays things out.
 //
-// Design: 16:9, white/off-white background, dark charcoal text, restrained
-// blue/green/red/amber accents pulled from presentationCharts.ts's
-// DECK_COLORS (the app's own light-mode tokens) — matching the spec's "looks
-// like it belongs to Grandiose Bakery Command Center" requirement without
-// reimplementing the dashboard's dark-mode-first design (a deck is always
-// read on a light background). Font is Calibri rather than the dashboard's
-// Inter — Inter is not a standard PowerPoint/Keynote/Office-Online font, and
-// shipping a deck that silently substitutes fonts on the recipient's machine
-// risks the "opens without repair warnings / reflowed text" failure mode the
-// spec explicitly calls out; Calibri is present on every mainstream install
-// and is a close-enough sans-serif for a management deck.
+// Design: 16:9, one of presentationTheme.ts's six curated themes (picked
+// once per deck — see buildPresentationPptx's `theme` param — so decks vary
+// but stay internally consistent), alternating full-bleed DARK slides
+// (title, recommendations, sources) with full-bleed LIGHT data slides
+// (charts/tables always want a light surface to stay legible) — see
+// modeForLayout() below. Restrained semantic red/green/amber accents still
+// come from presentationCharts.ts's fixed DECK_COLORS regardless of theme
+// (see that file's header for why those never rotate). Body/chart/table font
+// is Calibri, same rationale as before — a standard cross-platform sans that
+// won't silently substitute on the recipient's machine. The title slide's
+// headline uses Georgia, a standard cross-platform SERIF (same
+// installed-everywhere guarantee as Calibri), for the editorial cover-page
+// look the person asked for — confined to that one slide's headline/subhead,
+// so the rest of the deck stays as readable as before.
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import PptxGenJS from 'pptxgenjs';
 import type { NarrativeResult, NarrativeSlide } from './presentationNarrative.ts';
 import { isUploadCategoryId } from './presentationPlanner.ts';
-import type { PresentationPlan } from './presentationPlanner.ts';
+import type { PresentationPlan, SlideLayout } from './presentationPlanner.ts';
 import { buildChartSpec, DECK_COLORS, type ChartSpec } from './presentationCharts.ts';
+import type { DeckTheme } from './presentationTheme.ts';
 import type { AttentionItem } from '../../src/lib/commandCenterSignals.ts';
 import type { RiskSnapshot } from './presentationData.ts';
 import type { UploadSheetMetrics } from './presentationUploadData.ts';
@@ -29,20 +35,57 @@ const SLIDE_W_IN = 13.333;
 const SLIDE_H_IN = 7.5;
 const MARGIN_IN = 0.5;
 const FONT_FACE = 'Calibri';
+const SERIF_FONT_FACE = 'Georgia';
 
 // ---------------------------------------------------------------------------
-// Shared chrome — header/footer, consistent on every slide.
+// Logo assets (server/assets/) — pre-processed into transparent-background
+// PNGs in two ink colors (dark ink for a light slide, cream ink for a dark
+// slide) so the same mark reads correctly against whichever background this
+// slide is in, and in two crops: the full "logo" lockup (mark + wordmark,
+// for the title slide) and just the "mark" (the G monogram alone, for the
+// small watermark on every other slide — a wide wordmark shrunk to
+// watermark size stops being legible, the mark alone doesn't).
 // ---------------------------------------------------------------------------
-function addHeader(slide: PptxGenJS.Slide, title: string): void {
+const ASSETS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'assets');
+// Real aspect ratios of the processed crops (server/assets/*.png) — used so
+// a requested width always keeps the logo undistorted without pptxgenjs
+// needing to probe the file itself.
+const LOGO_ASPECT = 554 / 171; // wordmark lockup, wide
+const MARK_ASPECT = 174 / 171; // monogram alone, near-square
+
+type SlideMode = 'dark' | 'light';
+
+function modeForLayout(layout: SlideLayout): SlideMode {
+  return layout === 'title_exec_summary' || layout === 'recommendations' || layout === 'sources_methodology' ? 'dark' : 'light';
+}
+
+function inkFor(theme: DeckTheme, mode: SlideMode): string {
+  return mode === 'dark' ? theme.groundInk : theme.lightInk;
+}
+function groundFor(theme: DeckTheme, mode: SlideMode): string {
+  return mode === 'dark' ? theme.ground : theme.light;
+}
+
+// ---------------------------------------------------------------------------
+// Shared chrome — header/footer/watermark, consistent on every slide.
+// ---------------------------------------------------------------------------
+function addWatermark(slide: PptxGenJS.Slide, mode: SlideMode): void {
+  const ink = mode === 'dark' ? 'light' : 'dark';
+  const w = 0.34;
+  const h = w / MARK_ASPECT;
+  slide.addImage({ path: path.join(ASSETS_DIR, `grandiose-mark-${ink}.png`), x: SLIDE_W_IN - MARGIN_IN - w, y: 0.28, w, h, transparency: 15 });
+}
+
+function addHeader(slide: PptxGenJS.Slide, title: string, theme: DeckTheme, mode: SlideMode): void {
   slide.addText(title, {
     x: MARGIN_IN,
     y: 0.35,
-    w: SLIDE_W_IN - MARGIN_IN * 2,
+    w: SLIDE_W_IN - MARGIN_IN * 2 - 0.6, // leaves room for the watermark at top-right
     h: 0.9,
     fontFace: FONT_FACE,
     fontSize: 24,
     bold: true,
-    color: DECK_COLORS.textPrimary,
+    color: inkFor(theme, mode),
     align: 'left',
     valign: 'top',
   });
@@ -51,11 +94,14 @@ function addHeader(slide: PptxGenJS.Slide, title: string): void {
     y: 1.25,
     w: SLIDE_W_IN - MARGIN_IN * 2,
     h: 0,
-    line: { color: DECK_COLORS.borderSubtle, width: 1 },
+    line: { color: mode === 'dark' ? theme.groundInk : DECK_COLORS.borderSubtle, width: 1, transparency: mode === 'dark' ? 75 : 0 },
   });
 }
 
-function addFooter(slide: PptxGenJS.Slide, pageNum: number, totalPages: number, isDemoData: boolean): void {
+function addFooter(slide: PptxGenJS.Slide, pageNum: number, totalPages: number, isDemoData: boolean, theme: DeckTheme, mode: SlideMode): void {
+  // Muted via transparency on the mode's own ink color, rather than a
+  // separate hex per theme+mode — keeps the theme type to just the four
+  // colors it actually needs (ground/groundInk/light/lightInk/accent).
   slide.addText(`Grandiose Bakery Command Center · ${pageNum} / ${totalPages}`, {
     x: MARGIN_IN,
     y: SLIDE_H_IN - 0.4,
@@ -63,7 +109,8 @@ function addFooter(slide: PptxGenJS.Slide, pageNum: number, totalPages: number, 
     h: 0.3,
     fontFace: FONT_FACE,
     fontSize: 9,
-    color: DECK_COLORS.textTertiary,
+    color: inkFor(theme, mode),
+    transparency: 40,
     align: 'left',
   });
   if (isDemoData) {
@@ -81,7 +128,7 @@ function addFooter(slide: PptxGenJS.Slide, pageNum: number, totalPages: number, 
   }
 }
 
-function addBulletList(slide: PptxGenJS.Slide, bullets: string[], opts: { x: number; y: number; w: number; h: number; fontSize?: number }): void {
+function addBulletList(slide: PptxGenJS.Slide, bullets: string[], opts: { x: number; y: number; w: number; h: number; fontSize?: number; color?: string }): void {
   if (bullets.length === 0) return;
   slide.addText(
     bullets.map((b) => ({ text: b, options: { bullet: { indent: 14 }, breakLine: true, paraSpaceAfter: 8 } })),
@@ -92,7 +139,7 @@ function addBulletList(slide: PptxGenJS.Slide, bullets: string[], opts: { x: num
       h: opts.h,
       fontFace: FONT_FACE,
       fontSize: opts.fontSize ?? 14,
-      color: DECK_COLORS.textPrimary,
+      color: opts.color ?? DECK_COLORS.textPrimary,
       valign: 'top',
     },
   );
@@ -120,15 +167,15 @@ function valAxisFormatCode(format: ChartSpec['valueFormat']): string {
  * never happen given how presentationCharts.ts actually builds specs, but
  * this keeps a future category addition from breaking chart rendering.
  */
-function resolveChartColors(spec: ChartSpec): string[] {
+function resolveChartColors(spec: ChartSpec, accent: string): string[] {
   if (spec.series.length === 1) {
     const color = spec.series[0].color;
     return Array.isArray(color) ? color : [color];
   }
-  return spec.series.map((s) => (Array.isArray(s.color) ? DECK_COLORS.accentBlue : s.color));
+  return spec.series.map((s) => (Array.isArray(s.color) ? accent : s.color));
 }
 
-function addChartFromSpec(slide: PptxGenJS.Slide, spec: ChartSpec, opts: { x: number; y: number; w: number; h: number }): void {
+function addChartFromSpec(slide: PptxGenJS.Slide, spec: ChartSpec, accent: string, opts: { x: number; y: number; w: number; h: number }): void {
   if (spec.kind === 'none' || spec.categories.length === 0) return;
 
   // Plain string literals rather than the PptxGenJS.ChartType enum — that
@@ -146,7 +193,7 @@ function addChartFromSpec(slide: PptxGenJS.Slide, spec: ChartSpec, opts: { x: nu
     h: opts.h,
     barDir: 'col',
     barGrouping: spec.kind === 'grouped_bar' ? 'clustered' : 'standard',
-    chartColors: resolveChartColors(spec),
+    chartColors: resolveChartColors(spec, accent),
     showLegend: spec.series.length > 1,
     legendPos: 'b',
     showTitle: false,
@@ -258,34 +305,48 @@ function contentAreaTop(): number {
   return 1.5;
 }
 
-function renderTitleSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, plan: PresentationPlan): void {
+function renderTitleSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, plan: PresentationPlan, theme: DeckTheme): void {
+  const ink = theme.groundInk;
+  const logoW = 2.3;
+  const logoH = logoW / LOGO_ASPECT;
+  slide.addImage({ path: path.join(ASSETS_DIR, 'grandiose-logo-light.png'), x: MARGIN_IN, y: 0.55, w: logoW, h: logoH });
+
   slide.addText(narrated.title, {
     x: MARGIN_IN,
     y: 2.6,
     w: SLIDE_W_IN - MARGIN_IN * 2,
-    h: 1.4,
-    fontFace: FONT_FACE,
-    fontSize: 34,
+    h: 1.5,
+    fontFace: SERIF_FONT_FACE,
+    fontSize: 36,
     bold: true,
-    color: DECK_COLORS.textPrimary,
+    color: ink,
     align: 'left',
     valign: 'bottom',
   });
   const subtitleParts = [plan.audience ? `Prepared for: ${plan.audience}` : null, `Style: ${plan.style.replace(/_/g, ' ')}`].filter(Boolean);
-  slide.addText(subtitleParts.join('  ·  '), {
+  slide.addText(subtitleParts.join('   ·   '), {
     x: MARGIN_IN,
-    y: 4.0,
+    y: 4.15,
     w: SLIDE_W_IN - MARGIN_IN * 2,
     h: 0.4,
-    fontFace: FONT_FACE,
-    fontSize: 14,
-    color: DECK_COLORS.textSecondary,
+    fontFace: SERIF_FONT_FACE,
+    italic: true,
+    fontSize: 15,
+    color: ink,
+    transparency: 25,
   });
-  addBulletList(slide, narrated.bullets, { x: MARGIN_IN, y: 4.6, w: SLIDE_W_IN - MARGIN_IN * 2, h: 2, fontSize: 15 });
+  slide.addShape('line', {
+    x: MARGIN_IN,
+    y: 4.75,
+    w: 1.6,
+    h: 0,
+    line: { color: theme.accent, width: 2 },
+  });
+  addBulletList(slide, narrated.bullets, { x: MARGIN_IN, y: 5.05, w: SLIDE_W_IN - MARGIN_IN * 2, h: 1.7, fontSize: 15, color: ink });
 }
 
-function renderDataSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, twoUp: boolean): void {
-  addHeader(slide, narrated.title);
+function renderDataSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, twoUp: boolean, theme: DeckTheme): void {
+  addHeader(slide, narrated.title, theme, 'light');
   const top = contentAreaTop();
   const bottomMargin = 0.6;
   const contentH = SLIDE_H_IN - top - bottomMargin;
@@ -295,7 +356,7 @@ function renderDataSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, twoUp
     return;
   }
 
-  const specs = narrated.categoryData.map((c) => buildChartSpec(c.id, c.data));
+  const specs = narrated.categoryData.map((c) => buildChartSpec(c.id, c.data, theme.accent));
   const hasChart = specs.some((s) => s.kind !== 'none');
 
   if (!hasChart) {
@@ -314,15 +375,15 @@ function renderDataSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, twoUp
 
   if (twoUp && specs.length >= 2) {
     const chartW = (SLIDE_W_IN - MARGIN_IN * 2 - 0.3) / 2;
-    addChartFromSpec(slide, specs[0], { x: MARGIN_IN, y: top, w: chartW, h: contentH * 0.72 });
-    addChartFromSpec(slide, specs[1], { x: MARGIN_IN + chartW + 0.3, y: top, w: chartW, h: contentH * 0.72 });
+    addChartFromSpec(slide, specs[0], theme.accent, { x: MARGIN_IN, y: top, w: chartW, h: contentH * 0.72 });
+    addChartFromSpec(slide, specs[1], theme.accent, { x: MARGIN_IN + chartW + 0.3, y: top, w: chartW, h: contentH * 0.72 });
     addBulletList(slide, narrated.bullets, { x: MARGIN_IN, y: top + contentH * 0.72 + 0.15, w: SLIDE_W_IN - MARGIN_IN * 2, h: contentH * 0.28 - 0.15, fontSize: 12 });
     return;
   }
 
   // Single chart + interpretation, side by side (kpi_chart_interpretation / large_chart_finding default).
   const chartW = SLIDE_W_IN - MARGIN_IN * 2 - 3.6;
-  addChartFromSpec(slide, specs[0], { x: MARGIN_IN, y: top, w: chartW, h: contentH });
+  addChartFromSpec(slide, specs[0], theme.accent, { x: MARGIN_IN, y: top, w: chartW, h: contentH });
   addBulletList(slide, narrated.bullets, { x: MARGIN_IN + chartW + 0.3, y: top, w: 3.3, h: contentH, fontSize: 13 });
 }
 
@@ -346,8 +407,8 @@ function buildTableForNonChartSlide(narrated: NarrativeSlide): PptxGenJS.TableRo
   return null;
 }
 
-function renderRecommendationsSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide): void {
-  addHeader(slide, narrated.title);
+function renderRecommendationsSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, theme: DeckTheme): void {
+  addHeader(slide, narrated.title, theme, 'dark');
   const top = contentAreaTop();
   slide.addText(
     narrated.bullets.map((b, i) => ({ text: `${i + 1}. ${b}`, options: { breakLine: true, paraSpaceAfter: 12 } })),
@@ -358,36 +419,36 @@ function renderRecommendationsSlide(slide: PptxGenJS.Slide, narrated: NarrativeS
       h: SLIDE_H_IN - top - 0.6,
       fontFace: FONT_FACE,
       fontSize: 15,
-      color: DECK_COLORS.textPrimary,
+      color: theme.groundInk,
       valign: 'top',
     },
   );
 }
 
-function renderSourcesSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide): void {
-  addHeader(slide, narrated.title);
-  addBulletList(slide, narrated.bullets, { x: MARGIN_IN, y: contentAreaTop(), w: SLIDE_W_IN - MARGIN_IN * 2, h: SLIDE_H_IN - contentAreaTop() - 0.6, fontSize: 13 });
+function renderSourcesSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, theme: DeckTheme): void {
+  addHeader(slide, narrated.title, theme, 'dark');
+  addBulletList(slide, narrated.bullets, { x: MARGIN_IN, y: contentAreaTop(), w: SLIDE_W_IN - MARGIN_IN * 2, h: SLIDE_H_IN - contentAreaTop() - 0.6, fontSize: 13, color: theme.groundInk });
 }
 
-function renderSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, plan: PresentationPlan): void {
+function renderSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, plan: PresentationPlan, theme: DeckTheme): void {
   switch (narrated.layout) {
     case 'title_exec_summary':
-      renderTitleSlide(slide, narrated, plan);
+      renderTitleSlide(slide, narrated, plan, theme);
       return;
     case 'recommendations':
-      renderRecommendationsSlide(slide, narrated);
+      renderRecommendationsSlide(slide, narrated, theme);
       return;
     case 'sources_methodology':
-      renderSourcesSlide(slide, narrated);
+      renderSourcesSlide(slide, narrated, theme);
       return;
     case 'two_chart_comparison':
     case 'scenario_optimization_comparison':
-      renderDataSlide(slide, narrated, true);
+      renderDataSlide(slide, narrated, true, theme);
       return;
     case 'kpi_chart_interpretation':
     case 'large_chart_finding':
     case 'table_insight':
-      renderDataSlide(slide, narrated, false);
+      renderDataSlide(slide, narrated, false, theme);
       return;
   }
 }
@@ -432,6 +493,8 @@ function runQualityChecks(plan: PresentationPlan, narrative: NarrativeResult): s
 export interface BuildPptxRequest {
   plan: PresentationPlan;
   narrative: NarrativeResult;
+  /** Picked once per deck (see presentationBuilder.ts's pickRandomTheme() call) so a single generation stays internally consistent — see this file's header. */
+  theme: DeckTheme;
 }
 
 export interface BuildPptxResult {
@@ -440,7 +503,7 @@ export interface BuildPptxResult {
 }
 
 export async function buildPresentationPptx(request: BuildPptxRequest): Promise<BuildPptxResult> {
-  const { plan, narrative } = request;
+  const { plan, narrative, theme } = request;
   const warnings = runQualityChecks(plan, narrative);
 
   const pptx = new PptxGenJS();
@@ -451,10 +514,17 @@ export async function buildPresentationPptx(request: BuildPptxRequest): Promise<
 
   const totalSlides = narrative.slides.length;
   for (const narrated of narrative.slides) {
+    const mode = modeForLayout(narrated.layout);
     const slide = pptx.addSlide();
-    slide.background = { color: DECK_COLORS.bgPrimary };
-    renderSlide(slide, narrated, plan);
-    if (narrated.layout !== 'title_exec_summary') addFooter(slide, narrated.order, totalSlides, narrated.isDemoData);
+    slide.background = { color: groundFor(theme, mode) };
+    renderSlide(slide, narrated, plan, theme);
+    // Logo lockup already appears full-size on the title slide itself
+    // (renderTitleSlide) — the small watermark is for every OTHER slide,
+    // per the user's explicit request.
+    if (narrated.layout !== 'title_exec_summary') {
+      addWatermark(slide, mode);
+      addFooter(slide, narrated.order, totalSlides, narrated.isDemoData, theme, mode);
+    }
   }
 
   const output = await pptx.write({ outputType: 'nodebuffer' });
