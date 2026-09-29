@@ -659,6 +659,100 @@ export function getAiUsageStats(): Promise<AiUsageStats> {
   return getJson('/api/ai-risk/usage');
 }
 
+// --- Supplier Intelligence (4th AI Risk Intelligence stage: -----------------
+// Research -> Understand -> Suppliers -> Prepare). Mirrors AI Risk's own
+// client shape above (params/result/record types, status/run/get functions,
+// same `.reason` error convention from sendJson) — see
+// server/services/supplierIntelligence.ts for the full contract and the
+// documented deviations from AI Risk (open web search, per-row source
+// verification, deterministic price normalization).
+
+export type SupplierPriceLevel = 'verified_published' | 'indicative_market' | 'estimated_landed' | 'request_quote';
+export type SupplierEvidenceQuality = 'high' | 'medium' | 'limited';
+export type SupplierSourceLabel = 'Official Supplier Site' | 'Product Page' | 'Pricing Source' | 'Marketplace Listing' | 'Research Source';
+
+export interface ProcurementSpec {
+  productSpec: string | null;
+  quantity: string | null;
+  deliveryLocation: string | null;
+  requiredBy: string | null;
+  preferredGeography: string | null;
+  supplierType: string | null;
+  currency: string | null;
+}
+
+export interface SupplierSource {
+  url: string;
+  title: string;
+  label: SupplierSourceLabel;
+}
+
+export interface SupplierRow {
+  name: string;
+  supplierType: string;
+  geography: string;
+  geographyNote: string;
+  product: string;
+  priceLevel: SupplierPriceLevel;
+  priceAmount: number | null;
+  priceAmountHigh: number | null;
+  priceCurrency: string | null;
+  priceUnit: string | null;
+  normalizedAedPerKg: number | null;
+  normalizedNote: string | null;
+  moq: string;
+  leadTime: string;
+  availabilityNote: string;
+  certifications: string[];
+  evidenceQuality: SupplierEvidenceQuality;
+  commercialNotes: string;
+  isRetailBenchmark: boolean;
+  sources: SupplierSource[];
+  retrievedAt: string;
+}
+
+export interface SupplierIntelligenceResult {
+  material: string;
+  summary: string;
+  suppliers: SupplierRow[];
+  disclaimer: string;
+}
+
+export interface SupplierResearchRecord {
+  id: number;
+  researchId: number | null;
+  material: string;
+  spec: ProcurementSpec;
+  result: SupplierIntelligenceResult;
+  citedSources: AiCitedSource[];
+  allSources: string[];
+  sourcesRetrieved: boolean;
+  createdByEmployeeId: string;
+  createdAt: string;
+}
+
+export function getSupplierIntelligenceStatus(): Promise<{ configured: boolean }> {
+  return getJson('/api/supplier-intelligence/status');
+}
+
+/** Throws with `.reason` of 'not_configured' | 'monthly_cap' | 'rate_limit' | 'error' on failure — same convention as runAiResearch; the Suppliers stage shows that reason inline. `researchId` links this search back to the AI Risk record it was launched from (pass the current AiResearchRecord's id, or omit for a standalone search). */
+export function runSupplierSearch(
+  material: string,
+  spec: Partial<ProcurementSpec>,
+  forceRefresh: boolean,
+  researchId?: number,
+): Promise<{ research: SupplierResearchRecord; cached: boolean }> {
+  return sendJson('POST', '/api/supplier-intelligence/search', { material, ...spec, forceRefresh, researchId });
+}
+
+export function getSupplierResearch(id: number): Promise<SupplierResearchRecord> {
+  return getJson(`/api/supplier-intelligence/search/${id}`);
+}
+
+export function listSupplierResearchForResearchId(researchId: number): Promise<SupplierResearchRecord[]> {
+  return getJson(`/api/supplier-intelligence/by-research/${researchId}`);
+}
+
 // --- Export (server/services/export.ts) — Word/PDF for narrative content, ---
 // CSV/Excel for tabular data. Every export sends data the caller already has
 // (already rendered on screen) — the server only formats it, never recomputes.
