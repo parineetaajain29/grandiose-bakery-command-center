@@ -713,3 +713,31 @@ export function exportCsv(sheet: TableSheet): Promise<void> {
 export function exportXlsx(sheets: TableSheet[]): Promise<void> {
   return downloadBlob('/api/export/xlsx', { sheets }, `${sheets[0]?.name ?? 'export'}.xlsx`);
 }
+
+// --- Grandiose Copilot ------------------------------------------------------
+
+export interface CopilotViewContext {
+  page?: string;
+  tab?: string;
+  division?: string;
+  period?: string;
+}
+
+export interface CopilotAction {
+  label: string;
+  page?: string;
+}
+
+export interface CopilotAnswer {
+  conversationId: string;
+  answer: string;
+  evidence?: unknown;
+  source?: string;
+  actions: CopilotAction[];
+  followUps: string[];
+}
+
+/** Throws with `.reason` of 'not_configured' | 'error' on failure — the drawer shows that reason inline, same convention as runAiResearch. */
+export function askCopilot(question: string, viewContext: CopilotViewContext, conversationId?: string): Promise<CopilotAnswer> {
+  return sendJson('POST', '/api/copilot/ask', { question, viewContext, conversationId });
+}
