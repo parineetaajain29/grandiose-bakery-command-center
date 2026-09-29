@@ -298,4 +298,34 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_supplier_research_research_id ON supplier_research(research_id);
 `);
 
+// AI Presentation Builder — lives inside the existing Data Processor page
+// ("Process Data | Build Presentation" tabs), not a new top-level module.
+// Metadata only: the generated .pptx itself is never written to disk or
+// stored here (this app's container filesystem is ephemeral on Render, and
+// pptxBuilder.ts follows the same in-memory-buffer/stream-only pattern
+// export.ts already uses for docx/pdf/xlsx) — result_meta_json holds just
+// enough of the finished deck's shape (slide titles/purposes, not the full
+// content) to render a history list and to support "regenerate from these
+// exact request parameters" without needing the file to still exist.
+// data_processor_upload_id links back to the confirmed upload this
+// presentation was built from, when data_source = 'upload' (nullable, loose
+// FK — same style as supplier_research.research_id above).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS presentation_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    objective TEXT NOT NULL,
+    slide_count INTEGER NOT NULL,
+    audience TEXT,
+    style TEXT,
+    data_source TEXT NOT NULL CHECK (data_source IN ('upload', 'dashboard')),
+    data_processor_upload_id INTEGER REFERENCES data_processor_uploads(id),
+    modules_used_json TEXT NOT NULL,
+    result_meta_json TEXT NOT NULL,
+    created_by_employee_id TEXT NOT NULL REFERENCES employees(id),
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_presentation_history_created_by ON presentation_history(created_by_employee_id, created_at);
+`);
+
 export { DB_PATH };
