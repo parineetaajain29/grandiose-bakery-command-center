@@ -167,14 +167,20 @@ function findCached(paramsHash: string, depth: ResearchDepth): ResearchRecord | 
 
 // --- Spend control (Rule 6b/6c) ---------------------------------------------
 
-function getMonthlyUsageCount(): number {
+// Exported (beyond AI Risk's own use) so supplierIntelligence.ts can share
+// this exact monthly cap / per-user hourly limit rather than defining a
+// second, parallel budget — Supplier Intelligence search is just another
+// paid OpenAI web-search call, same as an AI Risk research run. No behavior
+// change here: these were module-private before, now also usable from one
+// other file.
+export function getMonthlyUsageCount(): number {
   const row = db.prepare(`SELECT COUNT(*) as n FROM ai_usage WHERE strftime('%Y-%m', searched_at) = strftime('%Y-%m', 'now')`).get() as {
     n: number;
   };
   return row.n;
 }
 
-function getUserRecentCount(employeeId: string): number {
+export function getUserRecentCount(employeeId: string): number {
   const cutoff = new Date(Date.now() - 3_600_000).toISOString();
   const row = db.prepare(`SELECT COUNT(*) as n FROM ai_usage WHERE employee_id = ? AND searched_at >= ?`).get(employeeId, cutoff) as {
     n: number;
@@ -182,11 +188,11 @@ function getUserRecentCount(employeeId: string): number {
   return row.n;
 }
 
-const PER_USER_HOURLY_LIMIT = 10;
+export const PER_USER_HOURLY_LIMIT = 10;
 const ESTIMATED_SEARCHES: Record<ResearchDepth, number> = { quick: 1, standard: 1, detailed: 2 };
 const SEARCH_CONTEXT_SIZE: Record<ResearchDepth, 'low' | 'medium' | 'high'> = { quick: 'low', standard: 'medium', detailed: 'high' };
 
-function recordUsage(employeeId: string, depth: ResearchDepth): void {
+export function recordUsage(employeeId: string, depth: ResearchDepth): void {
   db.prepare(`INSERT INTO ai_usage (employee_id, searched_at, depth, estimated_searches) VALUES (?, ?, ?, ?)`).run(
     employeeId,
     new Date().toISOString(),
