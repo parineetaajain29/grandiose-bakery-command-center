@@ -8,17 +8,20 @@
 // duplicating the orchestration.
 import { db } from '../db.ts';
 import type { EmployeeSession } from '../auth.ts';
-import { planPresentation, MIN_SLIDES, MAX_SLIDES, type PresentationStyle, type DataCategoryId, DATA_CATEGORY_CATALOG } from './presentationPlanner.ts';
+import { planPresentation, MIN_SLIDES, MAX_SLIDES, type PresentationStyle, type DataCategoryId, type DataCategoryInfo, DATA_CATEGORY_CATALOG } from './presentationPlanner.ts';
 import { buildPresentationNarrative } from './presentationNarrative.ts';
 import { buildPresentationPptx } from './pptxBuilder.ts';
-import type { AttentionQuery } from './copilotTools.ts';
+import type { AttentionQuery, ToolResult } from './copilotTools.ts';
+import { getUpload } from './dataProcessor.ts';
+import { aggregateUploadForPresentation } from './presentationUploadData.ts';
 
-// V1 serves the dashboard-data path only (spec's data source B) — the
-// uploaded-data aggregation path (source A) is Step 9's job and will add its
-// own, narrower category list once a confirmed upload is turned into
-// verified metrics; it must never simply reuse this list, since an uploaded
-// file's data almost never covers all 13 categories.
+// Data source B (spec) — the dashboard's own fixed 13-category catalog,
+// always fully available to any session that passes this feature's
+// manager/hr_admin gate (see this file's own route for why V1 doesn't
+// further narrow it per-role: getEmployeesNeedingAttention still does its
+// own internal scoping regardless).
 const ALL_DASHBOARD_CATEGORY_IDS = Object.keys(DATA_CATEGORY_CATALOG) as DataCategoryId[];
+const ALL_DASHBOARD_CATEGORIES: DataCategoryInfo[] = ALL_DASHBOARD_CATEGORY_IDS.map((id) => DATA_CATEGORY_CATALOG[id]);
 
 export interface GeneratePresentationRequest {
   objective: string;
@@ -26,6 +29,9 @@ export interface GeneratePresentationRequest {
   style: PresentationStyle;
   audience?: string;
   commandCenterQuery?: AttentionQuery;
+  /** Data source B (default) is the live dashboard; source A (Step 9) is one confirmed Data Processor upload, identified by `uploadId`. */
+  dataSource?: 'dashboard' | 'upload';
+  uploadId?: number;
 }
 
 export type GeneratePresentationOutcome =
@@ -40,22 +46,66 @@ export async function generatePresentation(request: GeneratePresentationRequest,
     return { ok: false, status: 400, error: 'An objective is required.' };
   }
 
+  const dataSource = request.dataSource ?? 'dashboard';
+
+  // --- Resolve the available categories + (for uploads) their data up front,
+  // before planning, so the planner only ever sees categories that actually
+  // have data behind them — exactly parallel to how the dashboard path has
+  // always worked, just with a per-request catalog instead of the fixed one.
+  let availableCategories: DataCategoryInfo[];
+  let categoryCatalog: Record<string, DataCategoryInfo>;
+  let uploadDataMap: Map<string, ToolResult<unknown>> | undefined;
+  let uploadWarnings: string[] = [];
+
+  if (dataSource === 'upload') {
+    if (typeof request.uploadId !== 'number') {
+      return { ok: false, status: 400, error: 'uploadId is required when dataSource is "upload".' };
+    }
+    const upload = getUpload(request.uploadId);
+    if (!upload) return { ok: false, status: 404, error: 'Upload not found.' };
+    // Same confirm gate as export/email (server/routes/dataProcessor.ts) — an
+    // un-reviewed AI interpretation can never reach a presentation either.
+    if (upload.status !== 'confirmed') {
+      return { ok: false, status: 409, error: 'Confirm this upload\'s interpretation before building a presentation from it.' };
+    }
+
+    const aggregation = aggregateUploadForPresentation(upload);
+    if (aggregation.categories.length === 0) {
+      return { ok: false, status: 400, error: `No usable data was found in "${upload.filename}" to build a presentation from.` };
+    }
+
+    availableCategories = aggregation.categories.map((c) => c.info);
+    categoryCatalog = Object.fromEntries(aggregation.categories.map((c) => [c.id, c.info]));
+    uploadDataMap = new Map(aggregation.categories.map((c) => [c.id, c.result]));
+    uploadWarnings = aggregation.gaps;
+  } else {
+    availableCategories = ALL_DASHBOARD_CATEGORIES;
+    categoryCatalog = DATA_CATEGORY_CATALOG;
+  }
+
   const planOutcome = await planPresentation({
     objective: request.objective,
     slideCount: request.slideCount,
     style: request.style,
     audience: request.audience,
-    availableCategoryIds: ALL_DASHBOARD_CATEGORY_IDS,
+    availableCategories,
   });
   if (!planOutcome.ok) {
     const status = planOutcome.reason === 'not_configured' ? 409 : planOutcome.reason === 'invalid_request' || planOutcome.reason === 'no_categories' ? 400 : 502;
     return { ok: false, status, error: planOutcome.message };
   }
 
-  const narrative = await buildPresentationNarrative({ plan: planOutcome.plan, session, commandCenterQuery: request.commandCenterQuery });
-  const { buffer, warnings } = await buildPresentationPptx({ plan: planOutcome.plan, narrative });
+  const narrative = await buildPresentationNarrative({
+    plan: planOutcome.plan,
+    session,
+    commandCenterQuery: request.commandCenterQuery,
+    categoryCatalog,
+    uploadData: uploadDataMap,
+  });
+  const { buffer, warnings: buildWarnings } = await buildPresentationPptx({ plan: planOutcome.plan, narrative });
+  const warnings = [...uploadWarnings, ...buildWarnings];
 
-  const modulesUsed = [...new Set(planOutcome.plan.slides.flatMap((s) => s.categories.map((c) => DATA_CATEGORY_CATALOG[c.id].label)))];
+  const modulesUsed = [...new Set(planOutcome.plan.slides.flatMap((s) => s.categories.map((c) => categoryCatalog[c.id]?.label ?? c.id)))];
   const resultMeta = {
     slides: narrative.slides.map((s) => ({ order: s.order, layout: s.layout, title: s.title })),
     warnings,
@@ -67,9 +117,20 @@ export async function generatePresentation(request: GeneratePresentationRequest,
   const insertResult = db
     .prepare(
       `INSERT INTO presentation_history (objective, slide_count, audience, style, data_source, data_processor_upload_id, modules_used_json, result_meta_json, created_by_employee_id, created_at)
-       VALUES (?, ?, ?, ?, 'dashboard', NULL, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(planOutcome.plan.objective, narrative.slides.length, planOutcome.plan.audience, planOutcome.plan.style, JSON.stringify(modulesUsed), JSON.stringify(resultMeta), session.employeeId, now);
+    .run(
+      planOutcome.plan.objective,
+      narrative.slides.length,
+      planOutcome.plan.audience,
+      planOutcome.plan.style,
+      dataSource,
+      dataSource === 'upload' ? request.uploadId : null,
+      JSON.stringify(modulesUsed),
+      JSON.stringify(resultMeta),
+      session.employeeId,
+      now,
+    );
 
   return { ok: true, buffer, warnings, slideCount: narrative.slides.length, historyId: Number(insertResult.lastInsertRowid) };
 }

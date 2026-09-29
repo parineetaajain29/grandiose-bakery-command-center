@@ -39,12 +39,18 @@ presentationBuilderRouter.post('/presentation-builder/generate', async (req, res
     return res.status(400).json({ error: `style must be one of: ${VALID_STYLES.join(', ')}` });
   }
 
+  if (body.dataSource !== undefined && body.dataSource !== 'dashboard' && body.dataSource !== 'upload') {
+    return res.status(400).json({ error: 'dataSource must be "dashboard" or "upload".' });
+  }
+
   const request: GeneratePresentationRequest = {
     objective: typeof body.objective === 'string' ? body.objective : '',
     slideCount: typeof body.slideCount === 'number' ? body.slideCount : NaN,
     style: (body.style as PresentationStyle | undefined) ?? 'management_analysis',
     audience: typeof body.audience === 'string' ? body.audience : undefined,
     commandCenterQuery: typeof body.commandCenterQuery === 'object' && body.commandCenterQuery !== null ? body.commandCenterQuery : undefined,
+    dataSource: body.dataSource as 'dashboard' | 'upload' | undefined,
+    uploadId: typeof body.uploadId === 'number' ? body.uploadId : undefined,
   };
 
   const outcome = await generatePresentation(request, session);

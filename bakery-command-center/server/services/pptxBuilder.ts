@@ -18,10 +18,12 @@
 // and is a close-enough sans-serif for a management deck.
 import PptxGenJS from 'pptxgenjs';
 import type { NarrativeResult, NarrativeSlide } from './presentationNarrative.ts';
+import { isUploadCategoryId } from './presentationPlanner.ts';
 import type { PresentationPlan } from './presentationPlanner.ts';
 import { buildChartSpec, DECK_COLORS, type ChartSpec } from './presentationCharts.ts';
 import type { AttentionItem } from '../../src/lib/commandCenterSignals.ts';
 import type { RiskSnapshot } from './presentationData.ts';
+import type { UploadSheetMetrics } from './presentationUploadData.ts';
 
 const SLIDE_W_IN = 13.333;
 const SLIDE_H_IN = 7.5;
@@ -324,11 +326,23 @@ function renderDataSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, twoUp
   addBulletList(slide, narrated.bullets, { x: MARGIN_IN + chartW + 0.3, y: top, w: 3.3, h: contentH, fontSize: 13 });
 }
 
+/** Step 9's fallback for an uploaded sheet with no numeric columns (or as a companion to the average-value chart when a sheet has both) — shows each categorical column's spread rather than nothing. */
+function buildUploadCategoricalTable(data: UploadSheetMetrics): PptxGenJS.TableRow[] | null {
+  if (data.categoricalColumns.length === 0) return null;
+  const rows: PptxGenJS.TableRow[] = [[headerCell('Column'), headerCell('Distinct values'), headerCell('Most common')]];
+  for (const c of data.categoricalColumns) {
+    const topValues = c.topValues.map((v) => `${v.value} (${v.count})`).join(', ');
+    rows.push([bodyCell(c.column), bodyCell(String(c.distinctCount)), bodyCell(topValues || '—')]);
+  }
+  return rows;
+}
+
 function buildTableForNonChartSlide(narrated: NarrativeSlide): PptxGenJS.TableRow[] | null {
   const first = narrated.categoryData[0];
   if (!first) return null;
   if (first.id === 'command_center_attention') return buildAttentionItemsTable(first.data as AttentionItem[]);
   if (first.id === 'ai_risk_research') return buildRiskSnapshotTable(first.data as RiskSnapshot);
+  if (isUploadCategoryId(first.id)) return buildUploadCategoricalTable(first.data as UploadSheetMetrics);
   return null;
 }
 

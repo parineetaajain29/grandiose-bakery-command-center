@@ -21,14 +21,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAnthropicApiKey } from './settings.ts';
 
 // ---------------------------------------------------------------------------
-// Fixed data-category catalog. The planner may only ever reference an id
-// from here — never a free-form string — so a later stage can look the id
-// up in one place (this same catalog) to know exactly which
-// presentationData.ts/copilotTools.ts function answers it. Adding a new
-// category means adding it here AND wiring it in presentationNarrative.ts;
-// it can never appear in a plan just because Claude mentions it.
+// Fixed data-category catalog (the dashboard source, spec's source B). The
+// planner may only ever reference an id from here or from the uploaded-data
+// source below — never a free-form string — so a later stage can look the id
+// up to know exactly which presentationData.ts/copilotTools.ts function (or,
+// for an upload category, which sheet aggregate — presentationUploadData.ts,
+// Step 9) answers it. Adding a new fixed category means adding it here AND
+// wiring it in presentationNarrative.ts; it can never appear in a plan just
+// because Claude mentions it.
 // ---------------------------------------------------------------------------
-export type DataCategoryId =
+export type FixedDataCategoryId =
   | 'command_center_attention'
   | 'wastage_breakdown'
   | 'trend_food_cost'
@@ -43,6 +45,20 @@ export type DataCategoryId =
   | 'optimization_snapshot'
   | 'ai_risk_research';
 
+// The uploaded-data source (spec's source A, Step 9's addition): one id per
+// sheet in a confirmed Data Processor upload, computed at request time by
+// presentationUploadData.ts — never a fixed, known-in-advance set the way
+// the dashboard categories are, since an uploaded file's shape is whatever
+// the source file happened to contain.
+export type UploadCategoryId = `upload:${number}`;
+
+export type DataCategoryId = FixedDataCategoryId | UploadCategoryId;
+
+/** Type-guard narrowing used by presentationNarrative.ts/presentationCharts.ts before their fixed-category switches — after this returns false, TS narrows `id` back to FixedDataCategoryId, keeping those switches exhaustive without a `default`. */
+export function isUploadCategoryId(id: DataCategoryId): id is UploadCategoryId {
+  return id.startsWith('upload:');
+}
+
 export interface DataCategoryInfo {
   id: DataCategoryId;
   label: string;
@@ -51,7 +67,7 @@ export interface DataCategoryInfo {
   paramsHint?: string;
 }
 
-export const DATA_CATEGORY_CATALOG: Record<DataCategoryId, DataCategoryInfo> = {
+export const DATA_CATEGORY_CATALOG: Record<FixedDataCategoryId, DataCategoryInfo> = {
   command_center_attention: {
     id: 'command_center_attention',
     label: 'Command Center — items needing attention',
@@ -126,8 +142,15 @@ export interface PresentationPlanRequest {
   slideCount: number;
   style: PresentationStyle;
   audience?: string;
-  /** Computed by the caller from session role + data source — see file header. Only these ids may appear in the plan. */
-  availableCategoryIds: DataCategoryId[];
+  /**
+   * Computed by the caller from session role + data source — see file
+   * header. Full info objects, not just ids, because Step 9's upload
+   * categories aren't in the fixed DATA_CATEGORY_CATALOG lookup table (their
+   * label/description are computed per-request from the uploaded sheet), so
+   * there is no single catalog this function could index into for every
+   * possible id. Only the ids present here may appear in the plan.
+   */
+  availableCategories: DataCategoryInfo[];
 }
 
 export interface PlannedSlide {
@@ -289,7 +312,7 @@ export async function planPresentation(request: PresentationPlanRequest): Promis
   if (!request.objective.trim()) {
     return { ok: false, reason: 'invalid_request', message: 'An objective is required.' };
   }
-  if (request.availableCategoryIds.length === 0) {
+  if (request.availableCategories.length === 0) {
     return { ok: false, reason: 'no_categories', message: 'No verified data categories are available for this request.' };
   }
 
@@ -298,8 +321,8 @@ export async function planPresentation(request: PresentationPlanRequest): Promis
     return { ok: false, reason: 'not_configured', message: "The AI Presentation Builder isn't configured yet. Add an Anthropic API key in Settings." };
   }
 
-  const availableIds = new Set(request.availableCategoryIds);
-  const availableCategories = request.availableCategoryIds.map((id) => DATA_CATEGORY_CATALOG[id]);
+  const availableIds = new Set(request.availableCategories.map((c) => c.id));
+  const availableCategories = request.availableCategories;
 
   const userMessage = `Objective: ${request.objective.trim()}
 Slide count: ${request.slideCount}

@@ -24,6 +24,7 @@ import {
   getB2BClientRanking,
   getB2BSummary,
   getEmployeesNeedingAttention,
+  err,
   type AttentionQuery,
   type ToolResult,
   type SkuMetric,
@@ -31,8 +32,8 @@ import {
 } from './copilotTools.ts';
 import { getWastageBreakdown, getPerformanceTrend, getOptimizationSnapshot, getLatestRiskResearch, type TrendMetric } from './presentationData.ts';
 import { DIVISIONS, type Division } from '../../src/data/skuData.ts';
-import type { PresentationPlan, PlannedSlide, DataCategoryId } from './presentationPlanner.ts';
-import { DATA_CATEGORY_CATALOG } from './presentationPlanner.ts';
+import type { PresentationPlan, PlannedSlide, DataCategoryId, DataCategoryInfo } from './presentationPlanner.ts';
+import { isUploadCategoryId } from './presentationPlanner.ts';
 
 // ---------------------------------------------------------------------------
 // Category → data-fetch dispatch. The single place that turns a plan's
@@ -68,7 +69,17 @@ async function fetchCategoryData(
   params: Record<string, unknown> | undefined,
   session: EmployeeSession,
   commandCenterQuery: AttentionQuery,
+  uploadData?: ReadonlyMap<string, ToolResult<unknown>>,
 ): Promise<ToolResult<unknown>> {
+  // Upload-source categories (Step 9) were already computed once, up front,
+  // by presentationUploadData.ts's deterministic aggregation — there is
+  // nothing to "fetch" here, just a lookup into the map the caller built.
+  // Narrowing on isUploadCategoryId first keeps the switch below exhaustive
+  // over FixedDataCategoryId with no `default` needed, same pattern as
+  // isTrendMetric() just above.
+  if (isUploadCategoryId(id)) {
+    return uploadData?.get(id) ?? err('not_found', `Upload category ${id} was not available.`);
+  }
   if (isTrendMetric(id)) return getPerformanceTrend(TREND_METRIC_BY_CATEGORY[id]);
 
   switch (id) {
@@ -309,6 +320,10 @@ export interface NarrativeRequest {
   session: EmployeeSession;
   /** Applied to every Command Center / Performance Tracker category in this deck, so the same period is used throughout and numbers reconcile slide to slide (spec requirement). Defaults to Command Center's own defaults when omitted. */
   commandCenterQuery?: AttentionQuery;
+  /** Every category id this plan may reference, keyed by id — DATA_CATEGORY_CATALOG for a dashboard-source deck, or that merged with the per-request upload categories (Step 9) for an upload-source deck. Passed in rather than imported directly so this file never assumes which source produced the plan. */
+  categoryCatalog: Record<string, DataCategoryInfo>;
+  /** Pre-computed upload-category results (Step 9) — only present for an upload-source deck; fetchCategoryData() looks a `upload:<n>` id up here instead of querying anything live. */
+  uploadData?: ReadonlyMap<string, ToolResult<unknown>>;
 }
 
 export interface NarrativeResult {
@@ -317,7 +332,7 @@ export interface NarrativeResult {
 }
 
 export async function buildPresentationNarrative(request: NarrativeRequest): Promise<NarrativeResult> {
-  const { plan, session } = request;
+  const { plan, session, categoryCatalog, uploadData } = request;
   const commandCenterQuery = request.commandCenterQuery ?? {};
   const apiKey = getAnthropicApiKey();
   const client = apiKey ? new Anthropic({ apiKey }) : null;
@@ -343,8 +358,8 @@ export async function buildPresentationNarrative(request: NarrativeRequest): Pro
     let slideIsDemoData = false;
 
     for (const cat of slide.categories) {
-      const result = await fetchCategoryData(cat.id, cat.params, session, commandCenterQuery);
-      const label = DATA_CATEGORY_CATALOG[cat.id].label;
+      const result = await fetchCategoryData(cat.id, cat.params, session, commandCenterQuery, uploadData);
+      const label = categoryCatalog[cat.id]?.label ?? cat.id;
       if (!result.ok) {
         dataAvailable = false;
         continue;
@@ -365,7 +380,7 @@ export async function buildPresentationNarrative(request: NarrativeRequest): Pro
         order: slide.order,
         layout: slide.layout,
         title: slide.workingTitle,
-        bullets: [`This section could not be generated — the underlying data (${slide.categories.map((c) => DATA_CATEGORY_CATALOG[c.id].label).join(', ')}) is not currently available.`],
+        bullets: [`This section could not be generated — the underlying data (${slide.categories.map((c) => categoryCatalog[c.id]?.label ?? c.id).join(', ')}) is not currently available.`],
         sources: [],
         isDemoData: false,
         dataAvailable: false,

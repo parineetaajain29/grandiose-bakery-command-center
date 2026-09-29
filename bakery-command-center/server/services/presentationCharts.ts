@@ -19,12 +19,14 @@
 // availability-driven vs. execution-driven) — every other chart uses the
 // single accent-blue series, never a rainbow.
 import type { DataCategoryId } from './presentationPlanner.ts';
+import { isUploadCategoryId } from './presentationPlanner.ts';
 import type { WastageBreakdown, TrendSeries } from './presentationData.ts';
 import type { AttentionCandidate, SkuMetric } from './copilotTools.ts';
 import type { Sku } from '../../src/lib/skuCalc.ts';
 import type { DivisionSummaryRow } from '../../src/lib/skuCalc.ts';
 import type { DerivedB2BSummary } from '../../src/lib/b2bCalc.ts';
 import type { OptimizationResult, OptimizationOptimalResult } from '../../src/data/api.ts';
+import type { UploadSheetMetrics } from './presentationUploadData.ts';
 
 // Light-mode token values, copied deliberately rather than imported (tokens.css
 // is a CSS asset, not a TS module) — see this file's header for why light-mode
@@ -207,12 +209,38 @@ function buildOptimizationChart(result: OptimizationOptimalResult): ChartSpec {
   };
 }
 
+/**
+ * Step 9's upload-source chart: a single bar per numeric column, its value
+ * the column's average — the one aggregate that stays comparable across
+ * differently-scaled columns without this file inventing per-column unit
+ * detection. This is a known, deliberate simplification for an arbitrary
+ * uploaded schema (documented here rather than silently): it does not mean
+ * "compare apples to apples" across columns with genuinely different units,
+ * only "here is each numeric column's average, side by side". A sheet with
+ * no numeric columns renders NO_CHART and falls back to the categorical
+ * table pptxBuilder.ts builds from the same UploadSheetMetrics instead.
+ */
+function buildUploadSheetChart(data: UploadSheetMetrics): ChartSpec {
+  if (data.numericColumns.length === 0) return NO_CHART;
+  return {
+    kind: 'bar',
+    categories: data.numericColumns.map((c) => c.column),
+    series: [{ name: 'Average value', values: data.numericColumns.map((c) => c.average), color: DECK_COLORS.accentBlue }],
+    valueFormat: 'number',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Dispatch — matches the DataCategoryId union exactly (a missing case is a
 // compile error), so a new category added to the planner's catalog can never
-// silently fall through with no chart.
+// silently fall through with no chart. Upload categories (Step 9) are
+// checked first via isUploadCategoryId(), which narrows categoryId back to
+// the fixed union for the switch below, keeping it exhaustive with no
+// `default` needed — same pattern presentationNarrative.ts uses.
 // ---------------------------------------------------------------------------
 export function buildChartSpec(categoryId: DataCategoryId, data: unknown, params?: Record<string, unknown>): ChartSpec {
+  if (isUploadCategoryId(categoryId)) return buildUploadSheetChart(data as UploadSheetMetrics);
+
   switch (categoryId) {
     case 'wastage_breakdown':
       return buildWastageBreakdownChart(data as WastageBreakdown);
