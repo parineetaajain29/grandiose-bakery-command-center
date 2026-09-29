@@ -177,9 +177,20 @@ function substituteTokens(text: string, context: TokenContext): { text: string; 
   return { text: substituted, unresolvedTokens };
 }
 
-/** A digit outside any {{token}} span means Claude typed a number directly instead of using the dictionary — reject regardless of whether every token also resolved. */
+// A standalone digit RUN outside any {{token}} span (e.g. "42", "3.2%",
+// "1,250") means Claude typed a number directly instead of using the
+// dictionary. A digit that's part of an alphanumeric label — "B2B", "Q3",
+// "H1", a SKU code — is not a numeric claim about the business and must
+// NOT be flagged: the lookaround requires a non-letter on both sides of the
+// digit run, so "B2B" (digit flanked by letters) never matches while a real
+// bare figure like "AED 500" or "90+ days" still does. Before this fix,
+// ANY digit anywhere (including "B2B") rejected the response, so a deck
+// whose whole objective was a B2B review failed validation on every single
+// slide and silently fell back to a one-line generic placeholder — this is
+// what the "only one point" / empty-looking recommendations bug was.
+const BARE_NUMBER_PATTERN = /(?<![A-Za-z])\d[\d,.]*\+?%?(?![A-Za-z])/;
 function hasBareNumericClaim(text: string): boolean {
-  return /\d/.test(text.replace(TOKEN_PATTERN, ''));
+  return BARE_NUMBER_PATTERN.test(text.replace(TOKEN_PATTERN, ''));
 }
 
 function validateSlideText(text: string, context: TokenContext): { ok: true; resolved: string } | { ok: false; reason: string } {
@@ -204,6 +215,8 @@ export interface NarrativeSlide {
   dataAvailable: boolean;
   /** Raw verified data for Step 5 (chart generation) — the chart is built straight from this, independent of whether the prose narrative below resolved cleanly. */
   categoryData: { id: DataCategoryId; label: string; data: unknown }[];
+  /** Only ever set on a 'recommendations' slide, and only when the structured Claude call (Step 4b) succeeded — pptxBuilder.ts renders these as a table when present, falling back to the plain `bullets` numbered list when this is undefined (e.g. both attempts failed validation). */
+  recommendationRows?: { recommendation: string; rationale: string }[];
 }
 
 const FALLBACK_MAX_ATTEMPTS = 2; // one initial attempt + one corrective retry, per the spec's reject/regenerate/remove rule
@@ -267,6 +280,107 @@ Respond with STRICT JSON only, no markdown fences, no commentary:
     // Same empirically-verified-clean Anthropic error shape as anthropicInterpreter.ts/presentationPlanner.ts.
     return { ok: false, reason: `Anthropic call failed: ${err instanceof Error ? err.message : String(err)}` };
   }
+}
+
+interface ClaudeRecommendationsResponse {
+  title?: unknown;
+  recommendations?: unknown;
+}
+
+/**
+ * Recommendations get their own structured call (Recommendation + Rationale
+ * per row) rather than reusing callClaudeForSlide's flat {title, bullets}
+ * shape — a bare bullet list reads as a list of statements, not a list of
+ * actions with a reason attached, which is what a management recommendations
+ * slide actually needs. pptxBuilder.ts renders these rows as a table.
+ */
+async function callClaudeForRecommendations(
+  client: Anthropic,
+  slide: PlannedSlide,
+  context: TokenContext,
+  extraSystemNote: string,
+): Promise<{ ok: true; title: string; rows: { recommendation: string; rationale: string }[] } | { ok: false; reason: string }> {
+  const tokenLines = Object.entries(context)
+    .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+    .map(([k, v]) => `{{${k}}} = ${typeof v === 'string' ? `"${v}"` : v}`)
+    .join('\n');
+
+  const system = `You write the recommendations slide of a management presentation for Grandiose Bakery (UAE bakery/catering division). You are given a fixed dictionary of verified data tokens covering everything shown elsewhere in this deck — these are the ONLY facts you may state.
+
+Rules (violating any of these gets your response rejected and regenerated):
+1. Every number, percentage, or currency figure you write MUST be a {{token}} from the list below, copied exactly (including dots). NEVER type a digit yourself.
+2. Never reference a token that is not in the list below.
+3. Write 3-5 distinct, specific, actionable recommendations — each one something a manager could actually go do, not a restatement of a finding.
+4. For each recommendation, also write a one-sentence rationale: the specific reason this matters, grounded in the tokens above (why this, why now).
+5. Never use judgmental language about individual employees (no "worst", "best", "failing") — describe gaps and thresholds instead.
+${extraSystemNote}
+
+Available tokens:
+${tokenLines || '(none — no verified data is available; write one row noting recommendations could not be generated without data)'}
+
+Respond with STRICT JSON only, no markdown fences, no commentary:
+{ "title": "Recommendations", "recommendations": [{ "recommendation": "...", "rationale": "..." }, ...] }`;
+
+  const userMessage = `Slide purpose: ${slide.purpose}\nWorking title (may replace): ${slide.workingTitle}`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-5',
+      max_tokens: 1500,
+      system,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    const rawText = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*|\s*```$/g, '');
+
+    let parsed: ClaudeRecommendationsResponse;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return { ok: false, reason: 'Response was not valid JSON.' };
+    }
+    const isRowShaped = (r: unknown): r is { recommendation: string; rationale: string } =>
+      typeof r === 'object' && r !== null && typeof (r as { recommendation?: unknown }).recommendation === 'string' && typeof (r as { rationale?: unknown }).rationale === 'string';
+    if (typeof parsed.title !== 'string' || !Array.isArray(parsed.recommendations) || parsed.recommendations.length === 0 || !parsed.recommendations.every(isRowShaped)) {
+      return { ok: false, reason: 'Response did not match the required { title, recommendations: [{ recommendation, rationale }] } shape.' };
+    }
+    return { ok: true, title: parsed.title, rows: parsed.recommendations as { recommendation: string; rationale: string }[] };
+  } catch (err) {
+    return { ok: false, reason: `Anthropic call failed: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function narrateRecommendations(client: Anthropic | null, slide: PlannedSlide, context: TokenContext): Promise<{ title: string; bullets: string[]; rows?: { recommendation: string; rationale: string }[] }> {
+  if (!client) return deterministicFallback(slide, []);
+
+  let lastReason = '';
+  for (let attempt = 1; attempt <= FALLBACK_MAX_ATTEMPTS; attempt++) {
+    const extraNote = attempt === 1 ? '' : `\nIMPORTANT — your previous attempt was rejected: ${lastReason}. Fix this and only use tokens from the list below.`;
+    const response = await callClaudeForRecommendations(client, slide, context, extraNote);
+    if (!response.ok) {
+      lastReason = response.reason;
+      continue;
+    }
+    const titleCheck = validateSlideText(response.title, context);
+    if (!titleCheck.ok) {
+      lastReason = titleCheck.reason;
+      continue;
+    }
+    const rowChecks = response.rows.map((r) => ({ recommendation: validateSlideText(r.recommendation, context), rationale: validateSlideText(r.rationale, context) }));
+    const failed = rowChecks.find((r) => !r.recommendation.ok || !r.rationale.ok);
+    if (failed) {
+      const badCheck = !failed.recommendation.ok ? failed.recommendation : failed.rationale;
+      lastReason = badCheck.ok ? '' : badCheck.reason;
+      continue;
+    }
+    const rows = rowChecks.map((r) => ({
+      recommendation: (r.recommendation as { ok: true; resolved: string }).resolved,
+      rationale: (r.rationale as { ok: true; resolved: string }).resolved,
+    }));
+    return { title: titleCheck.resolved, bullets: rows.map((r) => `Recommendation: ${r.recommendation}`), rows };
+  }
+  return deterministicFallback(slide, []);
 }
 
 /** Claude-free fallback when both attempts fail validation — honest and generic rather than blocking the deck, since the chart (Step 5/6) still shows the real numbers regardless. */
@@ -430,21 +544,20 @@ export async function buildPresentationNarrative(request: NarrativeRequest): Pro
     }
 
     if (slide.layout === 'recommendations') {
-      const { title, bullets } = await narrateDataSlide(
-        client,
-        slide,
-        deckContext,
-        [],
-      );
+      const { title, bullets, rows } = await narrateRecommendations(client, slide, deckContext);
       narrated.push({
         order: slide.order,
         layout: slide.layout,
         title,
-        bullets: bullets.map((b) => `Recommendation: ${b}`),
+        // bullets stays a rendering fallback for when `rows` is absent (both
+        // structured attempts failed validation) — see NarrativeSlide's
+        // recommendationRows doc comment and pptxBuilder.ts's render logic.
+        bullets: rows ? bullets : bullets.map((b) => `Recommendation: ${b}`),
         sources: Array.from(allSources),
         isDemoData: anyDemoData,
         dataAvailable: true,
         categoryData: [],
+        recommendationRows: rows,
       });
       continue;
     }

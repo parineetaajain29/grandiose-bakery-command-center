@@ -21,6 +21,7 @@
 // so the rest of the deck stays as readable as before.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import JSZip from 'jszip';
 import PptxGenJS from 'pptxgenjs';
 import type { NarrativeResult, NarrativeSlide } from './presentationNarrative.ts';
 import { isUploadCategoryId } from './presentationPlanner.ts';
@@ -407,9 +408,54 @@ function buildTableForNonChartSlide(narrated: NarrativeSlide): PptxGenJS.TableRo
   return null;
 }
 
+/**
+ * Recommendation + rationale, two columns — presentationNarrative.ts's
+ * structured Claude call (Step 4b) produces these rows directly, rather than
+ * this file inferring structure from a flat bullet list. Every cell gets an
+ * explicit `fill` matching the slide's own dark ground: pptxgenjs's table
+ * defaults to an opaque white cell background when none is given, which
+ * would draw a stray white box over this full-bleed dark slide.
+ */
+function buildRecommendationsTable(rows: { recommendation: string; rationale: string }[], theme: DeckTheme): PptxGenJS.TableRow[] {
+  // theme.ground/groundInk are used with their '#' prefix intact everywhere
+  // else in this file (addText/addShape color options) and render correctly
+  // — pptxgenjs normalizes hex internally — so this stays consistent rather
+  // than stripping it only here.
+  const fill = { color: theme.ground };
+  const headerBorder: PptxGenJS.TableCell['options'] = { border: [{ type: 'none' }, { type: 'none' }, { type: 'solid', color: theme.groundInk, pt: 1 }, { type: 'none' }] };
+  const rowBorder: PptxGenJS.TableCell['options'] = { border: [{ type: 'none' }, { type: 'none' }, { type: 'solid', color: theme.groundInk, pt: 0.5 }, { type: 'none' }] };
+
+  const header: PptxGenJS.TableRow = [
+    { text: 'Recommendation', options: { bold: true, color: theme.groundInk, fill, fontFace: FONT_FACE, fontSize: 12, valign: 'bottom', ...headerBorder } },
+    { text: 'Why it matters', options: { bold: true, color: theme.groundInk, fill, fontFace: FONT_FACE, fontSize: 12, valign: 'bottom', ...headerBorder } },
+  ];
+  const body: PptxGenJS.TableRow[] = rows.map((r) => [
+    { text: r.recommendation, options: { bold: true, color: theme.groundInk, fill, fontFace: FONT_FACE, fontSize: 12, valign: 'top', ...rowBorder } },
+    { text: r.rationale, options: { color: theme.groundInk, transparency: 15, fill, fontFace: FONT_FACE, fontSize: 11, valign: 'top', ...rowBorder } },
+  ]);
+  return [header, ...body];
+}
+
 function renderRecommendationsSlide(slide: PptxGenJS.Slide, narrated: NarrativeSlide, theme: DeckTheme): void {
   addHeader(slide, narrated.title, theme, 'dark');
   const top = contentAreaTop();
+
+  if (narrated.recommendationRows && narrated.recommendationRows.length > 0) {
+    const contentW = SLIDE_W_IN - MARGIN_IN * 2;
+    slide.addTable(buildRecommendationsTable(narrated.recommendationRows, theme), {
+      x: MARGIN_IN,
+      y: top,
+      w: contentW,
+      colW: [contentW * 0.55, contentW * 0.45],
+      autoPage: false,
+      valign: 'top',
+    });
+    return;
+  }
+
+  // Fallback: the structured Claude call failed validation on both attempts
+  // (presentationNarrative.ts's narrateRecommendations) — a plain numbered
+  // list from whatever generic text came back, same as before this feature.
   slide.addText(
     narrated.bullets.map((b, i) => ({ text: `${i + 1}. ${b}`, options: { breakLine: true, paraSpaceAfter: 12 } })),
     {
@@ -528,6 +574,82 @@ export async function buildPresentationPptx(request: BuildPptxRequest): Promise<
   }
 
   const output = await pptx.write({ outputType: 'nodebuffer' });
-  const buffer = Buffer.isBuffer(output) ? output : Buffer.from(output as ArrayBuffer);
+  const rawBuffer = Buffer.isBuffer(output) ? output : Buffer.from(output as ArrayBuffer);
+  const buffer = await repairPptxgenjsChartCorruption(rawBuffer);
   return { buffer, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Post-processing repair for a confirmed pptxgenjs 4.0.1 bug (also present in
+// 3.12.0 — not something a version bump fixes): every native chart it emits
+// (`slide.addChart(...)`, used throughout this file) writes THREE <c:axId>
+// references inside the chart-type element (e.g. <c:barChart>), but only
+// ever defines TWO actual axes (<c:catAx> + <c:valAx>). The third axId is
+// dangling — it names an axis that doesn't exist anywhere in the part. Per
+// the OOXML chart schema, a bar/line chart's axId list has a fixed count of
+// exactly 2; a 3rd is a real schema violation. LibreOffice/Google Slides
+// silently ignore it, but PowerPoint's stricter parser flags the file as
+// needing repair and drops content when recovering it — this is what caused
+// a chart slide to come back blank after PowerPoint "fixed" the file. Since
+// this fires on every single native chart with zero custom options (verified
+// with a minimal repro, and across both the installed and previous major
+// pptxgenjs version), waiting on an upstream fix isn't an option — this
+// function reaches into the already-written .pptx zip and removes exactly
+// the dangling axId reference from every chart part, byte for byte,
+// touching nothing else in the file.
+async function repairPptxgenjsChartCorruption(buffer: Buffer): Promise<Buffer> {
+  const zip = await JSZip.loadAsync(buffer);
+  let touched = false;
+
+  const chartFiles = Object.keys(zip.files).filter((name) => /^ppt\/charts\/chart\d+\.xml$/.test(name));
+  for (const name of chartFiles) {
+    const xml = await zip.file(name)!.async('string');
+    zip.file(name, fixDanglingAxIds(xml));
+    touched = true;
+  }
+
+  // Separately: pptxgenjs's [Content_Types].xml also declares Override
+  // entries (e.g. extra slideMaster*.xml parts) for parts it never actually
+  // writes to the zip — present even in a minimal deck with zero custom
+  // masters/backgrounds, so it looks like a broadly-tolerated quirk rather
+  // than the specific repair trigger above. Still a real package/content
+  // mismatch though, and cheap to clean up now that the zip is already
+  // open, so it's removed defensively alongside the confirmed chart fix.
+  const contentTypesFile = zip.file('[Content_Types].xml');
+  if (contentTypesFile) {
+    const existingParts = new Set(Object.keys(zip.files).map((n) => `/${n}`));
+    const xml = await contentTypesFile.async('string');
+    const cleaned = xml.replace(/<Override PartName="([^"]+)"[^>]*\/>/g, (whole, partName: string) => (existingParts.has(partName) ? whole : ''));
+    if (cleaned !== xml) {
+      zip.file('[Content_Types].xml', cleaned);
+      touched = true;
+    }
+  }
+
+  if (!touched) return buffer;
+  return zip.generateAsync({ type: 'nodebuffer' });
+}
+
+/**
+ * Removes any <c:axId val="…"/> reference in a chart part's axId
+ * DECLARATION list (the run of axId elements inside the chart-type element,
+ * before any <c:catAx>/<c:valAx>/<c:dateAx>/<c:serAx> definition begins)
+ * whose value doesn't match a real axis defined later in the same file.
+ * Deliberately narrow: it never touches the axId *inside* an axis
+ * definition itself (that's the axis's own identity, always valid), only
+ * the reference list that names which axes the chart uses.
+ */
+function fixDanglingAxIds(xml: string): string {
+  const firstAxisDefIdx = xml.search(/<c:(catAx|valAx|dateAx|serAx)>/);
+  if (firstAxisDefIdx === -1) return xml; // a chart type with no axes (e.g. pie) — nothing to fix
+  const head = xml.slice(0, firstAxisDefIdx);
+  const tail = xml.slice(firstAxisDefIdx);
+
+  const validAxisIds = new Set<string>();
+  const axisDefPattern = /<c:(?:catAx|valAx|dateAx|serAx)>\s*<c:axId val="(\d+)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = axisDefPattern.exec(tail))) validAxisIds.add(match[1]);
+
+  const fixedHead = head.replace(/<c:axId val="(\d+)"\/>/g, (whole, id: string) => (validAxisIds.has(id) ? whole : ''));
+  return fixedHead + tail;
 }
