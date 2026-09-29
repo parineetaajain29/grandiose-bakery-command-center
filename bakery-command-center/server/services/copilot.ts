@@ -1,10 +1,13 @@
 // Grandiose Copilot — the two LLM call sites (Phase 3 of the implementation
-// plan). Same idiom as anthropicInterpreter.ts and aiRisk.ts, the two
-// existing LLM integrations in this codebase: construct the client per
-// request, key from settings.ts (never env), system prompt demands strict
-// JSON with no markdown fences, defensively strip fences anyway, JSON.parse
-// in a try/catch, sanitize every field before trusting it. Same model,
-// 'claude-sonnet-5', already validated elsewhere in this app.
+// plan). Uses OpenAI (this app's other configured provider — aiRisk.ts's
+// Responses API, without the web_search tool, since Copilot never needs live
+// web results, only structured reasoning over data it's already been given)
+// rather than Anthropic: the project only has a working OpenAI key configured
+// in Settings today. Same idiom as both existing LLM integrations in this
+// codebase either way: construct the client per request, key from
+// settings.ts (never env), system prompt demands strict JSON with no
+// markdown fences, defensively strip fences anyway, JSON.parse in a try/
+// catch, sanitize every field before trusting it.
 //
 // The critical property both functions below preserve: interpretQuestion
 // NEVER sees real data (only a fixed tool-name enum + a small context
@@ -12,10 +15,40 @@
 // handed as verifiedResult — it is a narrator, not a calculator. Neither
 // function talks to the database, copilotTools.ts, or any calc file
 // directly; that composition happens one layer up, in the route (Phase 4).
-import Anthropic from '@anthropic-ai/sdk';
-import { getAnthropicApiKey } from './settings.ts';
+import OpenAI from 'openai';
+import { getOpenAiApiKey } from './settings.ts';
 
-const MODEL = 'claude-sonnet-5';
+const MODEL = 'gpt-5.5'; // same model aiRisk.ts already uses successfully with this key
+
+/**
+ * aiRisk.ts's own extractFinalText, duplicated rather than imported — that
+ * file's version is a private, unexported helper scoped to its own
+ * `OpenAI.Responses.Response` usage, and importing a private function across
+ * service files would couple two otherwise-independent features. Same walk:
+ * every 'message' output item's 'output_text' content, concatenated.
+ */
+function extractFinalText(response: OpenAI.Responses.Response): string {
+  let text = '';
+  for (const item of response.output) {
+    if (item.type !== 'message') continue;
+    for (const content of item.content) {
+      if (content.type === 'output_text') text += content.text;
+    }
+  }
+  return text;
+}
+
+/**
+ * Same empirical finding as aiRisk.ts: OpenAI's SDK error messages can echo
+ * a masked-but-still-partial fragment of the submitted key. Pattern-match
+ * anything key-shaped before it ever reaches a log line or a client
+ * response — never return err.message raw the way anthropicInterpreter.ts
+ * safely can (different provider, different error shape).
+ */
+function redactKeyFragments(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw.replace(/sk-[A-Za-z0-9*_-]{6,}/g, '[redacted]');
+}
 
 // ---------------------------------------------------------------------------
 // Fixed tool enum. This list is the ONLY vocabulary the interpretation LLM
@@ -108,7 +141,7 @@ function sanitizeInterpretation(raw: unknown): Interpretation | null {
 }
 
 export function isCopilotConfigured(): boolean {
-  return getAnthropicApiKey() !== null;
+  return getOpenAiApiKey() !== null;
 }
 
 export async function interpretQuestion(
@@ -116,9 +149,9 @@ export async function interpretQuestion(
   viewContext: CopilotViewContext,
   history: ConversationTurn[],
 ): Promise<InterpretOutcome> {
-  const apiKey = getAnthropicApiKey();
+  const apiKey = getOpenAiApiKey();
   if (!apiKey) {
-    return { ok: false, reason: 'not_configured', message: "Grandiose Copilot isn't configured yet. Add an Anthropic API key in Settings." };
+    return { ok: false, reason: 'not_configured', message: "Grandiose Copilot isn't configured yet. Add an OpenAI API key in Settings." };
   }
 
   const contextLines: string[] = [];
@@ -137,16 +170,14 @@ export async function interpretQuestion(
     .join('\n\n');
 
   try {
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
+    const client = new OpenAI({ apiKey });
+    const response = await client.responses.create({
       model: MODEL,
-      max_tokens: 500,
-      system: INTERPRET_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userInput }],
+      instructions: INTERPRET_SYSTEM_PROMPT,
+      input: userInput,
     });
 
-    const rawText = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
-    const cleaned = stripFences(rawText);
+    const cleaned = stripFences(extractFinalText(response));
 
     let parsed: unknown;
     try {
@@ -159,9 +190,8 @@ export async function interpretQuestion(
     if (!sanitized) return { ok: false, reason: 'error', message: "Couldn't understand that question — try rephrasing it." };
     return { ok: true, result: sanitized };
   } catch (err) {
-    // Same empirical finding as anthropicInterpreter.ts: Anthropic's own
-    // auth-error body carries no key material, safe to surface as-is.
-    return { ok: false, reason: 'error', message: `Copilot couldn't process that question: ${err instanceof Error ? err.message : String(err)}` };
+    console.error('Copilot interpretQuestion failed:', redactKeyFragments(err));
+    return { ok: false, reason: 'error', message: 'Copilot could not process that question — check the OpenAI API key in Settings and try again.' };
   }
 }
 
@@ -187,26 +217,26 @@ Be careful with wording about employees: never say someone is "the worst" or mak
 Respond with plain text only — no JSON, no markdown headers, no code fences.`;
 
 export async function explainResult(question: string, toolName: CopilotTool, verifiedResult: unknown): Promise<ExplainOutcome> {
-  const apiKey = getAnthropicApiKey();
+  const apiKey = getOpenAiApiKey();
   if (!apiKey) {
-    return { ok: false, reason: 'not_configured', message: "Grandiose Copilot isn't configured yet. Add an Anthropic API key in Settings." };
+    return { ok: false, reason: 'not_configured', message: "Grandiose Copilot isn't configured yet. Add an OpenAI API key in Settings." };
   }
 
   const userInput = `Question: ${question}\n\nTool used: ${toolName}\n\nVerified data (the only source of numbers you may use):\n${JSON.stringify(verifiedResult)}`;
 
   try {
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
+    const client = new OpenAI({ apiKey });
+    const response = await client.responses.create({
       model: MODEL,
-      max_tokens: 400,
-      system: EXPLAIN_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userInput }],
+      instructions: EXPLAIN_SYSTEM_PROMPT,
+      input: userInput,
     });
 
-    const text = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('').trim();
+    const text = extractFinalText(response).trim();
     if (!text) return { ok: false, reason: 'error', message: 'Copilot had nothing to add here.' };
     return { ok: true, text };
   } catch (err) {
-    return { ok: false, reason: 'error', message: `Copilot couldn't explain that result: ${err instanceof Error ? err.message : String(err)}` };
+    console.error('Copilot explainResult failed:', redactKeyFragments(err));
+    return { ok: false, reason: 'error', message: 'Copilot could not explain that result — check the OpenAI API key in Settings and try again.' };
   }
 }
