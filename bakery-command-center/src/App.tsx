@@ -28,6 +28,8 @@ import { computeAttentionItems, type AttentionItem } from './lib/commandCenterSi
 import { exportCsv, exportXlsx, type TableSheet } from './data/api';
 import { ExportMenu } from './components/shared/ExportMenu';
 import { CopilotViewContextProvider } from './contexts/CopilotContext';
+import { CopilotButton } from './components/copilot/CopilotButton';
+import { CopilotDrawer } from './components/copilot/CopilotDrawer';
 
 type AppPage = 'commandCenter' | 'scenarios' | 'employeePortal' | 'sku' | 'b2b' | 'dataProcessor' | 'optimizationLab' | 'settings';
 
@@ -44,6 +46,19 @@ const APP_PAGES: { key: AppPage; label: string }[] = [
 // Management utility, not a content page — kept visually apart from
 // APP_PAGES rather than counted among the 7 content pages (see Phase 7 plan).
 const SETTINGS_PAGE: { key: AppPage; label: string } = { key: 'settings', label: 'Settings' };
+
+const ALL_APP_PAGE_KEYS: readonly AppPage[] = [...APP_PAGES.map((p) => p.key), SETTINGS_PAGE.key];
+
+/** Copilot's navigation action chips (routes/copilot.ts's runTool) carry a
+ * bare page string, not a typed AppPage — this is the one place that string
+ * is trusted, and only after checking it against the real page list. A
+ * page Copilot names that isn't allowed for this role (or isn't a real
+ * page) is silently ignored rather than crashing the app or bypassing
+ * getAllowedPages() — nav-level access is still enforced the same way it
+ * is everywhere else in this file. */
+function isAppPage(value: string): value is AppPage {
+  return (ALL_APP_PAGE_KEYS as readonly string[]).includes(value);
+}
 
 /**
  * The single source of truth for "who can see what" at the nav level. Server
@@ -153,6 +168,7 @@ function App() {
   const [granularity, setGranularity] = useState<PeriodGranularity>('month');
   const [selectedMonth, setSelectedMonth] = useState('Jul');
   const [selectedQuarter, setSelectedQuarter] = useState('Q4');
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   const modelDefault = scenariosFile.scenarios.modelScenario.default;
   const [modelHiring, setModelHiring] = useState(modelDefault.incrementalHiring);
@@ -243,6 +259,13 @@ function App() {
   function goToSkuPerformance(context: AnalysisContext) {
     setSkuHandoff(context);
     setPage('sku');
+  }
+
+  function handleCopilotNavigate(targetPage: string) {
+    if (isAppPage(targetPage) && validPages.includes(targetPage)) {
+      setPage(targetPage);
+      setCopilotOpen(false);
+    }
   }
 
   const varianceCell = !isModel && granularity === 'month' && selectedMonth === 'Jul' && scenario === 'actuals' ? scenariosFile.scenarios.actuals.months.Jul.variance : undefined;
@@ -454,6 +477,9 @@ function App() {
         </footer>
       </main>
       </div>
+
+      <CopilotButton onClick={() => setCopilotOpen(true)} />
+      <CopilotDrawer open={copilotOpen} onClose={() => setCopilotOpen(false)} onNavigate={handleCopilotNavigate} />
     </CopilotViewContextProvider>
   );
 }
