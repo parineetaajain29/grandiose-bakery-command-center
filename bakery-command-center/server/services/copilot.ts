@@ -58,17 +58,37 @@ function redactKeyFragments(err: unknown): string {
 // of these names to one or more real calls into that file.
 // ---------------------------------------------------------------------------
 export const COPILOT_TOOLS = [
-  'employee_comparison', // "who has the highest/lowest true efficiency", "compare X with their division" — params: { employeeName }
-  'employees_needing_attention', // "which employee needs attention" — no params
-  'sku_ranking', // "highest contribution/revenue SKU in <division>" — params: { division?, metric: 'contribution'|'revenue'|'units' }
-  'division_summary', // "which division sells the most" — no params
-  'management_attention_items', // "biggest issues management should look at" — params: { scenario?, granularity?, month?, quarter? }
-  'wastage', // "what is driving our wastage", "wastage %" — same params as management_attention_items
-  'b2b_ranking', // "highest delivery commitment/collection exposure client" — params: { metric: 'deliveryCommitment'|'collectionExposure'|'revenue'|'margin' }
-  'b2b_summary', // "how are we doing with B2B overall" — no params
-  'unsupported', // question doesn't map to any tool above yet (e.g. optimization/AI Risk — later phases, or genuinely out of scope)
+  'employee_comparison',
+  'employees_needing_attention',
+  'sku_ranking',
+  'division_summary',
+  'management_attention_items',
+  'wastage',
+  'b2b_ranking',
+  'b2b_summary',
+  'unsupported',
 ] as const;
 export type CopilotTool = (typeof COPILOT_TOOLS)[number];
+
+/**
+ * The actual param documentation the interpretation LLM sees. This MUST be
+ * real prompt text, not a TypeScript comment next to the enum above — a
+ * comment is invisible to the model at runtime (a bug caught in Step 4's own
+ * live test: "Compare Ahmed with his division" correctly picked
+ * employee_comparison but produced no employeeName param, because the model
+ * was never actually told that field name existed).
+ */
+const TOOL_DESCRIPTIONS: Record<CopilotTool, string> = {
+  employee_comparison: `employee_comparison — "who has the highest/lowest true efficiency", "compare X with their division". params: { "employeeName": "<name as the user wrote it, e.g. 'Ahmed'>" }. employeeName is REQUIRED — never call this tool without it.`,
+  employees_needing_attention: `employees_needing_attention — "which employee needs attention". params: {} (no params).`,
+  sku_ranking: `sku_ranking — "highest contribution/revenue/units SKU", optionally in a division. params: { "division": "<real division name, omit if not given>", "metric": "contribution" | "revenue" | "units" (default "contribution" if not specified) }.`,
+  division_summary: `division_summary — "which division sells the most", "division totals". params: {} (no params).`,
+  management_attention_items: `management_attention_items — "biggest issues management should look at", "what needs attention". params: { "scenario": "actuals" | "gmTargetPlan" | "efficiencyCase" | "expansionCase" (omit for actuals), "granularity": "month" | "quarter" | "ytd" (omit for month), "month": "<3-letter month, e.g. 'Jul'>", "quarter": "<e.g. 'Q4'>" } — omit any field not mentioned by the user.`,
+  wastage: `wastage — "what is driving our wastage", "wastage %", "wastage cost". Same params as management_attention_items.`,
+  b2b_ranking: `b2b_ranking — "highest delivery commitment client", "highest collection exposure client", "best margin client". params: { "metric": "deliveryCommitment" | "collectionExposure" | "revenue" | "margin" (default "revenue" if not specified) }.`,
+  b2b_summary: `b2b_summary — "how are we doing with B2B overall", company-wide B2B summary. params: {} (no params).`,
+  unsupported: `unsupported — the question doesn't map to any tool above. params: {} (no params).`,
+};
 
 export interface CopilotViewContext {
   page?: string;
@@ -97,10 +117,11 @@ export type InterpretOutcome =
 
 const INTERPRET_SYSTEM_PROMPT = `You are the question router for Grandiose Copilot, an analytics assistant embedded in a bakery management dashboard. You do NOT have access to any data yourself — your only job is to read the user's question and decide which ONE internal tool should answer it, and with what parameters.
 
-Available tools (choose exactly one):
-${COPILOT_TOOLS.map((t) => `- ${t}`).join('\n')}
+Available tools (choose exactly one) — each line names the tool, when to use it, and the EXACT param field names it expects:
+${COPILOT_TOOLS.map((t) => `- ${TOOL_DESCRIPTIONS[t]}`).join('\n')}
 
 Rules:
+- Use the exact param field names shown above — do not invent your own field names or omit a REQUIRED param.
 - Never invent a tool name outside this list. If nothing fits, use "unsupported".
 - If the question is genuinely ambiguous about WHICH metric to use (e.g. "best SKU" could mean revenue, contribution, or units), still pick your best-guess tool and params, but set "ambiguous": true and fill "clarifyingQuestion" with a short question offering the real alternatives you know exist (Revenue, Contribution %, Units).
 - If the question refers to "it"/"that"/"this division" etc., resolve it using the conversation history and/or the current view context you're given — never ask the user to repeat themselves if the answer is already inferable.
