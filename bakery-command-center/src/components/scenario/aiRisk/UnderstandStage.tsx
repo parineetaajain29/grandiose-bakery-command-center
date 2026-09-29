@@ -3,6 +3,7 @@ import type { AiResearchRecord } from '../../../data/api';
 import { DataSourceBadge } from '../../shared/DataSourceBadge';
 import { relativeTime } from './relativeTime';
 import { RiskConfidenceGauge } from './RiskConfidenceGauge';
+import { findProcurableMaterial } from './procurableMaterials';
 import { BookmarkIcon, BuildingIcon, CalendarIcon, CheckCircleIcon, GlobeIcon, LeafIcon, TrendUpIcon } from './icons';
 
 // Same semantic mapping RiskConfidenceGauge's colors use below — risk gets
@@ -56,13 +57,18 @@ interface UnderstandStageProps {
   onRefresh: () => void;
   refreshing: boolean;
   onBuildScenario: () => void;
+  onFindSuppliers: (material: string) => void;
 }
 
-/** Stage 2 of 3 — result title, executive summary, three cards, compact metadata (no division exposure — see MIGRATION-PROVENANCE.html), Sources panel. */
-export function UnderstandStage({ research, cached, onRefresh, refreshing, onBuildScenario }: UnderstandStageProps) {
+/** Stage 2 of 4 — result title, executive summary, three cards, compact metadata (no division exposure — see MIGRATION-PROVENANCE.html), Sources panel. */
+export function UnderstandStage({ research, cached, onRefresh, refreshing, onBuildScenario, onFindSuppliers }: UnderstandStageProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [showSources, setShowSources] = useState(false);
   const { result } = research;
+  // Only offer Supplier Intelligence when the risk is meaningfully tied to a
+  // real procurable raw material — never for labour, geopolitical, or
+  // cybersecurity risk types. See procurableMaterials.ts.
+  const procurableMaterial = findProcurableMaterial(result.affectedMaterials);
 
   return (
     <section className="rounded-card border border-border-subtle bg-bg-panel p-5 shadow-card sm:p-7">
@@ -174,13 +180,24 @@ export function UnderstandStage({ research, cached, onRefresh, refreshing, onBui
         <button type="button" onClick={() => setShowDetail((v) => !v)} className="font-sans text-sm font-medium text-accent-blue hover:underline">
           {showDetail ? 'Hide' : 'View'} Detailed Research
         </button>
-        <button
-          type="button"
-          onClick={onBuildScenario}
-          className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90"
-        >
-          Build Scenario from Research
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {procurableMaterial && (
+            <button
+              type="button"
+              onClick={() => onFindSuppliers(procurableMaterial)}
+              className="rounded-lg border border-border-strong px-4 py-2.5 font-sans text-sm font-semibold text-text-primary transition-colors hover:border-accent-blue/50"
+            >
+              Find Supplier Alternatives →
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onBuildScenario}
+            className="rounded-lg border border-accent-blue bg-accent-blue px-4 py-2.5 font-sans text-sm font-semibold text-[#04070d] transition-opacity hover:opacity-90"
+          >
+            Build Scenario from Research
+          </button>
+        </div>
       </div>
 
       {showDetail && (

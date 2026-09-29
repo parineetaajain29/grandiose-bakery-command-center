@@ -3,6 +3,7 @@ import { runAiResearch, getAiRiskStatus, type AiResearchParams, type AiResearchR
 import type { AuthUser } from '../../../data';
 import { ResearchStage } from './ResearchStage';
 import { UnderstandStage } from './UnderstandStage';
+import { SupplierStage } from './SupplierStage';
 import { PrepareStage } from './PrepareStage';
 import { WatchlistView } from './WatchlistView';
 import { HistoryView } from './HistoryView';
@@ -10,12 +11,13 @@ import { DataSourceBadge } from '../../shared/DataSourceBadge';
 import { SparkleIcon } from './icons';
 
 type SecondaryView = 'flow' | 'watchlist' | 'history';
-type Stage = 'research' | 'understand' | 'prepare';
+type Stage = 'research' | 'understand' | 'suppliers' | 'prepare';
 
-const STAGE_ORDER: Stage[] = ['research', 'understand', 'prepare'];
+const STAGE_ORDER: Stage[] = ['research', 'understand', 'suppliers', 'prepare'];
 const STEPS: { key: Stage; label: string; caption: string }[] = [
   { key: 'research', label: 'Research', caption: 'Ask a question and set your parameters' },
   { key: 'understand', label: 'Understand', caption: 'Review AI insights and company impact' },
+  { key: 'suppliers', label: 'Suppliers', caption: 'Find and compare real sourcing alternatives' },
   { key: 'prepare', label: 'Prepare', caption: 'Build and run your custom scenario' },
 ];
 
@@ -87,6 +89,7 @@ function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
   const [stage, setStage] = useState<Stage>('research');
   const [research, setResearch] = useState<AiResearchRecord | null>(null);
   const [cached, setCached] = useState(false);
+  const [supplierMaterial, setSupplierMaterial] = useState<string | null>(null);
   const [configured, setConfigured] = useState(true); // optimistic until status loads, matches Data Processor's pattern
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -120,6 +123,11 @@ function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
     setCached(true);
     setStage('understand');
     setView('flow');
+  }
+
+  function findSuppliers(material: string) {
+    setSupplierMaterial(material);
+    setStage('suppliers');
   }
 
   return (
@@ -161,7 +169,11 @@ function AiRiskWorkspace({ role }: { role: AuthUser['role'] }) {
               refreshing={refreshing}
               onRefresh={() => submit(research.params, true)}
               onBuildScenario={() => setStage('prepare')}
+              onFindSuppliers={findSuppliers}
             />
+          )}
+          {stage === 'suppliers' && research && supplierMaterial && (
+            <SupplierStage material={supplierMaterial} researchId={research.id} onBack={() => setStage('understand')} />
           )}
           {stage === 'prepare' && research && <PrepareStage research={research} />}
         </>
