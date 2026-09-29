@@ -240,4 +240,32 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ai_usage_employee ON ai_usage(employee_id, searched_at);
 `);
 
+// Grandiose Copilot conversation history. One row per question/answer turn,
+// not per session — conversation_id groups turns the same way a chat thread
+// would; a user can hold several (New conversation starts a fresh id). This
+// is session/conversation-scoped memory only, matching the product spec's
+// "no long-term personal memory for V1" — nothing here is read across
+// conversation_ids. tool_used and answer_json are the traceability trail:
+// they record which deterministic tool actually produced the numbers behind
+// answer_json's "answer" text, never what the LLM merely said it used, so a
+// wrong answer can be traced back to either a bad tool result or a bad
+// explanation independently. view_context_json is the page/division/period
+// object Copilot was shown for this turn — kept per-turn (not just per
+// conversation) since the user can navigate mid-conversation.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS copilot_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    employee_id TEXT NOT NULL REFERENCES employees(id),
+    question TEXT NOT NULL,
+    view_context_json TEXT,
+    tool_used TEXT,
+    answer_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_copilot_messages_conversation ON copilot_messages(conversation_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_copilot_messages_employee ON copilot_messages(employee_id, created_at);
+`);
+
 export { DB_PATH };
