@@ -9,7 +9,9 @@ import {
 } from '../../../data/api';
 import { DataSourceBadge } from '../../shared/DataSourceBadge';
 import { relativeTime } from './relativeTime';
-import { BoxIcon, BuildingIcon, CalendarIcon, ChevronDownIcon, FileIcon, GlobeIcon, PinIcon, RefreshIcon, ShieldIcon, SparkleIcon } from './icons';
+import { mapMaterialToResource } from './supplierOptimizationScenario';
+import { SupplierScenarioTest } from './SupplierScenarioTest';
+import { BarChartIcon, BoxIcon, BuildingIcon, CalendarIcon, ChevronDownIcon, FileIcon, GlobeIcon, PinIcon, RefreshIcon, ShieldIcon, SparkleIcon } from './icons';
 
 // Rotates while a search is in flight — same "no fake progress" rule as
 // ResearchStage's own baking messages: purely cosmetic phrasing, never a
@@ -64,7 +66,7 @@ const EVIDENCE_RANK: Record<SupplierEvidenceQuality, number> = { high: 0, medium
 type SortKey = 'none' | 'price' | 'leadTime' | 'evidence';
 type EvidenceFilter = 'all' | SupplierEvidenceQuality;
 
-function SupplierCard({ row }: { row: SupplierRow }) {
+function SupplierCard({ row, onTest }: { row: SupplierRow; onTest?: () => void }) {
   const [showSources, setShowSources] = useState(false);
   return (
     <div className="flex flex-col gap-3 rounded-card border border-border-subtle bg-bg-panel p-4">
@@ -132,9 +134,17 @@ function SupplierCard({ row }: { row: SupplierRow }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-3">
         <p className="font-mono text-[11px] text-text-tertiary">Last checked {relativeTime(row.retrievedAt)}</p>
-        <button type="button" onClick={() => setShowSources((v) => !v)} className="font-sans text-xs font-medium text-accent-blue hover:underline">
-          {showSources ? 'Hide' : 'View'} Sources ({row.sources.length})
-        </button>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setShowSources((v) => !v)} className="font-sans text-xs font-medium text-accent-blue hover:underline">
+            {showSources ? 'Hide' : 'View'} Sources ({row.sources.length})
+          </button>
+          {onTest && (
+            <button type="button" onClick={onTest} className="flex items-center gap-1 font-sans text-xs font-semibold text-accent-blue hover:underline">
+              <BarChartIcon width={12} height={12} />
+              Test in Optimization →
+            </button>
+          )}
+        </div>
       </div>
 
       {showSources && (
@@ -178,6 +188,13 @@ export function SupplierStage({ material: initialMaterial, researchId, onBack }:
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceFilter>('all');
   const [geographyFilter, setGeographyFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('none');
+  const [testingRow, setTestingRow] = useState<SupplierRow | null>(null);
+
+  // Only butter and flour map to a real optimizer-modeled resource — see
+  // supplierOptimizationScenario.ts. "Test in Optimization" only ever
+  // appears when this is non-null, honestly reflecting that limitation
+  // rather than offering a test the optimizer can't actually model.
+  const optimizerResource = mapMaterialToResource(material);
 
   // On first mount, silently check for a supplier search already run from
   // this AI Risk record — avoids re-spending the shared research budget just
@@ -210,6 +227,7 @@ export function SupplierStage({ material: initialMaterial, researchId, onBack }:
     setRefreshing(forceRefresh);
     setErrorMessage(null);
     setSourcingMessageIndex(0);
+    setTestingRow(null);
     try {
       const outcome = await runSupplierSearch(material.trim(), spec, forceRefresh, researchId);
       setResearch(outcome.research);
@@ -372,9 +390,13 @@ export function SupplierStage({ material: initialMaterial, researchId, onBack }:
 
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
             {visibleSuppliers.map((row) => (
-              <SupplierCard key={`${row.name}-${row.product}`} row={row} />
+              <SupplierCard key={`${row.name}-${row.product}`} row={row} onTest={optimizerResource ? () => setTestingRow(row) : undefined} />
             ))}
           </div>
+
+          {testingRow && optimizerResource && (
+            <SupplierScenarioTest material={material} resource={optimizerResource} row={testingRow} onClose={() => setTestingRow(null)} />
+          )}
 
           {suppliers.length === 0 && (
             <p className="mt-4 rounded-lg border border-accent-orange/40 bg-accent-orange/10 px-3 py-2 font-sans text-sm text-accent-orange">

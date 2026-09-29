@@ -502,12 +502,29 @@ export interface OptimizationInfeasibleResult {
 
 export type OptimizationResult = OptimizationOptimalResult | OptimizationInfeasibleResult;
 
-export interface OptimizationCustomInput {
-  sku_data: OptimizationSkuInput[];
-  resource_limits: OptimizationResourceLimits;
+/** Mirrors optimization_engine.py's `_apply_scenario()` override shape exactly
+ * — that mechanism already exists in the Python engine and was already
+ * passed through untyped by the Node server (OptimizationRequestBody's
+ * `scenario?: unknown`); this only gives the frontend a typed way to build
+ * one. Applied to a deep copy server-side, in this priority: multipliers,
+ * then per-SKU overrides, then resource overrides. Used by Supplier
+ * Intelligence's "Test in Optimization" (see supplierOptimizationScenario.ts)
+ * to layer a supplier-driven cost/availability change on top of baseline
+ * inputs without ever touching optimize_production()'s own math. */
+export interface OptimizationScenario {
+  name?: string;
+  global_sku_multipliers?: Partial<Record<keyof OptimizationSkuInput, number>>;
+  sku_overrides?: Record<string, Partial<OptimizationSkuInput>>;
+  resource_overrides?: Partial<OptimizationResourceLimits>;
 }
 
-/** Omit `input` to run the engine's own illustrative demo dataset (`isDemoData: true` on the result); pass one to run a user's own numbers instead (`isDemoData: false`). Throws on a 400 (invalid input, message from the engine's own validation) or 502 (engine process failure) — the caller shows `.message` inline. */
+export interface OptimizationCustomInput {
+  sku_data?: OptimizationSkuInput[];
+  resource_limits?: OptimizationResourceLimits;
+  scenario?: OptimizationScenario;
+}
+
+/** Omit `input` (or omit sku_data/resource_limits within it) to run the engine's own illustrative demo dataset (`isDemoData: true` on the result); pass sku_data+resource_limits to run a user's own numbers instead (`isDemoData: false`). A `scenario`-only input (no sku_data/resource_limits) runs the demo dataset with that scenario's overrides layered on top — still `isDemoData: true`, since the underlying baseline is still the illustrative dataset even with a real override applied. Throws on a 400 (invalid input, message from the engine's own validation) or 502 (engine process failure) — the caller shows `.message` inline. */
 export function runOptimization(input?: OptimizationCustomInput): Promise<OptimizationResult> {
   return sendJson('POST', '/api/optimization/run', input ?? {});
 }
