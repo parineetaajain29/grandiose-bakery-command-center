@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { scenariosFile } from '../../../data';
 import { computeHhi, computeInflationSensitivity, computeSupplyDisruption, type HhiResult, type InflationSensitivityResult, type SupplyDisruptionResult } from '../../../lib/scenarioCalc';
 import {
@@ -7,11 +7,13 @@ import {
   exportDocx,
   exportPdf,
   exportXlsx,
+  listSupplierResearchForResearchId,
   saveAiResearchAssumptions,
   type AiAssumptionParam,
   type AiResearchRecord,
   type AiSuggestedAssumption,
   type DocSpec,
+  type SupplierResearchRecord,
   type TableSheet,
 } from '../../../data/api';
 import { DataSourceBadge } from '../../shared/DataSourceBadge';
@@ -46,12 +48,30 @@ const CURRENT_VALUES: Record<AiAssumptionParam, number> = {
   safety_stock_days: pandemicPreparedness.supplyChain.safetyStockDays.default,
 };
 
+const EVIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', limited: 'Limited' };
+
+/** Same price formatting as SupplierStage's own formatPrice — kept as a
+ * separate copy rather than a shared import since this one only needs to
+ * produce a plain string for a document/sheet cell, not JSX. */
+function formatSupplierPrice(s: SupplierResearchRecord['result']['suppliers'][number]): string {
+  if (s.priceLevel === 'request_quote' || s.priceAmount === null) return 'Request quote';
+  const cur = s.priceCurrency ?? '';
+  const unit = s.priceUnit ? ` / ${s.priceUnit}` : '';
+  if (s.priceAmountHigh !== null && s.priceAmountHigh !== s.priceAmount) return `${cur} ${s.priceAmount}–${s.priceAmountHigh}${unit}`;
+  return `${cur} ${s.priceAmount}${unit}`;
+}
+
 /** Maps ExecutiveBrief's exact content into the shared DocSpec shape — same
- * fields, same order, just structured for Word/PDF instead of JSX. */
+ * fields, same order, just structured for Word/PDF instead of JSX.
+ * `supplierResearch` is optional and additive: when a Supplier Intelligence
+ * search was run from this AI Risk record, its findings and sources are
+ * folded into the same brief and export architecture already used for the
+ * research itself — no separate export system, per spec. */
 function buildBriefDocSpec(
   research: AiResearchRecord,
   values: Record<AiAssumptionParam, number>,
   runResult: { inflation: InflationSensitivityResult; disruption: SupplyDisruptionResult } | null,
+  supplierResearch: SupplierResearchRecord | null,
 ): DocSpec {
   const { result } = research;
   const sections: DocSpec['sections'] = [
@@ -81,18 +101,40 @@ function buildBriefDocSpec(
     paragraphs: ['Whether to adopt the assumptions above into planning, or hold for the next research refresh.'],
   });
 
+  if (supplierResearch) {
+    const { result: supplierResult } = supplierResearch;
+    sections.push({
+      heading: `Supplier Alternatives — ${supplierResearch.material}`,
+      paragraphs: [supplierResult.summary],
+      bullets:
+        supplierResult.suppliers.length > 0
+          ? supplierResult.suppliers.map((s) => {
+              const evidence = EVIDENCE_LABEL[s.evidenceQuality] ?? s.evidenceQuality;
+              const price = formatSupplierPrice(s);
+              const normalized = s.normalizedAedPerKg !== null ? ` (~AED ${s.normalizedAedPerKg}/kg)` : '';
+              return `${s.name}${s.isRetailBenchmark ? ' [Retail Benchmark]' : ''} — ${s.geography}, ${s.supplierType} · ${price}${normalized} · MOQ ${s.moq} · Lead time ${s.leadTime} · ${evidence} evidence`;
+            })
+          : ['No suppliers with verifiable evidence were found for this material and spec.'],
+    });
+    sections.push({ heading: 'Pricing disclaimer', paragraphs: [supplierResult.disclaimer] });
+  }
+
   const sourceBullets = [
     ...research.citedSources.map((s) => `Cited: ${s.title || s.url} (${s.url})`),
     ...research.allSources.map((url) => `Searched: ${url}`),
+    ...(supplierResearch
+      ? supplierResearch.result.suppliers.flatMap((s) => s.sources.map((src) => `Supplier source (${src.label}): ${src.title} (${src.url})`))
+      : []),
   ];
-  sections.push({ heading: `Sources (${research.allSources.length})`, bullets: sourceBullets.length > 0 ? sourceBullets : ['No external sources retrieved.'] });
+  sections.push({ heading: `Sources (${sourceBullets.length})`, bullets: sourceBullets.length > 0 ? sourceBullets : ['No external sources retrieved.'] });
 
   return { title: result.title, subtitle: 'Executive Brief — Grandiose Bakery AI Risk Intelligence', sections };
 }
 
-/** Sources/Assumptions/Action Plan as three tabular sheets — the "research
- * data" export target, distinct from the Brief's narrative export above. */
-function buildResearchDataSheets(research: AiResearchRecord, values: Record<AiAssumptionParam, number>): TableSheet[] {
+/** Sources/Assumptions/Action Plan (+ Supplier Alternatives, when a supplier
+ * search was run from this record) as tabular sheets — the "research data"
+ * export target, distinct from the Brief's narrative export above. */
+function buildResearchDataSheets(research: AiResearchRecord, values: Record<AiAssumptionParam, number>, supplierResearch: SupplierResearchRecord | null): TableSheet[] {
   const { result } = research;
   const sourcesSheet: TableSheet = {
     name: 'Sources',
@@ -119,7 +161,30 @@ function buildResearchDataSheets(research: AiResearchRecord, values: Record<AiAs
       ...result.actionPlan.in90DaysPlus.map((a) => ['90 days+', a]),
     ],
   };
-  return [sourcesSheet, assumptionsSheet, actionPlanSheet];
+  const sheets = [sourcesSheet, assumptionsSheet, actionPlanSheet];
+
+  if (supplierResearch) {
+    const supplierSheet: TableSheet = {
+      name: 'Supplier Alternatives',
+      columns: ['Supplier', 'Location', 'Product/Spec', 'Price Level', 'Indicative Price', 'AED/kg', 'MOQ', 'Lead Time', 'Evidence', 'Retail Benchmark', 'Last Checked'],
+      rows: supplierResearch.result.suppliers.map((s) => [
+        s.name,
+        s.geography,
+        s.product,
+        s.priceLevel,
+        formatSupplierPrice(s),
+        s.normalizedAedPerKg ?? 'Not published',
+        s.moq,
+        s.leadTime,
+        EVIDENCE_LABEL[s.evidenceQuality] ?? s.evidenceQuality,
+        s.isRetailBenchmark ? 'Yes' : 'No',
+        s.retrievedAt,
+      ]),
+    };
+    sheets.push(supplierSheet);
+  }
+
+  return sheets;
 }
 
 interface PrepareStageProps {
@@ -147,6 +212,23 @@ export function PrepareStage({ research }: PrepareStageProps) {
   const [hhiResult, setHhiResult] = useState<HhiResult | null>(null);
 
   const [showBrief, setShowBrief] = useState(false);
+
+  // Optional and additive: if a Supplier Intelligence search was run from
+  // this AI Risk record (Suppliers stage), fold its findings into the same
+  // brief/export this stage already builds — no separate export system, no
+  // requirement that a supplier search ever happened.
+  const [supplierResearch, setSupplierResearch] = useState<SupplierResearchRecord | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    listSupplierResearchForResearchId(research.id)
+      .then((records) => {
+        if (!cancelled && records.length > 0) setSupplierResearch(records[0]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [research.id]);
 
   function suggestionFor(param: AiAssumptionParam): AiSuggestedAssumption | undefined {
     return result.suggestedAssumptions.find((a) => a.parameter === param);
@@ -364,22 +446,32 @@ export function PrepareStage({ research }: PrepareStageProps) {
         <ExportMenu
           label="Export Brief"
           options={[
-            { label: 'Word (.docx)', onExport: () => exportDocx(buildBriefDocSpec(research, values, runResult)) },
-            { label: 'PDF', onExport: () => exportPdf(buildBriefDocSpec(research, values, runResult)) },
+            { label: 'Word (.docx)', onExport: () => exportDocx(buildBriefDocSpec(research, values, runResult, supplierResearch)) },
+            { label: 'PDF', onExport: () => exportPdf(buildBriefDocSpec(research, values, runResult, supplierResearch)) },
           ]}
         />
         <ExportMenu
           label="Export Research Data"
           options={[
-            { label: 'Excel (all sheets)', onExport: () => exportXlsx(buildResearchDataSheets(research, values)) },
-            { label: 'Sources (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[0]) },
-            { label: 'Assumptions (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[1]) },
-            { label: 'Action Plan (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values)[2]) },
+            { label: 'Excel (all sheets)', onExport: () => exportXlsx(buildResearchDataSheets(research, values, supplierResearch)) },
+            { label: 'Sources (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values, supplierResearch)[0]) },
+            { label: 'Assumptions (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values, supplierResearch)[1]) },
+            { label: 'Action Plan (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values, supplierResearch)[2]) },
+            ...(supplierResearch
+              ? [{ label: 'Supplier Alternatives (CSV)', onExport: () => exportCsv(buildResearchDataSheets(research, values, supplierResearch)[3]) }]
+              : []),
           ]}
         />
       </div>
 
-      {showBrief && <ExecutiveBrief research={research} values={values} runResult={runResult} />}
+      {supplierResearch && (
+        <p className="mt-3 font-sans text-xs text-text-tertiary">
+          Includes {supplierResearch.result.suppliers.length} supplier alternative{supplierResearch.result.suppliers.length === 1 ? '' : 's'} researched for{' '}
+          {supplierResearch.material} in both exports below.
+        </p>
+      )}
+
+      {showBrief && <ExecutiveBrief research={research} values={values} runResult={runResult} supplierResearch={supplierResearch} />}
     </section>
   );
 }

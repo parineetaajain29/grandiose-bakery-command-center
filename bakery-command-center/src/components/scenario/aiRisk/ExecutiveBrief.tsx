@@ -1,4 +1,4 @@
-import type { AiAssumptionParam, AiResearchRecord } from '../../../data/api';
+import type { AiAssumptionParam, AiResearchRecord, SupplierResearchRecord } from '../../../data/api';
 import type { InflationSensitivityResult, SupplyDisruptionResult } from '../../../lib/scenarioCalc';
 
 const PARAM_LABEL: Record<AiAssumptionParam, string> = {
@@ -9,14 +9,25 @@ const PARAM_LABEL: Record<AiAssumptionParam, string> = {
   safety_stock_days: 'Safety stock (days)',
 };
 
+const EVIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', limited: 'Limited' };
+
+function formatSupplierPrice(s: SupplierResearchRecord['result']['suppliers'][number]): string {
+  if (s.priceLevel === 'request_quote' || s.priceAmount === null) return 'Request quote';
+  const cur = s.priceCurrency ?? '';
+  const unit = s.priceUnit ? ` / ${s.priceUnit}` : '';
+  if (s.priceAmountHigh !== null && s.priceAmountHigh !== s.priceAmount) return `${cur} ${s.priceAmount}–${s.priceAmountHigh}${unit}`;
+  return `${cur} ${s.priceAmount}${unit}`;
+}
+
 interface ExecutiveBriefProps {
   research: AiResearchRecord;
   values: Record<AiAssumptionParam, number>;
   runResult: { inflation: InflationSensitivityResult; disruption: SupplyDisruptionResult } | null;
+  supplierResearch?: SupplierResearchRecord | null;
 }
 
 /** In-app render only — no PDF, no email, this pass (explicitly out of scope). */
-export function ExecutiveBrief({ research, values, runResult }: ExecutiveBriefProps) {
+export function ExecutiveBrief({ research, values, runResult, supplierResearch }: ExecutiveBriefProps) {
   const { result } = research;
   return (
     <div className="mt-4 rounded-lg border border-border-subtle bg-bg-panel-raised p-5">
@@ -75,6 +86,30 @@ export function ExecutiveBrief({ research, values, runResult }: ExecutiveBriefPr
           <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">Decision required — </strong>
           Whether to adopt the assumptions above into planning, or hold for the next research refresh.
         </p>
+
+        {supplierResearch && (
+          <div>
+            <strong className="font-sans text-xs font-semibold uppercase text-text-tertiary">
+              Supplier Alternatives — {supplierResearch.material}
+            </strong>
+            <p className="mt-1 font-sans text-sm text-text-secondary">{supplierResearch.result.summary}</p>
+            {supplierResearch.result.suppliers.length > 0 ? (
+              <ul className="mt-1 flex flex-col gap-0.5 font-sans text-sm text-text-primary">
+                {supplierResearch.result.suppliers.map((s) => (
+                  <li key={`${s.name}-${s.product}`}>
+                    {s.name}
+                    {s.isRetailBenchmark ? ' [Retail Benchmark]' : ''} — {s.geography}, {s.supplierType} · {formatSupplierPrice(s)}
+                    {s.normalizedAedPerKg !== null ? ` (~AED ${s.normalizedAedPerKg}/kg)` : ''} · MOQ {s.moq} · Lead time {s.leadTime} ·{' '}
+                    {EVIDENCE_LABEL[s.evidenceQuality] ?? s.evidenceQuality} evidence
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 font-sans text-sm text-text-secondary">No suppliers with verifiable evidence were found.</p>
+            )}
+            <p className="mt-1 font-mono text-xs text-text-tertiary">{supplierResearch.result.disclaimer}</p>
+          </div>
+        )}
 
         <div>
           {/* citedSources (inline url_citation annotations) is legitimately near-empty almost always — the model is
