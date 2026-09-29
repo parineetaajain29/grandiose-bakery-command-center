@@ -17,6 +17,7 @@ import { supplierIntelligenceRouter } from './routes/supplierIntelligence.ts';
 import { optimizationRouter } from './routes/optimization.ts';
 import { exportRouter } from './routes/export.ts';
 import { copilotRouter } from './routes/copilot.ts';
+import { presentationBuilderRouter } from './routes/presentationBuilder.ts';
 import { resolveSession, parseCookies, SESSION_COOKIE } from './auth.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,6 +49,7 @@ app.use('/api', supplierIntelligenceRouter);
 app.use('/api', optimizationRouter);
 app.use('/api', exportRouter);
 app.use('/api', copilotRouter);
+app.use('/api', presentationBuilderRouter);
 
 if (isProduction) {
   // Single-process shape for running unmodified on Grandiose's desktop:
