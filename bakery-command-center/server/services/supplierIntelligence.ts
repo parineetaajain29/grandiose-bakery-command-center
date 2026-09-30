@@ -483,7 +483,16 @@ export async function runSupplierSearch(
   }
 
   try {
-    const client = new OpenAI({ apiKey });
+    // Explicit timeout + no retries: the SDK default (10 min timeout, 2
+    // retries) meant an open, unrestricted web search (no allowed_domains —
+    // see deviation 1 above) could legitimately run for several minutes
+    // before failing, then silently retry the full wait twice more — from
+    // the UI, that reads as an indefinite hang, even though the "Sourcing…"
+    // message only ever promised "up to a minute". Bounding it here means a
+    // slow/failed search surfaces the existing error message (with its
+    // "try again" action) well inside a minute and a half, instead of
+    // leaving the user staring at a spinner for 5+ minutes.
+    const client = new OpenAI({ apiKey, timeout: 75_000, maxRetries: 0 });
     const response = await client.responses.create({
       model: 'gpt-5.5',
       instructions: SYSTEM_INSTRUCTIONS,
